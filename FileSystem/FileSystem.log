@@ -1,1 +1,15 @@
 [INFO] 17:34:00:653 FileSystem/(10579:10579): Recibi un SELECT T1 12
+[INFO] 13:52:17:478 FileSystem/(14667:14667): Recibi un SELECT T1 (null)
+[INFO] 13:53:54:513 FileSystem/(14732:14732): Recibi un SELECT T1 (null)
+[INFO] 13:54:33:976 FileSystem/(14774:14774): Recibi un SELECT T1 (null)
+[INFO] 13:55:03:143 FileSystem/(14795:14795): Recibi un SELECT T1 (null)
+[INFO] 13:55:40:709 FileSystem/(14843:14843): Recibi un SELECT T1 (null)
+[INFO] 13:56:05:779 FileSystem/(14867:14867): Recibi un SELECT T1 (null)
+[INFO] 14:01:45:874 FileSystem/(15127:15127): Recibi un SELECT T1 (null)
+[INFO] 14:03:04:353 FileSystem/(15182:15182): Recibi un SELECT T1 (null)
+[INFO] 14:07:22:975 FileSystem/(15394:15394): Recibi un SELECT T1 (null)
+[INFO] 14:49:46:3 FileSystem/(17912:17912): Recibi un SELECT T1 123
+[INFO] 14:55:02:766 FileSystem/(18142:18142): Recibi un SELECT T1 123
+[INFO] 15:03:53:691 FileSystem/(18547:18547): Recibi un SELECT T1 12
+[INFO] 15:10:18:123 FileSystem/(18726:18726): Recibi un SELECT T1 123
+[INFO] 15:18:50:812 FileSystem/(19919:19919): Recibi un DROP T1

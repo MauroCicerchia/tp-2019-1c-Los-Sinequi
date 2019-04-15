@@ -27,11 +27,16 @@ e_query processQuery(char *query, t_log *logger) {
 	char log_msg[100];
 	e_query queryType;
 
-	char **args = string_split(query, " ");
+	char **args = string_split(query, " "); //guardas en el vecor args la query
 
-	queryType = getQueryType(args[0]);
+	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
 
-	switch(queryType) {
+	int invalidQuery = validateQuerySyntax(args, queryType); //validamos que sea correcta y sino lanzamos exception
+	if (!invalidQuery){
+		return queryError();
+	}
+
+	switch(queryType) { //identificamos query y procedemos a su ejecucion
 
 		case QUERY_SELECT:
 
