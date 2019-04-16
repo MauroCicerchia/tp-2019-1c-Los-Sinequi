@@ -5,11 +5,12 @@
 #include<sys/socket.h>
 #include<netdb.h>
 #include<unistd.h>
+#include<commons/collections/list.h>
 
 #define PUERTO "8080"
 #define BACKLOG SOMAXCONN
 #define PACKAGESIZE 1024
 
 int createServer();
-void waitClient(int);
+t_list *readClientMessages(int);
 void closeServer(int);

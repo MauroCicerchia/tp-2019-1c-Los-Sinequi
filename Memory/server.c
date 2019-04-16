@@ -22,7 +22,7 @@ int createServer() {
 	return listeningSocket;
 }
 
-void waitClient(int listeningSocket) {
+t_list *readClientMessages(int listeningSocket) {
 	struct sockaddr_in addr;			// Esta estructura contendra los datos de la conexion del cliente. IP, puerto, etc.
 	socklen_t addrlen = sizeof(addr);
 
@@ -31,15 +31,19 @@ void waitClient(int listeningSocket) {
 	char package[PACKAGESIZE];
 	int status = 1;
 
+	t_list *messages = list_create();
+
 	printf("Cliente conectado. Esperando mensajes:\n");
 
 	while (status != 0){
 		status = recv(socketCliente, (void*) package, PACKAGESIZE, 0);
-		if (status != 0) printf("%s", package);
+		if (status != 0) list_add(messages, package); //printf("%s", package);
 
 	}
 
 	close(socketCliente);
+
+	return messages;
 }
 
 void closeServer(int server) {

@@ -7,6 +7,11 @@ int main(int argc, char **argv) {
 
 	iniciar_logger(&logger);
 
+	int server = createServer();
+	t_list *querys = readClientMessages(server);
+	processQueryList(querys, logger);
+	closeServer(server);
+
 	input = readline(">");
 
 	while(strcmp("", input)) {
@@ -20,6 +25,13 @@ int main(int argc, char **argv) {
 	log_destroy(logger);
 
 	return 0;
+}
+
+void processQueryList(t_list *querys, t_log *logger) {
+	void processQueryWithLogger(void *query) {
+		processQuery((char *)query, logger);
+	}
+	list_iterate(querys, processQueryWithLogger);
 }
 
 e_query processQuery(char *query, t_log *logger) {
@@ -77,7 +89,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 			//journal();
 
-			sprintf(log_msg, "Recibi un JOURNAL", args[1]);
+			sprintf(log_msg, "Recibi un JOURNAL");
 
 			break;
 

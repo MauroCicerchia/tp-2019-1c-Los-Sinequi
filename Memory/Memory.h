@@ -6,8 +6,10 @@
 #include<commons/config.h>
 #include<readline/readline.h>
 #include"console.h"
+#include"server.h"
 
 e_query processQuery(char *, t_log*);
+void processQueryList(t_list *, t_log*);
 
 void iniciar_logger(t_log **logger)
 {

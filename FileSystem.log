@@ -1,8 +1,0 @@
-[INFO] 09:30:46:184 FileSystem/(5054:5054): Recibi un SELECT T1 12
-[INFO] 09:53:12:907 FileSystem/(6173:6173): Recibi un SELECT T1 (null)
-[INFO] 09:55:19:677 FileSystem/(6280:6280): Recibi un SELECT T1 (null)
-[INFO] 09:56:34:110 FileSystem/(6338:6338): Recibi un SELECT T1 (null)
-[INFO] 09:57:37:162 FileSystem/(6393:6393): Recibi un SELECT T1 (null)
-[INFO] 09:59:48:652 FileSystem/(6493:6493): Recibi un SELECT T1 (null)
-[INFO] 10:00:09:38 FileSystem/(6521:6521): Recibi un SELECT T1 (null)
-[INFO] 10:17:56:945 FileSystem/(7270:7270): Recibi un SELECT T1 (null)
