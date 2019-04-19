@@ -12,5 +12,6 @@
 #define PACKAGESIZE 1024
 
 int createServer();
-t_list *readClientMessages(int);
+int connectToClient(int);
+int readQueryFromClient(int, char*);
 void closeServer(int);

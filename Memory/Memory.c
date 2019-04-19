@@ -7,10 +7,7 @@ int main(int argc, char **argv) {
 
 	iniciar_logger(&logger);
 
-	int server = createServer();
-	t_list *querys = readClientMessages(server);
-	processQueryList(querys, logger);
-	closeServer(server);
+	iniciar_servidor(logger);
 
 	input = readline(">");
 
@@ -27,12 +24,13 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
-void processQueryList(t_list *querys, t_log *logger) {
+/*void processQueryList(t_list *querys, t_log *logger) {
 	void processQueryWithLogger(void *query) {
 		processQuery((char *)query, logger);
+		//printf("%s", (char*)query);
 	}
 	list_iterate(querys, processQueryWithLogger);
-}
+}*/
 
 e_query processQuery(char *query, t_log *logger) {
 

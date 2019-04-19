@@ -7,9 +7,7 @@ int main(int argc, char **argv) {
 
 	iniciar_logger(&logger);
 
-	int server = connectToServer();
-	sendMessages(server);
-	closeConnection(server);
+	iniciar_cliente();
 
 	input = readline(">");
 

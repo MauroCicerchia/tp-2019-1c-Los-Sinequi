@@ -22,28 +22,26 @@ int createServer() {
 	return listeningSocket;
 }
 
-t_list *readClientMessages(int listeningSocket) {
+int connectToClient(int listeningSocket) {
 	struct sockaddr_in addr;			// Esta estructura contendra los datos de la conexion del cliente. IP, puerto, etc.
 	socklen_t addrlen = sizeof(addr);
 
-	int socketCliente = accept(listeningSocket, (struct sockaddr *) &addr, &addrlen);
+	int client = accept(listeningSocket, (struct sockaddr *) &addr, &addrlen);
 
-	char package[PACKAGESIZE];
-	int status = 1;
+	if(client != -1)
+		printf("Cliente conectado.");
 
-	t_list *messages = list_create();
+	return client;
+}
 
-	printf("Cliente conectado. Esperando mensajes:\n");
+int readQueryFromClient(int client, char *package) {
 
-	while (status != 0){
-		status = recv(socketCliente, (void*) package, PACKAGESIZE, 0);
-		if (status != 0) list_add(messages, package); //printf("%s", package);
+	int status = recv(client, (void*) package, PACKAGESIZE, 0);
 
-	}
+	if(strcasecmp("exit\n", package) == 0) return -1;
 
-	close(socketCliente);
+	return status;
 
-	return messages;
 }
 
 void closeServer(int server) {
