@@ -28,9 +28,6 @@ int connectToClient(int listeningSocket) {
 
 	int client = accept(listeningSocket, (struct sockaddr *) &addr, &addrlen);
 
-	if(client != -1)
-		printf("Cliente conectado.");
-
 	return client;
 }
 

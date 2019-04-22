@@ -27,7 +27,8 @@ void sendMessages(int serverSocket) {
 	while(enviar){
 		printf(">");
 		fgets(message, PACKAGESIZE, stdin);
-		send(serverSocket, message, strlen(message) + 1, 0); 	// Solo envio si el usuario no quiere salir.
+		send(serverSocket, message, strlen(message) + 1, 0);
+		if(strcasecmp("exit\n", message) == 0) enviar = 0;
 	}
 }
 
