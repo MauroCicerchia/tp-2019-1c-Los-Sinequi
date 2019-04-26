@@ -18,6 +18,10 @@ int connectToServer() {
 	return serverSocket;
 }
 
+void sendMessage(int serverSocket,char *message){
+	send(serverSocket, message, strlen(message) + 1, 0);
+}
+
 void sendMessages(int serverSocket) {
 	int enviar = 1;
 	char message[PACKAGESIZE];

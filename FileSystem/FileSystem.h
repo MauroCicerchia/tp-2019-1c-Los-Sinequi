@@ -31,7 +31,7 @@ void iniciar_servidor(t_log *logger) {
 	printf("Cliente conectado\n");
 
 	int readStatus = readQueryFromClient(client, queryFromClient);
-	while(readStatus != -1) {
+	while(readStatus > 0) {
 		processQuery(queryFromClient, logger);
 		readStatus = readQueryFromClient(client, queryFromClient);
 	}
@@ -39,4 +39,16 @@ void iniciar_servidor(t_log *logger) {
 	printf("Cliente desconectado\n");
 
 	closeServer(server);
+}
+
+void start_API(t_log *logger){
+
+	char *input;
+	input = readline(">");
+	while(strcmp("", input)) {
+		processQuery(input, logger);
+		free(input);
+		input = readline(">");
+
+	}
 }

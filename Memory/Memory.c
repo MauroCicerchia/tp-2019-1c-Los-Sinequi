@@ -1,53 +1,51 @@
 #include "Memory.h"
-
+int server;
 int main(int argc, char **argv) {
 
 	t_log *logger = NULL;
 	char *input;
-
+	server = conectar_FS(logger);
 	iniciar_logger(&logger);
+	pthread_t threadKernel;
+	pthread_t threadFS;
 
 	//2 hilos diferentes
+//	pthread_create(&threadFS,NULL,start_API,logger);
+	pthread_create(&threadKernel,NULL,conectar_Kernel,logger);
+
+
+	pthread_join(threadKernel,NULL);
+//	pthread_join(threadFS,NULL);
+	closeConnection(server);
+
 //	conectar_Kernel(logger);//conectar con kernel
-	conectar_FS(logger);
-
-
-//	input = readline(">");
-//
-//	while(strcmp("", input)) {
-//
-//		processQuery(input, logger);
-//		free(input);
-//		input = readline(">");
-//
-//	}
+//	conectar_FS(logger);
+//	start_API(logger);
 
 	log_destroy(logger);
 
 	return 0;
 }
 
-/*void processQueryList(t_list *querys, t_log *logger) {
-	void processQueryWithLogger(void *query) {
-		processQuery((char *)query, logger);
-		//printf("%s", (char*)query);
-	}
-	list_iterate(querys, processQueryWithLogger);
-}*/
 
 e_query processQuery(char *query, t_log *logger) {
 
 	char log_msg[100];
 	e_query queryType;
 
-	char **args = string_split(query, " ");
+	char **args = string_split(query, " "); //guardas en el vecor args la query
 
-	queryType = getQueryType(args[0]);
+	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
+
+	int invalidQuery = validateQuerySyntax(args, queryType); //validamos que sea correcta y sino lanzamos exception
+	if (!invalidQuery){
+		return queryError();
+	}
 
 	switch(queryType) {
 
 		case QUERY_SELECT:
-
+			sendMessage(server,query);
 			//select(args[1], args[2]);
 //			queryToFileSystem(*query);
 			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);

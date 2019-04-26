@@ -16,10 +16,8 @@ void iniciar_logger(t_log **logger)
 	*logger = log_create("Memory.log", "Memory", 1, LOG_LEVEL_INFO);
 }
 
-void conectar_FS(t_log *logger) {
-	int server = connectToServer();
-	sendMessages(server);
-	closeConnection(server);
+int conectar_FS(t_log *logger) {
+	return connectToServer();
 }
 
 void conectar_Kernel(t_log *logger) {
@@ -38,7 +36,7 @@ void conectar_Kernel(t_log *logger) {
 	printf("Cliente conectado\n");
 
 	int readStatus = readQueryFromClient(client, queryFromClient);
-	while(readStatus != -1) {
+	while(readStatus > 0) {
 		processQuery(queryFromClient, logger);
 		readStatus = readQueryFromClient(client, queryFromClient);
 	}
@@ -46,4 +44,16 @@ void conectar_Kernel(t_log *logger) {
 	printf("Cliente desconectado\n");
 
 	closeServer(server);
+}
+
+void start_API(t_log *logger){
+
+	char *input;
+	input = readline(">");
+	while(strcmp("", input)) {
+		processQuery(input, logger);
+		free(input);
+		input = readline(">");
+
+	}
 }
