@@ -7,6 +7,8 @@ int main(int argc, char **argv) {
 
 	iniciar_logger(&logger);
 
+	iniciar_cliente();
+
 	input = readline(">");
 
 	while(strcmp("", input)) {
@@ -77,7 +79,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 			//journal();
 
-			sprintf(log_msg, "Recibi un JOURNAL", args[1]);
+			sprintf(log_msg, "Recibi un JOURNAL");
 
 			break;
 

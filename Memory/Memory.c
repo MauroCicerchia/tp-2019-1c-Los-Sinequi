@@ -7,20 +7,33 @@ int main(int argc, char **argv) {
 
 	iniciar_logger(&logger);
 
-	input = readline(">");
+	//2 hilos diferentes
+//	conectar_Kernel(logger);//conectar con kernel
+	conectar_FS(logger);
 
-	while(strcmp("", input)) {
 
-		processQuery(input, logger);
-		free(input);
-		input = readline(">");
-
-	}
+//	input = readline(">");
+//
+//	while(strcmp("", input)) {
+//
+//		processQuery(input, logger);
+//		free(input);
+//		input = readline(">");
+//
+//	}
 
 	log_destroy(logger);
 
 	return 0;
 }
+
+/*void processQueryList(t_list *querys, t_log *logger) {
+	void processQueryWithLogger(void *query) {
+		processQuery((char *)query, logger);
+		//printf("%s", (char*)query);
+	}
+	list_iterate(querys, processQueryWithLogger);
+}*/
 
 e_query processQuery(char *query, t_log *logger) {
 
@@ -36,7 +49,7 @@ e_query processQuery(char *query, t_log *logger) {
 		case QUERY_SELECT:
 
 			//select(args[1], args[2]);
-
+//			queryToFileSystem(*query);
 			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
 
 			break;
@@ -77,7 +90,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 			//journal();
 
-			sprintf(log_msg, "Recibi un JOURNAL", args[1]);
+			sprintf(log_msg, "Recibi un JOURNAL");
 
 			break;
 

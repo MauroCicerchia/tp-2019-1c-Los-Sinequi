@@ -6,16 +6,17 @@ int main(int argc, char **argv) {
 	char *input;
 
 	iniciar_logger(&logger);
+	iniciar_servidor(logger);
 
-	input = readline(">");
-
-	while(strcmp("", input)) {
-
-		processQuery(input, logger);
-		free(input);
-		input = readline(">");
-
-	}
+//	input = readline(">");
+//
+//	while(strcmp("", input)) {
+//
+//		processQuery(input, logger);
+//		free(input);
+//		input = readline(">");
+//
+//	}
 
 	log_destroy(logger);
 
