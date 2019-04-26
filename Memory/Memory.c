@@ -7,17 +7,20 @@ int main(int argc, char **argv) {
 
 	iniciar_logger(&logger);
 
-	iniciar_servidor(logger);
+	//2 hilos diferentes
+//	conectar_Kernel(logger);//conectar con kernel
+	conectar_FS(logger);
 
-	input = readline(">");
 
-	while(strcmp("", input)) {
-
-		processQuery(input, logger);
-		free(input);
-		input = readline(">");
-
-	}
+//	input = readline(">");
+//
+//	while(strcmp("", input)) {
+//
+//		processQuery(input, logger);
+//		free(input);
+//		input = readline(">");
+//
+//	}
 
 	log_destroy(logger);
 
@@ -46,7 +49,7 @@ e_query processQuery(char *query, t_log *logger) {
 		case QUERY_SELECT:
 
 			//select(args[1], args[2]);
-
+//			queryToFileSystem(*query);
 			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
 
 			break;

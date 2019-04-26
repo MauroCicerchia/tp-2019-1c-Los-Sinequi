@@ -16,7 +16,13 @@ void iniciar_logger(t_log **logger)
 	*logger = log_create("Memory.log", "Memory", 1, LOG_LEVEL_INFO);
 }
 
-void iniciar_servidor(t_log *logger) {
+void conectar_FS(t_log *logger) {
+	int server = connectToServer();
+	sendMessages(server);
+	closeConnection(server);
+}
+
+void conectar_Kernel(t_log *logger) {
 	char *queryFromClient;
 
 	queryFromClient = (char*) malloc(sizeof(char) * PACKAGESIZE);
