@@ -15,8 +15,18 @@ void iniciar_logger(t_log **logger)
 	*logger = log_create("Kernel.log", "Kernel", 1, LOG_LEVEL_INFO);
 }
 
-void iniciar_cliente() {
-	int server = connectToServer();
-	sendMessages(server);
-	closeConnection(server);
+int iniciar_cliente() {
+	return connectToServer();
+//	sendMessages(server);
+//	closeConnection(server);
+}
+
+void start_API(t_log *logger){
+	char *input;
+	input = readline(">");
+	while(strcmp("", input)) {
+		processQuery(input, logger);
+		free(input);
+		input = readline(">");
+	}
 }

@@ -1,23 +1,17 @@
 #include "Kernel.h"
 
+int server;
+
 int main(int argc, char **argv) {
 
 	t_log *logger = NULL;
 	char *input;
-
+	server = iniciar_cliente();
 	iniciar_logger(&logger);
 
-	iniciar_cliente();
+	start_API(logger);
 
-	input = readline(">");
-
-	while(strcmp("", input)) {
-
-		processQuery(input, logger);
-		free(input);
-		input = readline(">");
-
-	}
+	closeConnection(server);
 
 	log_destroy(logger);
 
@@ -29,16 +23,21 @@ e_query processQuery(char *query, t_log *logger) {
 	char log_msg[100];
 	e_query queryType;
 
-	char **args = string_split(query, " ");
+	char **args = string_split(query, " "); //guardas en el vecor args la query
 
-	queryType = getQueryType(args[0]);
+	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
+
+	int invalidQuery = validateQuerySyntax(args, queryType); //validamos que sea correcta y sino lanzamos exception
+	if (!invalidQuery){
+		return queryError();
+	}
 
 	switch(queryType) {
 
 		case QUERY_SELECT:
 
 			//select(args[1], args[2]);
-
+			sendMessage(server,query);
 			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
 
 			break;

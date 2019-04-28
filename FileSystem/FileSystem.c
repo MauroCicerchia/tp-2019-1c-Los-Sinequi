@@ -3,20 +3,10 @@
 int main(int argc, char **argv) {
 
 	t_log *logger = NULL;
-	char *input;
 
 	iniciar_logger(&logger);
 	iniciar_servidor(logger);
-
-//	input = readline(">");
-//
-//	while(strcmp("", input)) {
-//
-//		processQuery(input, logger);
-//		free(input);
-//		input = readline(">");
-//
-//	}
+	start_API(logger);
 
 	log_destroy(logger);
 
