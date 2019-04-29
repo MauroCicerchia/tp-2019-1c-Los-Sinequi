@@ -6,8 +6,8 @@
 #include<commons/string.h>
 #include<commons/config.h>
 #include<readline/readline.h>
-#include"console.h"
-#include"server.h"
+#include<sharedLib/console.h>
+#include<sharedLib/server.h>
 
 e_query processQuery(char *, t_log*);
 
