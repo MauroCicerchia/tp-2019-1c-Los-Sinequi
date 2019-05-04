@@ -1,11 +1,12 @@
 #include "Kernel.h"
 
+
 int server;
 
 int main(int argc, char **argv) {
 
 	t_log *logger = NULL;
-	char *input;
+
 	server = iniciar_cliente();
 	iniciar_logger(&logger);
 

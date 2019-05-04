@@ -11,5 +11,6 @@
 #define PACKAGESIZE 1024
 
 int connectToServer();
+void sendMessage(int, char*);
 void sendMessages(int);
 void closeConnection(int);
