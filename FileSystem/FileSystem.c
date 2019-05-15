@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
-char* processQuery(char *query, t_log *logger) {
+e_query processQuery(char *query, t_log *logger) {
 
 	char log_msg[100];
 	e_query queryType;
@@ -39,7 +39,7 @@ char* processQuery(char *query, t_log *logger) {
 
 		case QUERY_SELECT:
 
-			qselect(args[1], args[2]);
+//			qselect(args[1], args[2]);
 
 			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
 
@@ -86,68 +86,95 @@ char* processQuery(char *query, t_log *logger) {
 	return queryType;
 }
 
-void qinsert(char *table, int key, char *value, int timeStamp){
 
-	char *url = string_append("tables/", table);
-	url = string_append(url, ".bin");
+void qinsert(char *table, uint16_t key, char *value, int timeStamp){
+
+	char *url =  string_new();
+	string_append(&url,"tables/");
+	string_append(&url,table);
+	string_append(&url, ".bin");
 	FILE *file = txt_open_for_append(url);
 	free(url);
-	char *insert = toLFSmode(timeStamp,key,value);
-	txt_write_in_file(file, insert);
-	free(insert);
+	char *toInsert = string_new();
+	toInsert = toLFSmode(timeStamp,key,value);
+	txt_write_in_file(file, toInsert);
+	free(toInsert);
 	txt_close_file(file);
-
 }
 
-char *qselect(char *table, int key){
-
-	char *url = string_append("tables/", table);
-	url = string_append(url, ".bin");
-	FILE *file = fopen(url,"r");
-
-	t_list *list = list_create();
-
-	loadList(list,file);
-	txt_close_file(file);
-	toDATAmode(list);
-	char *value = getValue(list,key);
-
-	list_destroy(list);
-	return value;
-}
-
-void loadList(t_list *list,FILE file){
-
-}
-
-char *getValue(t_list list,int key){
-
-}
-
-data *toDATAmode(t_list *list){
-
-}
-
-char *toLFSmode(int timeStamp, int key, char *value){
-
-	char *insert = string_append(timeStamp, ";");
+char* toLFSmode( int timeStamp, uint16_t key, char *value){
+	char *insert = string_new();
+	string_append(&insert,string_itoa(timeStamp));
+	string_append(&insert, ";");
 	char *sKey = string_itoa(key);
-	insert = string_append(insert, sKey);
+	string_append(&insert, sKey);
 	free(sKey);
-	insert = string_append(insert, ";");
-	insert = string_append(insert, value);
-	insert = string_append(insert, "\n");
+	string_append(&insert, ";");
+	string_append(&insert, value);
+	string_append(&insert, "\n");
 	return insert;
 }
+
+
+//char *qselect(char *table, uint16_t key){
+//
+//	char *url = string_new();
+//	string_append(&url,"tables/");
+//	string_append(&url,table);
+//	string_append(&url, ".bin");
+//	FILE *file = fopen(url,"r");
+//	free(url);
+//	t_list *list = list_create();
+//
+//	loadList(list,file);
+//	txt_close_file(file);
+//	toDATAmode(list);
+//	char *value = getValue(list,key);
+//
+//	list_destroy(list);
+//	return value;
+//}
+
+//void loadList(t_list *list,FILE *file){
+//	char *line = string_new();
+//	while(!feof(file)){
+//		fgets(line,100,file);
+//		list_add(list,line);
+//	}
+//	free(line);
+//}
+//
+//char *getValue(t_list list,uint16_t key){
+//	t_list *pivot;
+//	pivot = malloc(sizeof(t_list)* list_size(list));
+//	pivot = list_sorted(list, lastTime());
+//}
+//
+//data *toDATAmode(t_list *list){
+//
+//}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //si un puntero apunta a tal direccion de memoria(0x1) y cambio a donde apunta (0x2), la antigua posicion(0x1) entiendo que la perdi, pero.. queda libre para que se use? o hay que hacerle free?
 
 /*
  * 	char *value = getValue(list,key);
  *
- *	list_destroy(list);
- *	return value;
  *
- *	como hago el free de value?
+ *	como hago el free de value? -> free de lo que retorno
+ *
 */
 

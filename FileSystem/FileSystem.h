@@ -3,6 +3,8 @@
 #include<string.h>
 #include<commons/log.h>
 #include<commons/string.h>
+#include<commons/txt.h>
+#include<commons/collections/list.h>
 #include<commons/config.h>
 #include<readline/readline.h>
 #include<sharedLib/console.h>
@@ -52,3 +54,8 @@ void start_API(t_log *logger){
 
 	}
 }
+
+
+void qinsert(char*,uint16_t,char*,int);
+char* toLFSmode(int,uint16_t,char*);
+
