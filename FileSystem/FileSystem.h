@@ -2,19 +2,13 @@
 #include<stdlib.h>
 #include<string.h>
 #include<commons/log.h>
-#include<commons/string.h>
-#include<commons/txt.h>
-#include<commons/collections/list.h>
 #include<commons/config.h>
 #include<readline/readline.h>
 #include<sharedLib/console.h>
 #include<sharedLib/server.h>
+#include"select/select.h"
+#include"insert/insert.h"
 
-typedef struct{
-	int timeStamp;
-	uint16_t key;
-	char *value;
-}dataSelect;
 
 e_query processQuery(char *, t_log*);
 
@@ -62,13 +56,3 @@ void start_API(t_log *logger){
 }
 
 
-void qinsert(char*, uint16_t,char*,int);
-char* toLFSmode(int,uint16_t,char*);
-
-char *qselect(char *, uint16_t);
-void loadList(t_list *,FILE *);
-char *getValue(t_list *,uint16_t);
-t_list *listToDATAmode(t_list *);
-bool biggerTimeStamp(dataSelect, dataSelect);
-bool isLastKey(uint16_t ,void*);
-void *elemToDATAmode(void *);
