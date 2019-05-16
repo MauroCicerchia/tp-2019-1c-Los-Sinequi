@@ -8,6 +8,7 @@ e_query queryError() {
 int validateQuerySyntax(char **array,e_query queryType){
 	int tamano = sizeofArray(array);
 	int key;
+	int timeStamp;
 	switch(queryType){
 
 		case QUERY_SELECT:
@@ -17,9 +18,20 @@ int validateQuerySyntax(char **array,e_query queryType){
 			return true;
 
 		case QUERY_INSERT:
-			if( sizeofArray(array) != 5) return false; // cantidad de parametros invalidos
-			if(atoi(array[2])) return false; //key invalida
-			return true;
+			if(sizeofArray(array) == 4){ // cantidad de parametros invalidos
+				key = atoi(array[2]);
+				if(!key) return false;//key invalida
+				return true;
+			}
+			if(sizeofArray(array) == 5){ // cantidad de parametros invalidos
+				key = atoi(array[2]);
+				timeStamp = atoi(array[4]);
+				if(!key) return false;//key invalida
+				if(!timeStamp) return false;
+				return true;
+			}else return false;
+
+			break;
 
 		case QUERY_CREATE:
 			if( sizeofArray(array) != 5 ) return 0; // cantidad de parametros invalidos

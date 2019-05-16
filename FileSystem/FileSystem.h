@@ -10,6 +10,12 @@
 #include<sharedLib/console.h>
 #include<sharedLib/server.h>
 
+typedef struct{
+	int timeStamp;
+	uint16_t key;
+	char *value;
+}dataSelect;
+
 e_query processQuery(char *, t_log*);
 
 void iniciar_logger(t_log **logger)
@@ -56,6 +62,13 @@ void start_API(t_log *logger){
 }
 
 
-void qinsert(char*,uint16_t,char*,int);
+void qinsert(char*, uint16_t,char*,int);
 char* toLFSmode(int,uint16_t,char*);
 
+char *qselect(char *, uint16_t);
+void loadList(t_list *,FILE *);
+char *getValue(t_list *,uint16_t);
+t_list *listToDATAmode(t_list *);
+bool biggerTimeStamp(dataSelect, dataSelect);
+bool isLastKey(uint16_t ,void*);
+void *elemToDATAmode(void *);
