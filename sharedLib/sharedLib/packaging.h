@@ -1,4 +1,5 @@
-#include"enums.h"
+#include"consistency.h"
+#include"query.h"
 #include<stdio.h>
 #include<stdlib.h>
 

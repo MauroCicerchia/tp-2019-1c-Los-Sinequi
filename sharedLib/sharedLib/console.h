@@ -2,8 +2,10 @@
 #include<stdlib.h>
 #include<string.h>
 #include<stdbool.h>
-#include"enums.h"
+#include<commons/log.h>
 
-e_query queryError();
-int validateQuerySyntax(char**,e_query);
+#include "consistency.h"
+
+char **validate_query_and_return_args(char*);
 int sizeofArray(char**);
+void start_API(t_log *);
