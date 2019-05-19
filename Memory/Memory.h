@@ -8,8 +8,31 @@
 #include<readline/readline.h>
 #include<sharedLib/console.h>
 #include<sharedLib/server.h>
+#include"Segment.c"
+#include"Page.c"
 
 e_query processQuery(char *, t_log*);
+
+
+segment assign_memory(){
+	segment memorySegment= segment_create();
+	page segmentPage= page_create();
+
+	memorySegment.page_pointer=segmentPage;
+
+	return memorySegment;
+}
+
+void load_segment(segment *memorySegment, page *segmentPage, int segmentID ){
+	memorySegment->page_pointer=segmentPage;
+	memorySegment->segment_id=segmentID;
+}
+
+void load_page(page *segmentPage, int key, char* value,int timestamp){
+	segmentPage->=key;
+	segmentPage->value=value;
+	segmentPage->timestamp=timestamp;
+}
 
 void iniciar_logger(t_log **logger)
 {
