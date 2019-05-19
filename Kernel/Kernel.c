@@ -1,37 +1,48 @@
-#include "Kernel.h"
+#include"Kernel.h"
 
 int server;
 
+t_config *config;
 t_queue *new, *ready;
 sem_t MUTEX_NEW, MUTEX_READY, PROC_PEND;
+t_log *logger;
 
 int main(int argc, char **argv) {
 
-	new = queue_create();
-	ready = queue_create();
-
-	sem_init(&MUTEX_NEW, 0, 1);
-	sem_init(&MUTEX_READY, 0, 1);
-	sem_init(&PROC_PEND, 0, 0);
-
-	t_log *logger;
-
-	server = iniciar_cliente();
-	iniciar_logger(&logger);
+	init_kernel();
 
 	start_API(logger);
 
-	closeConnection(server);
-
+	config_destroy(config);
 	log_destroy(logger);
-
 	queue_destroy_and_destroy_elements(new, process_destroy);
 	queue_destroy_and_destroy_elements(ready, process_destroy);
 
 	return 0;
 }
 
-e_query newQuery(char *query, t_log *logger) {
+void load_config() {
+	config = config_create("../.config");
+	if(config == NULL) {
+		log_error(logger, "No se pudo abrir el archivo de configuracion");
+		exit(-1);
+	}
+}
+
+void init_kernel() {
+	iniciar_logger(&logger);
+	load_config();
+	new = queue_create();
+	ready = queue_create();
+	sem_init(&MUTEX_NEW, 0, 1);
+	sem_init(&MUTEX_READY, 0, 1);
+	sem_init(&PROC_PEND, 0, 0);
+	int memSocket = connect_to_memory(get_memory_ip(), get_memory_port());
+	request_memory_pool(memSocket);
+	closeConnection(memSocket);
+}
+
+e_query newQuery(char *query) {
 
 	char log_msg[100];
 	e_query queryType;
@@ -108,7 +119,9 @@ int read_lql_file(char *path) {
 	char buffer[200];
 	FILE *lql = fopen(path, "rt");
 	if(lql == NULL) {
-		printf("No se pudo abrir el archivo.\n");
+		char msg[200];
+		sprintf(msg, "No se ha podido abrir el archivo %s", path);
+		log_error(logger, msg);
 		return 0;
 	}
 
@@ -135,9 +148,42 @@ int read_lql_file(char *path) {
 	return 1;
 }
 
-void add_process_to_new(t_process* newProcess) {
+void add_process_to_new(t_process* process) {
 	sem_wait(&MUTEX_NEW);
-	queue_push(new, (void*) newProcess);
+	queue_push(new, (void*) process);
 	sem_post(&MUTEX_NEW);
 	sem_post(&PROC_PEND);
+	log_info(logger, "Nuevo proceso agregado a la cola de NEW");
+}
+
+int connect_to_memory(char *IP, int PORT) {
+	return connectToServer(IP, PORT);
+}
+
+void request_memory_pool(int memSocket) {
+
+}
+
+char *get_memory_ip() {
+	return config_get_string_value(config, "MEM_IP");
+}
+
+int get_memory_port() {
+	return config_get_int_value(config, "MEM_PORT");
+}
+
+int get_quantum() {
+	return config_get_int_value(config, "QUANTUM");
+}
+
+int get_multiprogramming_degree() {
+	return config_get_int_value(config, "MULT_DEGREE");
+}
+
+int get_metadata_refresh_rate() {
+	return config_get_int_value(config, "MD_REFRESH_RATE");
+}
+
+int get_execution_delay() {
+	return config_get_int_value(config, "EXEC_DELAY");
 }

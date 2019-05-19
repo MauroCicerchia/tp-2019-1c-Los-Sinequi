@@ -3,10 +3,10 @@
 e_cons_type getConsistencyType(char *query) {
 
 	if (!strcasecmp("SC", query))
-		return SC;
+		return CONS_SC;
 	else if (!strcasecmp("SHC", query))
-		return SHC;
+		return CONS_SHC;
 	else if (!strcasecmp("EC", query))
-			return EC;
+			return CONS_EC;
 	return CONS_ERROR;
 }

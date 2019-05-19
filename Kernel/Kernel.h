@@ -11,17 +11,27 @@
 #include<sharedLib/console.h>
 #include<sharedLib/client.h>
 #include<sharedLib/process.h>
+#include"Memory.h"
+#include"Table.h"
 
-#define QUANTUM = 4;
-#define MULT_DEGREE = 3;
-
-e_query processQuery(char *, t_log*);
+void load_config();
+void init_kernel();
+e_query newQuery(char *);
 int read_lql_file(char*);
 void add_process_to_new(t_process*);
+void setConfigParameter(char*);
+int connect_to_memory();
+void request_memory_pool(int);
+char *get_memory_ip();
+int get_memory_port();
+int get_quantum();
+int get_multiprogramming_degree();
+int get_metadata_refresh_rate();
+int get_execution_delay();
 
 void iniciar_logger(t_log **logger)
 {
-	*logger = log_create("Kernel.log", "Kernel", 1, LOG_LEVEL_INFO);
+	*logger = log_create("../Kernel.log", "Kernel", 1, LOG_LEVEL_INFO);
 }
 
 int iniciar_cliente() {
