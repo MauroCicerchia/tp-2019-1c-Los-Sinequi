@@ -23,6 +23,9 @@ int main(int argc, char **argv) {
 //	start_API(logger);
 
 	log_destroy(logger);
+	segment testSegment;
+	testSegment=create_segment();
+
 
 	return 0;
 }

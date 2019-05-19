@@ -14,7 +14,7 @@
 e_query processQuery(char *, t_log*);
 
 
-segment assign_memory(){
+segment create_segment(){
 	segment memorySegment= segment_create();
 	page segmentPage= page_create();
 
@@ -28,10 +28,20 @@ void load_segment(segment *memorySegment, page *segmentPage, int segmentID ){
 	memorySegment->segment_id=segmentID;
 }
 
-void load_page(page *segmentPage, int key, char* value,int timestamp){
-	segmentPage->=key;
-	segmentPage->value=value;
-	segmentPage->timestamp=timestamp;
+void load_page(page *segmentPage, int pageNum, pageData* pageData,bool isModified){
+	segmentPage->page_num=pageNum;
+	segmentPage->page_data=pageData;
+	segmentPage->isModified=isModified;
+}
+
+void load_pageData(page *segmentPage, int timestamp, int key, char* value){
+	segmentPage->page_data->key=key;
+	segmentPage->page_data->timestamp=timestamp;
+	segmentPage->page_data->value=value;
+}
+
+void select(int segmentID,int key){
+
 }
 
 void iniciar_logger(t_log **logger)
