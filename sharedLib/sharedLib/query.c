@@ -78,6 +78,14 @@ int validateQuerySyntax(char **array,e_query queryType){
 			if( sizeofArray(array) != 1 ) return false; // cantidad de parametros invalidos
 			return true;
 
+		case QUERY_ADD:
+			if( sizeofArray(array) != 5 ) return false; // cantidad de parametros invalidos
+			if(strcasecmp(array[1], "MEMORY") != 0) return false;
+			if(strcasecmp(array[3], "MEMORY") != 0) return false;
+			if(!atoi(array[2])) return false;
+			if(getConsistencyType(array[4]) == CONS_ERROR) return false;
+			return true;
+
 		case QUERY_RUN:
 			if( sizeofArray(array) != 2 ) return false; // cantidad de parametros invalidos
 			return true;

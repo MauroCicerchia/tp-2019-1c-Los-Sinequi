@@ -1,5 +1,6 @@
 #include<stdlib.h>
 #include<commons/string.h>
+#include"consistency.h"
 
 typedef enum {
 	QUERY_SELECT,
@@ -11,7 +12,8 @@ typedef enum {
 	QUERY_ADD,
 	QUERY_RUN,
 	QUERY_METRICS,
-	QUERY_ERROR
+	QUERY_ERROR,
+	GOSSIP
 }e_query;
 
 typedef struct {

@@ -1,3 +1,4 @@
+#include<stdio.h>
 #include<commons/string.h>
 
 typedef enum {
@@ -7,3 +8,5 @@ typedef enum {
 	CONS_UNDEFINED,
 	CONS_ERROR
 } e_cons_type;
+
+e_cons_type getConsistencyType(char*);

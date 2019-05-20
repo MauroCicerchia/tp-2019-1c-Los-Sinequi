@@ -2,6 +2,7 @@
 
 int server;
 
+t_list *memories;
 t_config *config;
 t_queue *new, *ready;
 sem_t MUTEX_NEW, MUTEX_READY, PROC_PEND;
@@ -13,16 +14,13 @@ int main(int argc, char **argv) {
 
 	start_API(logger);
 
-	config_destroy(config);
-	log_destroy(logger);
-	queue_destroy_and_destroy_elements(new, process_destroy);
-	queue_destroy_and_destroy_elements(ready, process_destroy);
+	kill_kernel();
 
-	return 0;
+	exit(0);
 }
 
 void load_config() {
-	config = config_create("../.config");
+	config = config_create(".config");
 	if(config == NULL) {
 		log_error(logger, "No se pudo abrir el archivo de configuracion");
 		exit(-1);
@@ -31,15 +29,26 @@ void load_config() {
 
 void init_kernel() {
 	iniciar_logger(&logger);
+	log_info(logger, "Iniciando Kernel");
 	load_config();
 	new = queue_create();
 	ready = queue_create();
+	memories = list_create();
 	sem_init(&MUTEX_NEW, 0, 1);
 	sem_init(&MUTEX_READY, 0, 1);
 	sem_init(&PROC_PEND, 0, 0);
-	int memSocket = connect_to_memory(get_memory_ip(), get_memory_port());
-	request_memory_pool(memSocket);
-	closeConnection(memSocket);
+	init_memory();
+}
+
+void kill_kernel() {
+	config_destroy(config);
+	log_destroy(logger);
+	queue_destroy_and_destroy_elements(new, process_destroy);
+	queue_destroy_and_destroy_elements(ready, process_destroy);
+	list_destroy_and_destroy_elements(memories, memory_destroy);
+	sem_destroy(&MUTEX_NEW);
+	sem_destroy(&MUTEX_READY);
+	sem_destroy(&PROC_PEND);
 }
 
 e_query newQuery(char *query) {
@@ -85,6 +94,7 @@ e_query newQuery(char *query) {
 			break;
 
 		case QUERY_ADD:
+			add_memory_to_cons_type(atoi(args[2]), getConsistencyType(args[4]));
 			sprintf(log_msg, "Recibi un ADD MEMORY %s TO %s", args[2], args[4]);
 			break;
 
@@ -156,12 +166,40 @@ void add_process_to_new(t_process* process) {
 	log_info(logger, "Nuevo proceso agregado a la cola de NEW");
 }
 
+void init_memory() {
+	//int memSocket = connect_to_memory(get_memory_ip(), get_memory_port());
+	request_memory_pool(0);
+	//closeConnection(memSocket);
+	t_memory *scMem = get_sc_memory();
+	printf("mid: %d", scMem->mid);
+}
+
 int connect_to_memory(char *IP, int PORT) {
 	return connectToServer(IP, PORT);
 }
 
 void request_memory_pool(int memSocket) {
+	//Mock
+	t_memory *mem = memory_create(get_memory_ip(), get_memory_port());
+	mem->mid = 1;
+	memory_add_cons_type(mem, CONS_SC);
+	list_add(memories, (void*) mem);
+}
 
+void add_memory_to_cons_type(int memid, e_cons_type consType) {
+	bool findMemByID(void *mem) {
+		return ((t_memory*) mem)->mid == memid;
+	}
+	t_memory *selectedMem = list_find(memories, findMemByID);
+	if(selectedMem != NULL)
+		memory_add_cons_type(selectedMem, consType);
+}
+
+t_memory *get_sc_memory() {
+	bool isUnasignedSCMem(void *mem) {
+		return memory_is_cons_type((t_memory*) mem, CONS_SC);
+	}
+	return (t_memory*) list_find(memories, isUnasignedSCMem);
 }
 
 char *get_memory_ip() {

@@ -10,18 +10,21 @@
 #include<readline/readline.h>
 #include<sharedLib/console.h>
 #include<sharedLib/client.h>
-#include<sharedLib/process.h>
 #include"Memory.h"
 #include"Table.h"
 
 void load_config();
 void init_kernel();
+void kill_kernel();
 e_query newQuery(char *);
 int read_lql_file(char*);
 void add_process_to_new(t_process*);
 void setConfigParameter(char*);
+void init_memory();
 int connect_to_memory();
 void request_memory_pool(int);
+void add_memory_to_cons_type(int, e_cons_type);
+t_memory *get_sc_memory();
 char *get_memory_ip();
 int get_memory_port();
 int get_quantum();

@@ -78,7 +78,7 @@ void set_buffer(t_package *paquete,char **args) {
 
 		case QUERY_CREATE: //[nombretabla, tipoconsistencia, numeroparticiones, compactationtime]
 			add_to_package(paquete,args[1],strlen(args[1])+1);
-			add_to_package(paquete,getConsistencyType(args[2]),sizeof(e_cons_type));
+			add_to_package(paquete,args[2],strlen(args[1])+1);
 			add_to_package(paquete,atoi(args[3]),sizeof(int));
 			add_to_package(paquete,atoi(args[4]),sizeof(int));
 			break;
