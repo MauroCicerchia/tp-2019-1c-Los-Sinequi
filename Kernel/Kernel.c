@@ -19,16 +19,8 @@ int main(int argc, char **argv) {
 	exit(0);
 }
 
-void load_config() {
-	config = config_create(".config");
-	if(config == NULL) {
-		log_error(logger, "No se pudo abrir el archivo de configuracion");
-		exit(-1);
-	}
-}
-
 void init_kernel() {
-	iniciar_logger(&logger);
+	load_logger();
 	log_info(logger, "Iniciando Kernel");
 	load_config();
 	new = queue_create();
@@ -224,4 +216,21 @@ int get_metadata_refresh_rate() {
 
 int get_execution_delay() {
 	return config_get_int_value(config, "EXEC_DELAY");
+}
+
+void load_logger()
+{
+	logger = log_create("../Kernel.log", "Kernel", 1, LOG_LEVEL_INFO);
+	if(logger == NULL) {
+		printf("No se pudo crear el log.\n");
+		exit(-1);
+	}
+}
+
+void load_config() {
+	config = config_create(".config");
+	if(config == NULL) {
+		log_error(logger, "No se pudo abrir el archivo de configuracion");
+		exit(-1);
+	}
 }

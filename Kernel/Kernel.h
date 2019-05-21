@@ -13,6 +13,7 @@
 #include"Memory.h"
 #include"Table.h"
 
+void load_logger();
 void load_config();
 void init_kernel();
 void kill_kernel();
@@ -31,11 +32,6 @@ int get_quantum();
 int get_multiprogramming_degree();
 int get_metadata_refresh_rate();
 int get_execution_delay();
-
-void iniciar_logger(t_log **logger)
-{
-	*logger = log_create("../Kernel.log", "Kernel", 1, LOG_LEVEL_INFO);
-}
 
 int iniciar_cliente() {
 	return connectToServer();
