@@ -1,66 +1,66 @@
 #include"select.h"
 
-char *qselect(char *table, uint16_t key){
+char *qselect(char *table, char* strKey){
 
 	char *url = string_new();
+	t_list *list = list_create();
+	FILE *file;
 	string_append(&url,"tables/");
 	string_append(&url,table);
 	string_append(&url, ".bin");
-	FILE *file = fopen(url,"r");
-	free(url);
-	t_list *list = list_create();
-
+	file = fopen(url,"r");
 	loadList(list,file);
-	txt_close_file(file);
+	fclose(file);
 	t_list *dataList = listToDATAmode(list);
-	list_destroy(list);
+	list_destroy_and_destroy_elements(list,free);
 	char *value = string_new();
+	uint16_t key = atoi(strKey);
 	value = getValue(dataList,key);
-	list_destroy(dataList);
+	list_destroy_and_destroy_elements(dataList,dataSelect_destroy);
+	free(url);
 	return value;
+}
+
+void dataSelect_destroy(void* data ){
+	free(((dataSelect*)data)->value);
+	free(data);
 }
 
 //carga la lista con la info del archivo
 void loadList(t_list *list,FILE *file){
-	char *line = string_new();
-	while(!feof(file)){
-		fgets(line,100,file);
-		list_add(list,line);
+	char *line = malloc(sizeof(char)*100);
+	char *aux;
+	while(fgets(line, sizeof(char)*100, file) != NULL){
+		aux = malloc(sizeof(char)*(strlen(line)+1));
+		strcpy(aux,line);
+		list_add(list,aux);
 	}
 	free(line);
 }
 
 //duelvue el ultimo valor de la lista que matchea con la key
 char *getValue(t_list *list,uint16_t key){
-	t_list *pivot = malloc(sizeof(t_list) * list_size(list));
-	pivot = list_sorted(list,biggerTimeStamp);
+	t_list *sortedList;
+	sortedList = list_sorted(list,biggerTimeStamp);
 
 	bool _lastKey(void *elem){
 		return isLastKey(key,elem);
 	}
-
-	dataSelect *returnValue =  (dataSelect*) list_find(pivot, _lastKey);
-	free(pivot);
-	return (*returnValue).value;
+	char *value = malloc(sizeof(char)*100);
+	dataSelect *returnValue =  (dataSelect*) list_find(sortedList, _lastKey);
+	strcpy(value,returnValue->value);
+	list_destroy_and_destroy_elements(sortedList,dataSelect_destroy);
+	return value;
 }
 
 //duelvue true si el priemr elemento fue agregado despues que el segundo
-bool biggerTimeStamp(dataSelect elem1, dataSelect elem2){
-	return (elem1.timeStamp > elem2.timeStamp);
+bool biggerTimeStamp(void *elem1, void *elem2){
+	return ((dataSelect*)elem1)->timeStamp > ((dataSelect*)elem2)->timeStamp;
 }
 
 //devuelve true si el elemento que se le pasa coincide con la key
 bool isLastKey(uint16_t key,void* elem){
-	dataSelect *pivot = malloc(sizeof(dataSelect));
-	pivot =(dataSelect*) elem;
-	if(key == pivot->key){
-		free(pivot);
-		return true;
-	}
-	else {
-		free(pivot);
-		return false;
-	}
+	return key == ((dataSelect*)elem)->key;
 }
 
 
@@ -73,12 +73,10 @@ t_list *listToDATAmode(t_list *list){
 
 //recibe un elemento de tipo "timestamp;key;value" devuelve uno de tipo dataSelect con los campos asignados respectivamente
 void *elemToDATAmode(void *lfsElem){
-	char **lfsArray =string_split(lfsElem, ";");
+	char **lfsArray = string_split(lfsElem, ";");
 	dataSelect *pivot = malloc(sizeof(dataSelect));
-	int a = atoi(lfsArray[0]);
-	pivot->timeStamp = a;
-	a = atoi(lfsArray[1]);
-	pivot->key = a;
+	pivot->timeStamp = atoi((char*)lfsArray[0]);
+	pivot->key = atoi((char*)lfsArray[1]);
 	pivot->value = lfsArray[2];
 	return pivot;
 }

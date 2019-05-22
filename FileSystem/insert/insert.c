@@ -6,12 +6,12 @@ void qinsert(char *table, char* key, char *value, char* timeStamp){
 	string_append(&url,table);
 	string_append(&url, ".bin");
 	FILE *file = txt_open_for_append(url);
-	free(url);
-	char *toInsert = string_new();
+	char *toInsert;
 	toInsert = toLFSmode(timeStamp,key,value);
 	txt_write_in_file(file, toInsert);
 	free(toInsert);
 	txt_close_file(file);
+	free(url);
 }
 
 //recibe por parametro timestamp,key y value, los pasa a string y duelve un string de tipo "timestamp;key,value"
