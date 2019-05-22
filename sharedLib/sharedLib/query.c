@@ -8,7 +8,10 @@ t_query *query_create(e_query queryType, char **args) {
 }
 
 void query_destroy(void *query) {
-	string_iterate_lines(((t_query*)query)->args, free);
+	void string_destroy(char *str) {
+		free(str);
+	}
+	string_iterate_lines(((t_query*)query)->args, string_destroy);
 	free(query);
 }
 

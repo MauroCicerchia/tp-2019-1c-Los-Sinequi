@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<string.h>
 #include<semaphore.h>
+#include<pthread.h>
 #include<commons/log.h>
 #include<commons/string.h>
 #include<commons/config.h>
@@ -20,10 +21,12 @@ void kill_kernel();
 e_query newQuery(char *);
 int read_lql_file(char*);
 void add_process_to_new(t_process*);
+void *new_to_ready();
 void setConfigParameter(char*);
 void init_memory();
 int connect_to_memory();
 void request_memory_pool(int);
+void display_memories();
 void add_memory_to_cons_type(int, e_cons_type);
 t_memory *get_sc_memory();
 char *get_memory_ip();

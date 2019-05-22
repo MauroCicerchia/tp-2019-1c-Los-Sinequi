@@ -5,14 +5,23 @@ int server;
 t_list *memories;
 t_config *config;
 t_queue *new, *ready;
-sem_t MUTEX_NEW, MUTEX_READY, PROC_PEND;
+sem_t MUTEX_NEW, MUTEX_READY, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY;
 t_log *logger;
+pthread_t threadSwitch;
 
 int main(int argc, char **argv) {
 
 	init_kernel();
 
+	display_memories();
+
+	pthread_create(&threadSwitch, NULL, new_to_ready, NULL);
+	pthread_detach(threadSwitch);
+
 	start_API(logger);
+
+//	printf("new:%d\n", queue_size(new));
+//	printf("ready:%d\n", queue_size(ready));
 
 	kill_kernel();
 
@@ -28,19 +37,25 @@ void init_kernel() {
 	memories = list_create();
 	sem_init(&MUTEX_NEW, 0, 1);
 	sem_init(&MUTEX_READY, 0, 1);
-	sem_init(&PROC_PEND, 0, 0);
+	sem_init(&PROC_PEND_NEW, 0, 0);
+	sem_init(&PROC_PEND_READY, 0, 0);
+	sem_init(&MAX_PROC_READY, 0, get_multiprogramming_degree());
 	init_memory();
 }
 
 void kill_kernel() {
+	log_info(logger, "Terminando Kernel");
 	config_destroy(config);
 	log_destroy(logger);
+//	pthread_cancel(threadSwitch);
 	queue_destroy_and_destroy_elements(new, process_destroy);
 	queue_destroy_and_destroy_elements(ready, process_destroy);
 	list_destroy_and_destroy_elements(memories, memory_destroy);
 	sem_destroy(&MUTEX_NEW);
 	sem_destroy(&MUTEX_READY);
-	sem_destroy(&PROC_PEND);
+	sem_destroy(&PROC_PEND_NEW);
+	sem_destroy(&PROC_PEND_READY);
+	sem_destroy(&MAX_PROC_READY);
 }
 
 e_query newQuery(char *query) {
@@ -154,16 +169,30 @@ void add_process_to_new(t_process* process) {
 	sem_wait(&MUTEX_NEW);
 	queue_push(new, (void*) process);
 	sem_post(&MUTEX_NEW);
-	sem_post(&PROC_PEND);
+	sem_post(&PROC_PEND_NEW);
 	log_info(logger, "Nuevo proceso agregado a la cola de NEW");
 }
 
+void *new_to_ready() {
+	while(true) {
+		sem_wait(&MAX_PROC_READY);
+		sem_wait(&PROC_PEND_NEW);
+		sem_wait(&MUTEX_NEW);
+		void *p = queue_pop(new);
+		sem_post(&MUTEX_NEW);
+		sem_wait(&MUTEX_READY);
+		queue_push(ready, p);
+		sem_post(&MUTEX_READY);
+		sem_post(&PROC_PEND_READY);
+	}
+}
+
 void init_memory() {
-	//int memSocket = connect_to_memory(get_memory_ip(), get_memory_port());
+//	int memSocket = connect_to_memory(get_memory_ip(), get_memory_port());
 	request_memory_pool(0);
-	//closeConnection(memSocket);
-	t_memory *scMem = get_sc_memory();
-	printf("mid: %d", scMem->mid);
+//	closeConnection(memSocket);
+//	t_memory *scMem = get_sc_memory();
+//	printf("mid: %d", scMem->mid);
 }
 
 int connect_to_memory(char *IP, int PORT) {
@@ -178,6 +207,17 @@ void request_memory_pool(int memSocket) {
 	list_add(memories, (void*) mem);
 }
 
+void display_memories() {
+	printf("MID	IP		PORT	CONS\n");
+
+	void display_memory(void *memory) {
+		printf("%d	%s	%d\n", ((t_memory*)memory)->mid, ((t_memory*)memory)->ip, ((t_memory*)memory)->port);
+	}
+
+	list_iterate(memories, display_memory);
+
+}
+
 void add_memory_to_cons_type(int memid, e_cons_type consType) {
 	bool findMemByID(void *mem) {
 		return ((t_memory*) mem)->mid == memid;
@@ -187,11 +227,11 @@ void add_memory_to_cons_type(int memid, e_cons_type consType) {
 		memory_add_cons_type(selectedMem, consType);
 }
 
-t_memory *get_sc_memory() {
-	bool isUnasignedSCMem(void *mem) {
-		return memory_is_cons_type((t_memory*) mem, CONS_SC);
+t_memory *get_memory_of_cons_type(e_cons_type consType) {
+	bool isConsTypeMem(void *mem) {
+		return memory_is_cons_type((t_memory*) mem, consType);
 	}
-	return (t_memory*) list_find(memories, isUnasignedSCMem);
+	return (t_memory*) list_find(memories, isConsTypeMem);
 }
 
 char *get_memory_ip() {
@@ -220,7 +260,7 @@ int get_execution_delay() {
 
 void load_logger()
 {
-	logger = log_create("../Kernel.log", "Kernel", 1, LOG_LEVEL_INFO);
+	logger = log_create("../Kernel.log", "Kernel", 0, LOG_LEVEL_INFO);
 	if(logger == NULL) {
 		printf("No se pudo crear el log.\n");
 		exit(-1);
