@@ -1,11 +1,14 @@
 #include"Kernel.h"
 
+#define MP 1
+
 int server;
 
 t_list *memories;
 t_config *config;
 t_queue *new, *ready;
-sem_t MUTEX_NEW, MUTEX_READY, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY;
+t_process *exec[MP];
+sem_t MUTEX_NEW, MUTEX_READY, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY, FREE_PROC[MP];
 t_log *logger;
 pthread_t threadSwitch;
 
@@ -40,6 +43,10 @@ void init_kernel() {
 	sem_init(&PROC_PEND_NEW, 0, 0);
 	sem_init(&PROC_PEND_READY, 0, 0);
 	sem_init(&MAX_PROC_READY, 0, get_multiprogramming_degree());
+	int i;
+	for(i = 0; i < MP; i++) {
+		sem_init(&FREE_PROC[i], 0, 1);
+	}
 	init_memory();
 }
 
@@ -47,7 +54,7 @@ void kill_kernel() {
 	log_info(logger, "Terminando Kernel");
 	config_destroy(config);
 	log_destroy(logger);
-//	pthread_cancel(threadSwitch);
+//	pthread_cancel(threadNewReady);
 	queue_destroy_and_destroy_elements(new, process_destroy);
 	queue_destroy_and_destroy_elements(ready, process_destroy);
 	list_destroy_and_destroy_elements(memories, memory_destroy);
@@ -56,6 +63,10 @@ void kill_kernel() {
 	sem_destroy(&PROC_PEND_NEW);
 	sem_destroy(&PROC_PEND_READY);
 	sem_destroy(&MAX_PROC_READY);
+	int i;
+	for(i = 0; i < MP; i++) {
+		sem_destroy(&FREE_PROC[i]);
+	}
 }
 
 e_query newQuery(char *query) {
@@ -119,6 +130,8 @@ e_query newQuery(char *query) {
 			return queryError(logger);
 	}
 
+	log_info(logger, log_msg);
+
 	if(isQuery) {
 		t_query *newQuery = query_create(queryType, args);
 		t_list *queryList = list_create();
@@ -127,8 +140,6 @@ e_query newQuery(char *query) {
 
 		add_process_to_new(newProcess);
 	}
-
-	log_info(logger, log_msg);
 	return queryType;
 }
 
@@ -184,7 +195,20 @@ void *new_to_ready() {
 		queue_push(ready, p);
 		sem_post(&MUTEX_READY);
 		sem_post(&PROC_PEND_READY);
+		log_info(logger, "Nuevo proceso agregado a la cola de READY");
 	}
+}
+
+void ready_to_exec(int processor) {
+	if(processor >= MP)
+		return;
+	sem_wait(&FREE_PROC[processor]);
+	sem_wait(&PROC_PEND_READY);
+	sem_wait(&MUTEX_READY);
+	void *p = queue_pop(ready);
+	sem_post(&MUTEX_READY);
+	exec[processor] = (t_process*)p;
+	log_info(logger, "Nuevo proceso ejecutando");
 }
 
 void init_memory() {

@@ -22,6 +22,7 @@ e_query newQuery(char *);
 int read_lql_file(char*);
 void add_process_to_new(t_process*);
 void *new_to_ready();
+void ready_to_exec(int);
 void setConfigParameter(char*);
 void init_memory();
 int connect_to_memory();
