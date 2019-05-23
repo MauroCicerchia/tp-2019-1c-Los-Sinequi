@@ -1,21 +1,23 @@
 #include "Memory.h"
 int server;
+t_list* segmentList;
 int main(int argc, char **argv) {
-
+	segmentList = list_create();
+	/*
 	t_log *logger = NULL;
 	char *input;
-	server = conectar_FS(logger);
+	//server = conectar_FS(logger);
 	iniciar_logger(&logger);
 	pthread_t threadKernel;
 	pthread_t threadFS;
 
 	//2 hilos diferentes
 //	pthread_create(&threadFS,NULL,start_API,logger);
-	pthread_create(&threadKernel,NULL,conectar_Kernel,logger);
+	//pthread_create(&threadKernel,NULL,conectar_Kernel,logger);
 
 
-	pthread_join(threadKernel,NULL);
-//	pthread_join(threadFS,NULL);
+	//pthread_join(threadKernel,NULL);
+	pthread_join(threadFS,NULL);
 	closeConnection(server);
 
 //	conectar_Kernel(logger);//conectar con kernel
@@ -23,11 +25,27 @@ int main(int argc, char **argv) {
 //	start_API(logger);
 
 	log_destroy(logger);
-	segment testSegment;
-	testSegment=create_segment();
+	//segment testSegment;
 
+	//testSegment=segment_init();
 
+*/
 	return 0;
+}
+
+page* search_page(segment aSegment,int aKey){
+	bool isKey(void* aPage){
+			return ((page*) aPage)->page_data->key == aKey;
+		}
+		return list_find(aSegment.page_list,isKey);
+}
+
+segment* search_segment(char* segmentID){
+	//proximamente buscar en tabla de segmentos
+	bool isId(void* aSegment){
+		return strcasecmp(((segment*) aSegment)->segment_id,segmentID)==0;
+	}
+	return list_find(segmentList,isId);
 }
 
 

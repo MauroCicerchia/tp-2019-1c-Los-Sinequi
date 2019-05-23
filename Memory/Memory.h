@@ -5,42 +5,49 @@
 #include<commons/log.h>
 #include<commons/string.h>
 #include<commons/config.h>
+#include<commons/collections/dictionary.h>
 #include<readline/readline.h>
 #include<sharedLib/console.h>
 #include<sharedLib/server.h>
-#include"Segment.c"
-#include"Page.c"
+#include"Segment.h"
+
 
 e_query processQuery(char *, t_log*);
 
+segment search_segment(int);
+page search_page(segment,int);
 
-segment create_segment(){
-	segment memorySegment= segment_create();
-	page segmentPage= page_create();
+segment* segment_init(){
+	segment* memorySegment= segment_create();
 
-	memorySegment.page_pointer=segmentPage;
+	memorySegment->page_list = list_create();
 
 	return memorySegment;
 }
 
-void load_segment(segment *memorySegment, page *segmentPage, int segmentID ){
-	memorySegment->page_pointer=segmentPage;
-	memorySegment->segment_id=segmentID;
-}
+//TODO Cargar segmento
+//void load_segment(segment *memorySegment, page *segmentPage, char* segmentID ){
+//	list_add(memorySegment->page_list, segmentPage);
+//	memorySegment->segment_id=segmentID;
+//}
 
-void load_page(page *segmentPage, int pageNum, pageData* pageData,bool isModified){
-	segmentPage->page_num=pageNum;
-	segmentPage->page_data=pageData;
-	segmentPage->isModified=isModified;
-}
 
-void load_pageData(page *segmentPage, int timestamp, int key, char* value){
-	segmentPage->page_data->key=key;
-	segmentPage->page_data->timestamp=timestamp;
-	segmentPage->page_data->value=value;
-}
+char* select(char* segmentID,int key){
+	//Busca si existe una pagina con esta key
+	//Develve el valor asociado
+	segment* segmentFound = search_segment(segmentID);
+	if(segmentFound != NULL){
+		page* pageFound = search_page(segmentFound,key);
+		if(pageFound != NULL){
+			return pageFound->page_data->value;
+		}else{
+			//value = fileSystem.solicitarValor(key);
+			//if(hayLugar)agregar_pagina(segmentID,key,value)
+			//return value
+		}
+	}
 
-void select(int segmentID,int key){
+	return NULL;
 
 }
 
