@@ -10,7 +10,7 @@ char *qselect(char *table, char* strKey){
 	string_append(&url, ".bin");
 	file = fopen(url,"r");
 	loadList(list,file);
-	fclose(file);
+//	fclose(file);
 	t_list *dataList = listToDATAmode(list);
 	list_destroy_and_destroy_elements(list,free);
 	char *value = string_new();
@@ -36,6 +36,7 @@ void loadList(t_list *list,FILE *file){
 		list_add(list,aux);
 	}
 	free(line);
+	fclose(file);
 }
 
 //duelvue el ultimo valor de la lista que matchea con la key

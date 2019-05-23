@@ -16,3 +16,6 @@ typedef enum {
 	SHC,
 	EC
 }e_cons_type;
+
+e_query getQueryType(char*);
+e_cons_type getConsistencyType(char *);

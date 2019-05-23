@@ -1,16 +1,13 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<commons/log.h>
+//#include<stdio.h>
+//#include<stdlib.h>
+//#include<string.h>
+//#include<commons/log.h>
 #include<commons/config.h>
-#include<readline/readline.h>
-#include<sharedLib/console.h>
+//#include<readline/readline.h>
+//#include<sharedLib/console.h>
 #include<sharedLib/server.h>
-#include"select/select.h"
-#include"insert/insert.h"
+#include"Lissandra/api/api.h"
 
-
-e_query processQuery(char *, t_log*);
 
 void iniciar_logger(t_log **logger)
 {
@@ -43,16 +40,5 @@ void iniciar_servidor(t_log *logger) {
 	closeServer(server);
 }
 
-void start_API(t_log *logger){
-
-	char *input;
-	input = readline(">");
-	while(strcmp("", input)) {
-		processQuery(input, logger);
-		free(input);
-		input = readline(">");
-
-	}
-}
 
 
