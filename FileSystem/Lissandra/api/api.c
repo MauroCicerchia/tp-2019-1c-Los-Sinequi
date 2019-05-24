@@ -46,9 +46,9 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_CREATE:
 
-			//create(args[1], args[2], args[3], args[4]);
+			if(qcreate(args[1], args[2], args[3], args[4]))printf("creado con exito");
 
-			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
+//			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
 
 			break;
 
