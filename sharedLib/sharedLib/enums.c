@@ -37,3 +37,10 @@ e_cons_type getConsistencyType(char *query) {
 	return QUERY_ERROR;
 
 }
+
+int validConsistencyType(char* type){
+	if(!strcasecmp(type,"SC")) return 1;
+	if(!strcasecmp(type,"SHC")) return 1;
+	if(!strcasecmp(type,"EC")) return 1;
+	return 0;
+}

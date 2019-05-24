@@ -1,3 +1,5 @@
+#include<stdbool.h>
+
 typedef enum {
 	QUERY_SELECT,
 	QUERY_INSERT,
@@ -19,3 +21,4 @@ typedef enum {
 
 e_query getQueryType(char*);
 e_cons_type getConsistencyType(char *);
+int validConsistencyType(char*);
