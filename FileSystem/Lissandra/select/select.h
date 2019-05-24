@@ -10,7 +10,7 @@
 
 
 typedef struct{
-	int timeStamp;
+	uint64_t timeStamp;
 	uint16_t key;
 	char *value;
 }dataSelect;

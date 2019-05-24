@@ -76,8 +76,8 @@ t_list *listToDATAmode(t_list *list){
 void *elemToDATAmode(void *lfsElem){
 	char **lfsArray = string_split(lfsElem, ";");
 	dataSelect *pivot = malloc(sizeof(dataSelect));
-	pivot->timeStamp = atoi((char*)lfsArray[0]);
-	pivot->key = atoi((char*)lfsArray[1]);
+	pivot->timeStamp = strtouq((char*)lfsArray[0],NULL,10);
+	pivot->key = strtol((char*)lfsArray[1],NULL,10);
 	pivot->value = lfsArray[2];
 	return pivot;
 }

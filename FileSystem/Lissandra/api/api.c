@@ -24,11 +24,11 @@ e_query processQuery(char *query, t_log *logger) {
 	if (!invalidQuery){
 		return queryError();
 	}
-
+uint64_t a;
+char *b = string_new();
 	switch(queryType) { //identificamos query y procedemos a su ejecucion
 
 		case QUERY_SELECT:
-
 
 			printf("%s",qselect(args[1], args[2]));
 //			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
@@ -36,10 +36,10 @@ e_query processQuery(char *query, t_log *logger) {
 			break;
 
 		case QUERY_INSERT:
-			if(args[4] == NULL) args[4] = string_itoa(time(NULL));
+
+			if(args[4] == NULL) args[4] = string_itoa(getCurrentTime());
+;
 			qinsert(args[1], args[2], args[3], args[4]);
-
-
 //			sprintf(log_msg, "Recibi un INSERT %s %s %s", args[1], args[2], args[3]);
 
 			break;
@@ -47,7 +47,6 @@ e_query processQuery(char *query, t_log *logger) {
 		case QUERY_CREATE:
 
 			if(qcreate(args[1], args[2], args[3], args[4]))printf("creado con exito");
-
 //			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
 
 			break;
@@ -75,4 +74,11 @@ e_query processQuery(char *query, t_log *logger) {
 
 //	log_info(logger, log_msg);
 	return queryType;
+}
+
+
+uint64_t getCurrentTime(){
+	struct timeval tv;
+	gettimeofday(&tv,NULL);
+	return (uint64_t)((tv.tv_sec)*1000 + (tv.tv_usec)/1000);
 }
