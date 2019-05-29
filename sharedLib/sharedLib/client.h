@@ -6,8 +6,6 @@
 #include <netdb.h>
 #include <unistd.h>
 
-#define IP "127.0.0.1"
-#define PUERTO "8080"
 #define PACKAGESIZE 1024
 
 int connectToServer();
