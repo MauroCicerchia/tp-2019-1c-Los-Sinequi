@@ -1,7 +1,7 @@
 #include"fs.h"
 
 int fs_tableExists(char* table){
-	char *tableUrl = makeUrl(table,"0");
+	char *tableUrl = makeUrlForPartition(table,"0");
 	if(access(tableUrl,F_OK) != -1){
 		free(tableUrl);
 		return 1;
@@ -18,51 +18,52 @@ int fs_create(char *table,char *consistency,int parts,int ctime){
 		printf("El tiempo de compactacion no puede ser 0\n");
 		return 0;
 	}
-	makeDirectoriesAndFiles(table,parts);
+	makeDirectories(table);
+	makeFiles(table,parts);
 	makeMetadataFile(table);
 	loadMetadata(table,consistency,parts,ctime);
 	return 1;
 }
 
-char *makeUrl(char *tabla,char *partition){
-	char *url =string_new();
-	string_append(&url,"tables/");
-	string_append(&url,tabla);
-	string_append(&url,"/");
+char *makeUrlForPartition(char *table,char *partition){
+	char *url = makeTableUrl(table);
 	string_append(&url,partition);
 	string_append(&url,".bin");
 	return url;
 }
 
-void makeDirectoriesAndFiles(char *table,int parts){
+char *makeTableUrl(char *table){
+	char *url = string_new();
+	string_append(&url,"tables/");
+	string_append(&url,table);
+	string_append(&url,"/");
+	return url;
+}
+
+void makeDirectories(char *table){
+	char *url = string_new();
+	string_append(&url,"tables/");
+	string_append(&url,table);
+	mkdir(url,0777);
+}
+
+void makeFiles(char *table,int parts){
 	char *url;
 	char* j;
 	FILE *file; //free?
 	for(int i = 0;i<parts; i++){
 		url = string_new();
 		j = string_itoa(i);
-		url = makeUrl(table,j);
+		url = makeUrlForPartition(table,j);
 		file = fopen(url,"w+");
 		fclose(file);
 		free(url);
-//		string_append(&url,"tables/");
-//		string_append(&url,table);
-//		string_append(&url,"/");
-//		j = string_itoa(i);
-//		string_append(&url,j);
-//		string_append(&url,".bin");
-//		file = fopen(url,"w+");
-//		fclose(file);
-//		free(url);
 	}
 }
 
 void makeMetadataFile(char *table){
-	char *url = string_new();
 	FILE *file; //free?
-	string_append(&url,"tables/");
-	string_append(&url,table);
-	string_append(&url,"/");
+	char *url = makeTableUrl(table);
 	string_append(&url,"Metadata.bin");
 	file = fopen(url,"w+");
 	fclose(file);
@@ -70,32 +71,30 @@ void makeMetadataFile(char *table){
 }
 
 void loadMetadata(char *table,char *consistency,int parts,int ctime){
-	char *url = string_new();
+
 	FILE *file; //free?
 	char *pctime = string_itoa(ctime);
 	char *pparts = string_itoa(parts);
-	string_append(&url,"tables/");
-	string_append(&url,table);
-	string_append(&url,"/");
+	char *url = makeTableUrl(table);
 	string_append(&url,"Metadata.bin");
 
 	file = txt_open_for_append(url);
 		char *aux = string_new();
-		string_append(&aux,"CONS = ");
+		string_append(&aux,"CONS =");
 		string_append(&aux,consistency);
 		string_append(&aux,"\n");
 		txt_write_in_file(file,aux);
 		free(aux);
 
 		aux = string_new();
-		string_append(&aux,"PARTS = ");
+		string_append(&aux,"PARTS =");
 		string_append(&aux,pparts);
 		string_append(&aux,"\n");
 		txt_write_in_file(file,aux);
 		free(aux);
 
 		aux = string_new();
-		string_append(&aux,"CTIME = ");
+		string_append(&aux,"CTIME =");
 		string_append(&aux,pctime);
 		string_append(&aux,"\n");
 		txt_write_in_file(file,aux);

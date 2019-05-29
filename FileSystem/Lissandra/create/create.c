@@ -6,7 +6,7 @@ int qcreate(char *table, char *consistency, char *partitions, char *compactime){
 		return 0;
 	}
 	if(!validConsistencyType(consistency)){
-		printf("Tipo de consistencia invadalido\n");
+		printf("Tipo de consistencia invalido\n");
 		return 0;
 	}
 	int parts = atoi(partitions);

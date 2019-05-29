@@ -1,6 +1,6 @@
 #include"server.h"
 
-int createServer() {
+int createServer(char* IP, char *PORT) {
 
 	struct addrinfo hints;
 	struct addrinfo *serverInfo;
@@ -10,7 +10,7 @@ int createServer() {
 	hints.ai_flags = AI_PASSIVE;		// Asigna el address del localhost: 127.0.0.1
 	hints.ai_socktype = SOCK_STREAM;	// Indica que usaremos el protocolo TCP
 
-	getaddrinfo(NULL, PUERTO, &hints, &serverInfo);
+	getaddrinfo(NULL, PORT, &hints, &serverInfo);
 
 	int listeningSocket = socket(serverInfo->ai_family, serverInfo->ai_socktype, serverInfo->ai_protocol);
 

@@ -4,10 +4,14 @@
 #include<unistd.h>
 #include"commons/string.h"
 #include"commons/txt.h"
+#include<sys/types.h>
+#include<sys/stat.h>
 
 int fs_tableExists(char*);
 int fs_create(char*,char*,int,int);
-char *makeUrl(char *tabla,char *);
-void makeDirectoriesAndFiles(char *,int);
+char *makeUrlForPartition(char *,char *);
+char *makeTableUrl(char *);
+void makeFiles(char *,int);
+void makeDirectories(char*);
 void makeMetadataFile(char *);
 void loadMetadata(char *,char *,int ,int);
