@@ -2,6 +2,7 @@
 int server;
 
 int main(int argc, char **argv) {
+
 	segmentList = list_create();
 	/*
 	t_log *logger = NULL;
@@ -12,7 +13,7 @@ int main(int argc, char **argv) {
 	pthread_t threadFS;
 
 	//2 hilos diferentes
-//	pthread_create(&threadFS,NULL,start_API,logger);
+	//pthread_create(&threadFS,NULL,start_API,logger);
 	//pthread_create(&threadKernel,NULL,conectar_Kernel,logger);
 
 
@@ -30,6 +31,11 @@ int main(int argc, char **argv) {
 	//testSegment=segment_init();
 
 */
+
+	insertM("tabla1",2,"EstoAnda");
+	printf("El valor es: %s",selectM("tabla1",2));
+
+
 	return 0;
 }
 
@@ -41,7 +47,6 @@ page* search_page(segment* aSegment,int aKey){
 }
 
 segment* search_segment(char* segmentID){
-	//proximamente buscar en tabla de segmentos
 	bool isId(void* aSegment){
 		return strcasecmp(((segment*) aSegment)->segment_id,segmentID)==0;
 	}

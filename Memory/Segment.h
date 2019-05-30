@@ -10,4 +10,4 @@ typedef struct{
 segment* segment_create();
 bool segment_Pages_Available(segment*);
 bool segment_Full(segment*);
-segment* segment_add_page(segment*,int,char*);
+void segment_add_page(segment*,int,char*);

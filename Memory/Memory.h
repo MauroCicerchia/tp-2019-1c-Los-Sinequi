@@ -27,16 +27,9 @@ segment* segment_init(){
 	return memorySegment;
 }
 
-//TODO Cargar segmento
-//void load_segment(segment *memorySegment, page *segmentPage, char* segmentID ){
-//	list_add(memorySegment->page_list, segmentPage);
-//	memorySegment->segment_id=segmentID;
-//}
-
 int mockitoTimestamp(){
 	return 4;
 }
-
 
 char* selectM(char* segmentID,int key){
 	//Busca si existe una pagina con esta key
@@ -74,7 +67,7 @@ void insertM(char* segmentID, int key, char* value){
 		}
 		else{
 			if(segment_Pages_Available(segmentFound)){
-				segmentFound = segment_add_page(segmentFound,key,value);
+				segment_add_page(segmentFound,key,value);
 			}
 			else{
 				if(segment_Full(segmentFound)){
@@ -88,8 +81,8 @@ void insertM(char* segmentID, int key, char* value){
 	}
 	else{
 		segment* newSegment = segment_init();
-		strcpy(newSegment->segment_id,segmentID);
-		newSegment = segment_add_page(newSegment,key,value);
+		newSegment->segment_id = segmentID;
+		segment_add_page(newSegment,key,value);
 
 		//ACA HABRIA QUE CONSIDERAR QUE UN SEGMENTO NO PUEDA TENER PAGINAS POR MEMORIA PRINCIPAL LLENA,
 		//POR EL MOMENTO NO NOS AFECTA
