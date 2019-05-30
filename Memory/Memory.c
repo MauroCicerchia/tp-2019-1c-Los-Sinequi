@@ -1,6 +1,6 @@
 #include "Memory.h"
 int server;
-t_list* segmentList;
+
 int main(int argc, char **argv) {
 	segmentList = list_create();
 	/*
@@ -33,11 +33,11 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
-page* search_page(segment aSegment,int aKey){
+page* search_page(segment* aSegment,int aKey){
 	bool isKey(void* aPage){
 			return ((page*) aPage)->page_data->key == aKey;
 		}
-		return list_find(aSegment.page_list,isKey);
+		return list_find(aSegment->page_list,isKey);
 }
 
 segment* search_segment(char* segmentID){

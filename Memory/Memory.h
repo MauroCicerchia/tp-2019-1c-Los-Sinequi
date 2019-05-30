@@ -5,22 +5,24 @@
 #include<commons/log.h>
 #include<commons/string.h>
 #include<commons/config.h>
-#include<commons/collections/dictionary.h>
 #include<readline/readline.h>
 #include<sharedLib/console.h>
 #include<sharedLib/server.h>
 #include"Segment.h"
 
-
+t_list* segmentList;
 e_query processQuery(char *, t_log*);
 
-segment search_segment(int);
-page search_page(segment,int);
+segment* search_segment(char*);
+page* search_page(segment*,int);
+char* selectM(char*,int);	   // (nombreTabla,key)
+void insertM(char*,int,char*); // (nombreTabla,key,value)
 
 segment* segment_init(){
-	segment* memorySegment= segment_create();
 
+	segment* memorySegment= segment_create();
 	memorySegment->page_list = list_create();
+	list_add(segmentList,memorySegment);
 
 	return memorySegment;
 }
@@ -31,16 +33,24 @@ segment* segment_init(){
 //	memorySegment->segment_id=segmentID;
 //}
 
+int mockitoTimestamp(){
+	return 4;
+}
 
-char* select(char* segmentID,int key){
+
+char* selectM(char* segmentID,int key){
 	//Busca si existe una pagina con esta key
 	//Develve el valor asociado
+
 	segment* segmentFound = search_segment(segmentID);
+
+
 	if(segmentFound != NULL){
 		page* pageFound = search_page(segmentFound,key);
 		if(pageFound != NULL){
 			return pageFound->page_data->value;
 		}else{
+			return NULL;
 			//value = fileSystem.solicitarValor(key);
 			//if(hayLugar)agregar_pagina(segmentID,key,value)
 			//return value
@@ -48,6 +58,42 @@ char* select(char* segmentID,int key){
 	}
 
 	return NULL;
+
+}
+
+void insertM(char* segmentID, int key, char* value){
+
+	segment* segmentFound = search_segment(segmentID);
+
+	if(segmentFound != NULL){
+		page* pageFound = search_page(segmentFound,key);
+		if(pageFound != NULL){
+			strcpy(pageFound->page_data->value,value);
+			pageFound->page_data->timestamp= mockitoTimestamp();
+			pageFound->isModified=1;
+		}
+		else{
+			if(segment_Pages_Available(segmentFound)){
+				segmentFound = segment_add_page(segmentFound,key,value);
+			}
+			else{
+				if(segment_Full(segmentFound)){
+					//ejecutarJournal
+				}
+				else{
+					//ejecutarReemplazo
+				}
+			}
+		}
+	}
+	else{
+		segment* newSegment = segment_init();
+		strcpy(newSegment->segment_id,segmentID);
+		newSegment = segment_add_page(newSegment,key,value);
+
+		//ACA HABRIA QUE CONSIDERAR QUE UN SEGMENTO NO PUEDA TENER PAGINAS POR MEMORIA PRINCIPAL LLENA,
+		//POR EL MOMENTO NO NOS AFECTA
+	}
 
 }
 
