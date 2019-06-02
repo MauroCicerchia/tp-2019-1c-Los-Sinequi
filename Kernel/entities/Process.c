@@ -1,8 +1,9 @@
 #include "Process.h"
 
-t_process *process_create(t_list *querys) {
+t_process *process_create(int pid, t_list *querys) {
 	t_process *newProcess = (t_process*) malloc(sizeof(t_process));
 	newProcess->pc = 0;
+	newProcess->pid = pid;
 	newProcess->querys = querys;
 	return newProcess;
 }

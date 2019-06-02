@@ -1,10 +1,8 @@
 #include"Kernel.h"
 
-#define MP 1
+#define MP 2
 
-int server;
-
-int QUANTUM;
+int server, QUANTUM, nroProcesos = 0;
 t_list *memories;
 t_config *config;
 t_queue *new, *ready;
@@ -22,7 +20,7 @@ int main(int argc, char **argv) {
 	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
 	pthread_detach(threadNewReady);
 	for(int i = 0; i < MP; i++) {
-		pthread_create(&threadsExec[i], NULL, processor_execute, &i);
+		pthread_create(&threadsExec[i], NULL, processor_execute, (void*)i);
 		pthread_detach(threadsExec[i]);
 	}
 
@@ -142,7 +140,8 @@ e_query newQuery(char *query) {
 		t_query *newQuery = query_create(queryType, args);
 		t_list *queryList = list_create();
 		list_add(queryList, (void*)newQuery);
-		t_process *newProcess = process_create(queryList);
+		t_process *newProcess = process_create(nroProcesos, queryList);
+		nroProcesos++;
 
 		add_process_to_new(newProcess);
 	}
@@ -175,7 +174,8 @@ int read_lql_file(char *path) {
 		list_add(fileQuerys, (void*)currentQuery);
 	}
 
-	t_process *newProcess = process_create(fileQuerys);
+	t_process *newProcess = process_create(nroProcesos, fileQuerys);
+	nroProcesos++;
 	add_process_to_new(newProcess);
 
 	fclose(lql);
@@ -183,14 +183,17 @@ int read_lql_file(char *path) {
 }
 
 void add_process_to_new(t_process* process) {
+	char msg[50];
 	sem_wait(&MUTEX_NEW);
 	queue_push(new, (void*) process);
 	sem_post(&MUTEX_NEW);
 	sem_post(&PROC_PEND_NEW);
-	log_info(logger, "Nuevo proceso agregado a la cola de NEW");
+	sprintf(msg, "Proceso %d agregado a la cola de NEW", process->pid);
+	log_info(logger, msg);
 }
 
 void *new_to_ready() {
+	char msg[50];
 	while(true) {
 		sem_wait(&MAX_PROC_READY);
 		sem_wait(&PROC_PEND_NEW);
@@ -198,7 +201,8 @@ void *new_to_ready() {
 		void *p = queue_pop(new);
 		sem_post(&MUTEX_NEW);
 		add_process_to_ready(p);
-		log_info(logger, "Nuevo proceso agregado a la cola de READY");
+		sprintf(msg, "Proceso %d agregado a la cola de READY", ((t_process*)p)->pid);
+		log_info(logger, msg);
 	}
 }
 
@@ -219,23 +223,29 @@ void ready_to_exec(int processor) {
 	sem_post(&MUTEX_READY);
 	exec[processor] = (t_process*)p;
 	char msg[50];
-	sprintf(msg, "Proceso %d ejecutando", exec[processor]->pid);
+	sprintf(msg, "Proceso %d ejecutando en procesador %d", exec[processor]->pid, processor);
 	log_info(logger, msg);
 }
 
-void *processor_execute(void* p) {
-	int processor = *(int*)p;
+void *processor_execute(void *p) {
+	int processor = (int)p;
 	if(processor >= MP)
 		return NULL;
 	while(true) {
 		ready_to_exec(processor);
+
 		for(int i = 0; i < QUANTUM; i++) {
 			if(process_finished(exec[processor]))
 				break;
 			t_query *nextQuery = process_next_query(exec[processor]);
 			execute_query(nextQuery);
+			sleep(get_execution_delay() / 1000);
 		}
+
 		if(process_finished(exec[processor])) {
+			char msg[50];
+			sprintf(msg, "Terminando proceso %d", exec[processor]->pid);
+			log_info(logger, msg);
 			process_destroy(exec[processor]);
 			sem_post(&MAX_PROC_READY);
 		} else {

@@ -12,7 +12,7 @@ typedef struct {
 /*
  * Crea un proceso nuevo y le asigna una lista de querys.
  */
-t_process *process_create(t_list*);
+t_process *process_create(int, t_list*);
 
 /*
  * Destruye un proceso y su lista de querys.
