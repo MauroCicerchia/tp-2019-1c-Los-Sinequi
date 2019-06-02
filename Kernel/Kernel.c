@@ -4,13 +4,14 @@
 
 int server;
 
+int QUANTUM;
 t_list *memories;
 t_config *config;
 t_queue *new, *ready;
 t_process *exec[MP];
 sem_t MUTEX_NEW, MUTEX_READY, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY, FREE_PROC[MP];
 t_log *logger;
-pthread_t threadSwitch;
+pthread_t threadNewReady, threadsExec[MP];
 
 int main(int argc, char **argv) {
 
@@ -18,8 +19,12 @@ int main(int argc, char **argv) {
 
 	display_memories();
 
-	pthread_create(&threadSwitch, NULL, new_to_ready, NULL);
-	pthread_detach(threadSwitch);
+	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
+	pthread_detach(threadNewReady);
+	for(int i = 0; i < MP; i++) {
+		pthread_create(&threadsExec[i], NULL, processor_execute, &i);
+		pthread_detach(threadsExec[i]);
+	}
 
 	start_API(logger);
 
@@ -35,6 +40,7 @@ void init_kernel() {
 	load_logger();
 	log_info(logger, "Iniciando Kernel");
 	load_config();
+	QUANTUM = get_quantum();
 	new = queue_create();
 	ready = queue_create();
 	memories = list_create();
@@ -191,12 +197,16 @@ void *new_to_ready() {
 		sem_wait(&MUTEX_NEW);
 		void *p = queue_pop(new);
 		sem_post(&MUTEX_NEW);
-		sem_wait(&MUTEX_READY);
-		queue_push(ready, p);
-		sem_post(&MUTEX_READY);
-		sem_post(&PROC_PEND_READY);
+		add_process_to_ready(p);
 		log_info(logger, "Nuevo proceso agregado a la cola de READY");
 	}
+}
+
+void add_process_to_ready(t_process *process) {
+	sem_wait(&MUTEX_READY);
+	queue_push(ready, process);
+	sem_post(&MUTEX_READY);
+	sem_post(&PROC_PEND_READY);
 }
 
 void ready_to_exec(int processor) {
@@ -208,7 +218,43 @@ void ready_to_exec(int processor) {
 	void *p = queue_pop(ready);
 	sem_post(&MUTEX_READY);
 	exec[processor] = (t_process*)p;
-	log_info(logger, "Nuevo proceso ejecutando");
+	char msg[50];
+	sprintf(msg, "Proceso %d ejecutando", exec[processor]->pid);
+	log_info(logger, msg);
+}
+
+void *processor_execute(void* p) {
+	int processor = *(int*)p;
+	if(processor >= MP)
+		return NULL;
+	while(true) {
+		ready_to_exec(processor);
+		for(int i = 0; i < QUANTUM; i++) {
+			if(process_finished(exec[processor]))
+				break;
+			t_query *nextQuery = process_next_query(exec[processor]);
+			execute_query(nextQuery);
+		}
+		if(process_finished(exec[processor])) {
+			process_destroy(exec[processor]);
+			sem_post(&MAX_PROC_READY);
+		} else {
+			add_process_to_ready(exec[processor]);
+		}
+		sem_post(&FREE_PROC[processor]);
+	}
+	return NULL;
+}
+
+void execute_query(t_query *query) {
+	switch(query->queryType) {
+//		case QUERY_SELECT: qSelect(query->args); break;
+//		case QUERY_INSERT: qInsert(query->args); break;
+//		case QUERY_CREATE: qCreate(query->args); break;
+//		case QUERY_DESCRIBE: qDescribe(query->args); break;
+//		case QUERY_DROP: qDrop(query->args); break;
+		default: break;
+	}
 }
 
 void init_memory() {

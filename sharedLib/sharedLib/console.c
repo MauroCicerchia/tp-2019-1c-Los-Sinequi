@@ -28,4 +28,5 @@ void start_API(t_log *logger){
 		free(input);
 		input = readline(">");
 	}
+	free(input);
 }
