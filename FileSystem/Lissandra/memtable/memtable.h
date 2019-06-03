@@ -7,20 +7,24 @@
 #include<commons/string.h>
 #include<commons/txt.h>
 
+extern t_list *memtable;
 
 typedef struct{
 	char *timestamp;
 	char *key;
 	char *value;
-}insert;
+}Iinsert;
 
 typedef struct{
 	char *table;
 	t_list *inserts;
 }Itable;
 
-void mt_clean();
-void mt_tableExists();
-void mt_addNewTable();
-void mt_addNewInsert();
 
+void mt_insert(char *, char*, char *,char *);
+bool mt_tableExists(char*);
+t_list *mt_getTableToInsert(char*);
+void mt_addNewInsert(t_list*, char*, char*, char*);
+void mt_clean();
+void tableDestroyer(void*);
+void insertDestroyer(void*);

@@ -1,5 +1,10 @@
 #include"fs.h"
 
+char *absolutePath(){
+	return "/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/"; //usar con consola
+//	return ""; //usar con eclipse
+}
+
 int fs_tableExists(char* table){
 	char *tableUrl = makeUrlForPartition(table,"0");
 	if(access(tableUrl,F_OK) != -1){
@@ -21,7 +26,7 @@ int fs_create(char *table,char *consistency,int parts,int ctime){
 	makeDirectories(table);
 	makeFiles(table,parts);
 	makeMetadataFile(table);
-//	loadMetadata(table,consistency,parts,ctime);
+	loadMetadata(table,consistency,parts,ctime);
 	return 1;
 }
 
@@ -33,20 +38,21 @@ char *makeUrlForPartition(char *table,char *partition){
 }
 
 char *makeTableUrl(char *table){
-	char *url = malloc(300);
-	strcpy(url,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/tables/");
+	char *url = string_new();
+	char *abs = string_new();
+	strcpy(url,absolutePath());
+	string_append(&url,"mnt/tables/");
 	string_append(&url,table);
 	string_append(&url,"/");
-
 	return url;
 }
 
 void makeDirectories(char *table){
 	char *url = string_new();
-	string_append(&url,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/tables/");
+	strcpy(url,absolutePath());
+	string_append(&url,"mnt/tables/");
 	string_append(&url,table);
 	mkdir(url,0777);
-	printf("creado directorio con exito\n");
 }
 
 void makeFiles(char *table,int parts){
@@ -63,7 +69,6 @@ void makeFiles(char *table,int parts){
 		free(url);
 
 	}
-	printf("archivos de particion creados con exito\n");
 }
 
 void makeMetadataFile(char *table){
@@ -75,7 +80,6 @@ void makeMetadataFile(char *table){
 	printf("archivo abierto\n");
 	fclose(file);
 	free(url);
-	printf("archivo de metadata creado\n");
 }
 
 void loadMetadata(char *table,char *consistency,int parts,int ctime){
