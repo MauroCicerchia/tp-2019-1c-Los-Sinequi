@@ -10,6 +10,8 @@
 #include"../create/create.h"
 #include<sys/time.h>
 
+
+char **parseQuery(char*);
 void start_API(t_log*);
 e_query processQuery(char *, t_log*);
 uint64_t getCurrentTime();

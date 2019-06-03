@@ -16,7 +16,8 @@ e_query processQuery(char *query, t_log *logger) {
 	char log_msg[100];
 	e_query queryType;
 
-	char **args = string_split(query, " "); //guardas en el vecor args la query
+
+	char **args = parseQuery(query);
 
 	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
 
@@ -44,11 +45,9 @@ e_query processQuery(char *query, t_log *logger) {
 			break;
 
 		case QUERY_CREATE:
-			printf("QHOLA\n");
 			qcreate(args[1], args[2], args[3], args[4]);
 			printf("creado con exito\n");
 //			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
-			printf("termino\n");
 			break;
 
 		case QUERY_DESCRIBE:
@@ -81,4 +80,17 @@ uint64_t getCurrentTime(){
 	struct timeval tv;
 	gettimeofday(&tv,NULL);
 	return (uint64_t)((tv.tv_sec)*1000 + (tv.tv_usec)/1000);
+}
+
+char **parseQuery(char *query){
+	char **args = string_split(query, " ");
+	if(args[1] == NULL){
+		char **insert = string_split(query, '"');
+		char **pivot = string_split(insert[0], " ");
+		strcpy(pivot[3],insert[1]);
+		strcpy(pivot[4],insert[2]);
+		free(insert);
+		return pivot;
+	}
+	return args;
 }
