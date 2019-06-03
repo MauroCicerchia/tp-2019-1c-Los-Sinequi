@@ -4,7 +4,7 @@
 #include<unistd.h>
 #include<commons/log.h>
 #include<readline/readline.h>
-//#include<sharedLib/console.h>
+//#include<sharedLib/consistency.h>
 #include"../insert/insert.h"
 #include"../select/select.h"
 #include"../create/create.h"

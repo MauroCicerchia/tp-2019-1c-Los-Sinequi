@@ -5,7 +5,7 @@ int qcreate(char *table, char *consistency, char *partitions, char *compactime){
 		printf("La tabla ya existe\n");
 		return 0;
 	}
-	if(!validConsistencyType(consistency)){
+	if(getConsistencyType(consistency) == CONS_ERROR){
 		printf("Tipo de consistencia invalido\n");
 		return 0;
 	}

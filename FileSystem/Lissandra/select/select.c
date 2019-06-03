@@ -9,16 +9,15 @@ char *qselect(char *table, char* strKey){
 	string_append(&url,table);
 	string_append(&url, ".bin");
 	file = fopen(url,"r");
-	loadList(list,file);
-//	fclose(file);
+	loadList(list,file);;
 	t_list *dataList = listToDATAmode(list);
 	list_destroy_and_destroy_elements(list,free);
 	char *value = string_new();
 	uint16_t key = atoi(strKey);
 	value = getValue(dataList,key);
 	list_destroy_and_destroy_elements(dataList,dataSelect_destroy);
-	free(url);
 	return value;
+	free(url);
 }
 
 void dataSelect_destroy(void* data ){
@@ -35,8 +34,9 @@ void loadList(t_list *list,FILE *file){
 		strcpy(aux,line);
 		list_add(list,aux);
 	}
-	free(line);
 	fclose(file);
+	free(line);
+
 }
 
 //duelvue el ultimo valor de la lista que matchea con la key

@@ -24,8 +24,7 @@ e_query processQuery(char *query, t_log *logger) {
 	if (!invalidQuery){
 		return queryError();
 	}
-uint64_t a;
-char *b = string_new();
+
 	switch(queryType) { //identificamos query y procedemos a su ejecucion
 
 		case QUERY_SELECT:
@@ -45,10 +44,11 @@ char *b = string_new();
 			break;
 
 		case QUERY_CREATE:
-
-			if(qcreate(args[1], args[2], args[3], args[4]))printf("creado con exito");
+			printf("QHOLA\n");
+			qcreate(args[1], args[2], args[3], args[4]);
+			printf("creado con exito\n");
 //			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
-
+			printf("termino\n");
 			break;
 
 		case QUERY_DESCRIBE:
