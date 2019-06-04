@@ -5,7 +5,7 @@ char *absoluto;
 int main(int argc, char **argv) {
 	memtable = list_create();
 	absoluto = string_new();
-	string_append(&absoluto,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/");
+	string_append(&absoluto,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/mnt/");
 	t_log *logger = NULL;
 
 	iniciar_logger(&logger);

@@ -16,7 +16,8 @@ e_query processQuery(char *query, t_log *logger) {
 
 	char log_msg[100];
 	e_query queryType;
-	char **args = parseQuery(query);
+	char **args = string_split(query, " ");
+//			parseQuery(query);
 
 	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
 
@@ -31,7 +32,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 			printf("%s",qselect(args[1], args[2]));
 //			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
-
+			free(args);
 			break;
 
 		case QUERY_INSERT:
@@ -39,13 +40,15 @@ e_query processQuery(char *query, t_log *logger) {
 			if(args[4] == NULL) args[4] = string_itoa(getCurrentTime());
 			qinsert(args[1], args[2], args[3], args[4]);
 //			sprintf(log_msg, "Recibi un INSERT %s %s %s", args[1], args[2], args[3]);
-
+			free(args);
 			break;
 
 		case QUERY_CREATE:
-			qcreate(args[1], args[2], args[3], args[4]);
+			if(qcreate(args[1], args[2], args[3], args[4]))
 			printf("creado con exito\n");
+			else printf("error en la creacion\n");
 //			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
+			free(args);
 			break;
 
 		case QUERY_DESCRIBE:
@@ -53,7 +56,7 @@ e_query processQuery(char *query, t_log *logger) {
 			//describe(args[1]);
 
 			sprintf(log_msg, "Recibi un DESCRIBE %s", args[1]);
-
+			free(args);
 			break;
 
 		case QUERY_DROP:
@@ -61,10 +64,11 @@ e_query processQuery(char *query, t_log *logger) {
 			//drop(args[1]);
 
 			sprintf(log_msg, "Recibi un DROP %s", args[1]);
-
+			free(args);
 			break;
 
 		default:
+			free(args);
 			return queryError(logger);
 
 	}
@@ -81,14 +85,45 @@ uint64_t getCurrentTime(){
 }
 
 char **parseQuery(char *query){
-	char **args = string_split(query, " ");
-	if(args[1] == NULL){
-		char **insert = string_split(query, "\"");
-		char **pivot = string_split(insert[0], " ");
-		strcpy(pivot[3],insert[1]);
-		strcpy(pivot[4],insert[2]);
-		free(insert);
-		return pivot;
+
+	if(string_starts_with(query,"INSERT")){
+		char **value = string_split(query,"\"");
+		char **args = string_split(query," ");
+		char **toReturn = malloc(sizeof(char**));
+		char *x0 = string_new();
+		char *x1 = string_new();
+		char *x2 = string_new();
+		char *x3 = string_new();
+		char *x4 = string_new();
+		strcpy(x0,args[0]);
+		strcpy(x1,args[1]);
+		strcpy(x2,args[2]);
+		strcpy(x3,value[1]);
+		toReturn[0] = x0;
+		toReturn[1] = x1;
+		toReturn[2] = x2;
+		toReturn[3] = x3;
+		if(value[2] == NULL){
+			strcpy(x4,"null");
+			toReturn[4] = x4;
+		}
+		else{
+			strcpy(x4,value[2]);
+			string_trim(&x4);
+			toReturn[4] = x4;
+		}
+		;
+		printf("%s\n",toReturn[0]);
+		printf("%s\n",toReturn[1]);
+		printf("%s\n",toReturn[2]);
+		printf("%s\n",toReturn[3]);
+		printf("%s\n",toReturn[4]);
+		free(value); free(args);
+		return toReturn;
 	}
-	return args;
+	else{
+		char **args = string_split(query," ");
+		return args;
+	}
+
 }

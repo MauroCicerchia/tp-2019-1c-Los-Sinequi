@@ -12,7 +12,10 @@ int fs_tableExists(char* table){
 		free(tableUrl);
 		return 1;
 	}
-	else return 0;
+	else {
+		free(tableUrl);
+		return 0;
+	}
 }
 
 int fs_create(char *table,char *consistency,int parts,int ctime){
@@ -40,8 +43,8 @@ char *makeUrlForPartition(char *table,char *partition){
 
 char *makeTableUrl(char *table){
 	char *url = string_new();
-	strcpy(url,absoluto);
-	string_append(&url,"mnt/tables/");
+	string_append(&url,absoluto);
+	string_append(&url,"tables/");
 	string_append(&url,table);
 	string_append(&url,"/");
 	return url;
@@ -49,10 +52,11 @@ char *makeTableUrl(char *table){
 
 void makeDirectories(char *table){
 	char *url = string_new();
-	strcpy(url,absoluto);
-	string_append(&url,"mnt/tables/");
+	string_append(&url,absoluto);
+	string_append(&url,"tables/");
 	string_append(&url,table);
 	mkdir(url,0777);
+	free(url);
 }
 
 void makeFiles(char *table,int parts){
@@ -63,11 +67,10 @@ void makeFiles(char *table,int parts){
 		url = string_new();
 		j = string_itoa(i);
 		url = makeUrlForPartition(table,j);
-		printf("%s\n",url);
 		file = fopen(url,"w+");
 		fclose(file);
 		free(url);
-
+		free(j);
 	}
 }
 
@@ -76,8 +79,6 @@ void makeMetadataFile(char *table){
 	char *url = makeTableUrl(table);
 	string_append(&url,"Metadata.bin");
 	file = fopen(url,"w+");
-	if (file != NULL)
-	printf("archivo abierto\n");
 	fclose(file);
 	free(url);
 }
@@ -112,7 +113,7 @@ void loadMetadata(char *table,char *consistency,int parts,int ctime){
 		free(aux);
 
 	txt_close_file(file);
-	printf("metadata cargada con exito");
+	free(url);
 }
 
 void fs_toDump(char *table,char *toDump){
