@@ -25,14 +25,16 @@ e_query processQuery(char *query, t_log *logger) {
 	if (!invalidQuery){
 		return queryError();
 	}
-
+	char *selectReturnValue = string_new();
 	switch(queryType) { //identificamos query y procedemos a su ejecucion
 
 		case QUERY_SELECT:
 
-			printf("%s",qselect(args[1], args[2]));
+			selectReturnValue = qselect(args[1], args[2]);
+			printf("%s",selectReturnValue);
 //			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
 			free(args);
+			free(selectReturnValue);
 			break;
 
 		case QUERY_INSERT:

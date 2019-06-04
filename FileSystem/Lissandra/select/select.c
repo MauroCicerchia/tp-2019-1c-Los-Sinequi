@@ -8,7 +8,7 @@ char *qselect(char *table, char* strKey){
 	char *value = string_new();
 	uint16_t key = atoi(strKey);
 	value = getValue(dataList,key);
-	list_destroy_and_destroy_elements(dataList,dataSelect_destroy);
+//	list_destroy_and_destroy_elements(dataList,dataSelect_destroy); ESTA FUNCION ROMPE
 	return value;
 }
 
