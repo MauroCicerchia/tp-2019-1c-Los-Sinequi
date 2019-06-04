@@ -9,14 +9,13 @@ void start_API(t_log *logger){
 		free(input);
 		input = readline(">");
 	}
+	free(input);
 }
 
 e_query processQuery(char *query, t_log *logger) {
 
 	char log_msg[100];
 	e_query queryType;
-
-
 	char **args = parseQuery(query);
 
 	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
@@ -38,7 +37,6 @@ e_query processQuery(char *query, t_log *logger) {
 		case QUERY_INSERT:
 
 			if(args[4] == NULL) args[4] = string_itoa(getCurrentTime());
-;
 			qinsert(args[1], args[2], args[3], args[4]);
 //			sprintf(log_msg, "Recibi un INSERT %s %s %s", args[1], args[2], args[3]);
 
@@ -85,7 +83,7 @@ uint64_t getCurrentTime(){
 char **parseQuery(char *query){
 	char **args = string_split(query, " ");
 	if(args[1] == NULL){
-		char **insert = string_split(query, '"');
+		char **insert = string_split(query, "\"");
 		char **pivot = string_split(insert[0], " ");
 		strcpy(pivot[3],insert[1]);
 		strcpy(pivot[4],insert[2]);

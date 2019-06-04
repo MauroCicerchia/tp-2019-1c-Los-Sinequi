@@ -5,6 +5,7 @@
 ////	return ""; //usar con eclipse
 //}
 
+
 int fs_tableExists(char* table){
 	char *tableUrl = makeUrlForPartition(table,"0");
 	if(access(tableUrl,F_OK) != -1){
@@ -82,7 +83,6 @@ void makeMetadataFile(char *table){
 }
 
 void loadMetadata(char *table,char *consistency,int parts,int ctime){
-
 	FILE *file;
 	char *pctime = string_itoa(ctime);
 	char *pparts = string_itoa(parts);
@@ -125,3 +125,23 @@ void fs_toDump(char *table,char *toDump){
 	free(tableUrl);
 }
 
+//duelve una lista con la info del archivo
+t_list *fs_getListOfInserts(char* table){
+	FILE *file;
+	char *url = makeTableUrl(table);
+	string_append(&url,table);
+	string_append(&url, ".bin");
+	file = fopen(url,"r");
+	t_list *list = list_create();
+	char *line = malloc(sizeof(char)*100);
+	char *aux;
+	while(fgets(line, sizeof(char)*100, file) != NULL){
+		aux = malloc(sizeof(char)*(strlen(line)+1));
+		strcpy(aux,line);
+		list_add(list,aux);
+	}
+	fclose(file);
+	free(line);
+	free(url);
+	return list;
+}

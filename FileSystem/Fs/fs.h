@@ -3,6 +3,7 @@
 #include<stdio.h>
 #include<unistd.h>
 #include"commons/string.h"
+#include<commons/collections/list.h>
 #include"commons/txt.h"
 #include<sys/types.h>
 #include<sys/stat.h>
@@ -19,3 +20,5 @@ void makeMetadataFile(char *);
 void loadMetadata(char *,char *,int ,int);
 
 void fs_toDump(char*,char*); //nombre de tabla y el string a dumpear
+
+t_list *fs_getListOfInserts(char*);

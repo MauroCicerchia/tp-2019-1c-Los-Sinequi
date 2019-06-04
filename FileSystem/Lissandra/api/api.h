@@ -3,6 +3,7 @@
 #include<string.h>
 #include<unistd.h>
 #include<commons/log.h>
+#include"commons/string.h"
 #include<readline/readline.h>
 //#include<sharedLib/consistency.h>
 #include"../insert/insert.h"

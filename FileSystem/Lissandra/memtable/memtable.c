@@ -14,7 +14,7 @@ void mt_insert(char *table,char* timestamp, char *key,char *value){
 
 //evalua si la tabla esta en la memtable
 bool mt_tableExists(char *table){
-	Itable *pTable = malloc(sizeof(Itable));
+	Itable *pTable;
 	for(int i=0;i<list_size(memtable);i++){
 		pTable = (Itable*)list_get(memtable,i);
 		if(!strcmp(pTable->table,table)) return true;

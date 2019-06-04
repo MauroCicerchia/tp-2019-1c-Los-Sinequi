@@ -1,15 +1,8 @@
 #include"select.h"
 
 char *qselect(char *table, char* strKey){
-
-	char *url = string_new();
 	t_list *list = list_create();
-	FILE *file;
-	string_append(&url,"tables/");
-	string_append(&url,table);
-	string_append(&url, ".bin");
-	file = fopen(url,"r");
-	loadList(list,file);;
+	list = fs_getListOfInserts(table);
 	t_list *dataList = listToDATAmode(list);
 	list_destroy_and_destroy_elements(list,free);
 	char *value = string_new();
@@ -17,26 +10,11 @@ char *qselect(char *table, char* strKey){
 	value = getValue(dataList,key);
 	list_destroy_and_destroy_elements(dataList,dataSelect_destroy);
 	return value;
-	free(url);
 }
 
 void dataSelect_destroy(void* data ){
 	free(((dataSelect*)data)->value);
 	free(data);
-}
-
-//carga la lista con la info del archivo
-void loadList(t_list *list,FILE *file){
-	char *line = malloc(sizeof(char)*100);
-	char *aux;
-	while(fgets(line, sizeof(char)*100, file) != NULL){
-		aux = malloc(sizeof(char)*(strlen(line)+1));
-		strcpy(aux,line);
-		list_add(list,aux);
-	}
-	fclose(file);
-	free(line);
-
 }
 
 //duelvue el ultimo valor de la lista que matchea con la key
