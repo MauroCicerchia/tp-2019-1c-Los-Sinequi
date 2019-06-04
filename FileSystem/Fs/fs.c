@@ -1,9 +1,9 @@
 #include"fs.h"
 
-char *absolutePath(){
-	return "/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/"; //usar con consola
-//	return ""; //usar con eclipse
-}
+//char *absolutePath(){
+//	return "/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/"; //usar con consola
+////	return ""; //usar con eclipse
+//}
 
 int fs_tableExists(char* table){
 	char *tableUrl = makeUrlForPartition(table,"0");
@@ -39,8 +39,7 @@ char *makeUrlForPartition(char *table,char *partition){
 
 char *makeTableUrl(char *table){
 	char *url = string_new();
-	char *abs = string_new();
-	strcpy(url,absolutePath());
+	strcpy(url,absoluto);
 	string_append(&url,"mnt/tables/");
 	string_append(&url,table);
 	string_append(&url,"/");
@@ -49,7 +48,7 @@ char *makeTableUrl(char *table){
 
 void makeDirectories(char *table){
 	char *url = string_new();
-	strcpy(url,absolutePath());
+	strcpy(url,absoluto);
 	string_append(&url,"mnt/tables/");
 	string_append(&url,table);
 	mkdir(url,0777);
@@ -114,5 +113,15 @@ void loadMetadata(char *table,char *consistency,int parts,int ctime){
 
 	txt_close_file(file);
 	printf("metadata cargada con exito");
+}
+
+void fs_toDump(char *table,char *toDump){
+	char *tableUrl = makeTableUrl(table);
+	string_append(&tableUrl,table);
+	string_append(&tableUrl,".bin");
+	FILE *file = txt_open_for_append(tableUrl);
+	txt_write_in_file(file,toDump);
+	fclose(file);
+	free(tableUrl);
 }
 

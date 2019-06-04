@@ -26,5 +26,6 @@ bool mt_tableExists(char*);
 t_list *mt_getTableToInsert(char*);
 void mt_addNewInsert(t_list*, char*, char*, char*);
 void mt_clean();
+void mt_cleanPivot(t_list *);
 void tableDestroyer(void*);
 void insertDestroyer(void*);

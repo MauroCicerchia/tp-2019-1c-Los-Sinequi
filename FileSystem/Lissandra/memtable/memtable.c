@@ -47,10 +47,14 @@ void mt_addNewInsert(t_list *tableToInsert, char *timestamp, char *key, char *va
 	list_add(tableToInsert,pInsert);
 }
 
-//vacia la memtable
+//vacia una tabla tipo memtable
 void mt_clean(){
 	list_destroy_and_destroy_elements(memtable,tableDestroyer);
 	memtable = list_create();
+}
+
+void mt_cleanPivot(t_list *tableToClean){
+	list_destroy_and_destroy_elements(tableToClean,tableDestroyer);
 }
 void tableDestroyer(void* table){
 	free(((Itable*)table)->table);
