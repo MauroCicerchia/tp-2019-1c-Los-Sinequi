@@ -13,6 +13,16 @@ typedef struct{
 
 }t_package;
 
+typedef enum {
+	REQUEST_QUERY,
+	REQUEST_MEMPOOL
+}e_request_code;
+
+typedef enum {
+	RESPONSE_SUCCESS,
+	RESPONSE_ERROR
+}e_response_code;
+
 void *serialize_package(t_package*, int);
 t_package *create_package(e_query);
 void create_buffer(t_package*);

@@ -17,8 +17,6 @@ int createServer(char* IP, char *PORT) {
 	bind(listeningSocket,serverInfo->ai_addr, serverInfo->ai_addrlen);
 	freeaddrinfo(serverInfo);
 
-	listen(listeningSocket, BACKLOG);
-
 	return listeningSocket;
 }
 
@@ -27,6 +25,8 @@ int connectToClient(int listeningSocket) {
 	socklen_t addrlen = sizeof(addr);
 
 	int client = accept(listeningSocket, (struct sockaddr *) &addr, &addrlen);
+
+	printf("Hola");
 
 	return client;
 }

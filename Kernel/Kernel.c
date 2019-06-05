@@ -75,7 +75,7 @@ void kill_kernel() {
 	}
 }
 
-e_query newQuery(char *query) {
+e_query processQuery(char *query) {
 
 	char log_msg[100];
 	e_query queryType;
@@ -268,7 +268,7 @@ void *processor_execute(void *p) {
 
 void execute_query(t_query *query) {
 	switch(query->queryType) {
-		case QUERY_SELECT: qSelect(query->args); log_info(logger, "Ejecute un SELECT"); break;
+		case QUERY_SELECT: printf("Chau"); qSelect(query->args, logger); log_info(logger, "Ejecute un SELECT"); break;
 		case QUERY_INSERT: qInsert(query->args); log_info(logger, "Ejecute un INSERT"); break;
 		case QUERY_CREATE: qCreate(query->args); log_info(logger, "Ejecute un CREATE"); break;
 		case QUERY_DESCRIBE: qDescribe(query->args); log_info(logger, "Ejecute un DESCRIBE"); break;
@@ -290,6 +290,9 @@ int connect_to_memory(char *IP, int PORT) {
 }
 
 void request_memory_pool(int memSocket) {
+//	enviar REQUEST_MEMPOOL
+//	recibir RESPONSE_SUCCESS cant_memorias sizeip ip size port port n veces
+
 	//Mock
 	t_memory *mem = memory_create(get_memory_ip(), get_memory_port());
 	mem->mid = 1;

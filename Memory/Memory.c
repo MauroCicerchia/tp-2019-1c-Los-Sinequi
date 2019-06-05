@@ -5,74 +5,68 @@ int main(int argc, char **argv) {
 
 	segmentList = list_create();
 
-	t_log *logger = NULL;
-	char *input;
+//	char *input;
 	//server = conectar_FS(logger);
-	iniciar_logger(&logger);
-	/*
-	pthread_t threadKernel;
-	pthread_t threadFS;
+	iniciar_logger();
 
-	//2 hilos diferentes
-	pthread_create(&threadFS,NULL,start_API,logger);
-	//pthread_create(&threadKernel,NULL,conectar_Kernel,logger);
+	pthread_t threadClient;
 
-
-	//pthread_join(threadKernel,NULL);
-	pthread_join(threadFS,NULL);
-	closeConnection(server);
-
-//	conectar_Kernel(logger);//conectar con kernel
-//	conectar_FS(logger);
-//	start_API(logger);
-
-	log_destroy(logger);
-	//segment testSegment;
-
-	//testSegment=segment_init();
-
-*/
-
-	//insertM("tabla1",2,"EstoAnda",logger);
-	//printf("El valor es: %s",selectM("tabla1",2,logger));
+	pthread_create(&threadClient, NULL, listen_client, NULL);
+	pthread_detach(threadClient);
 
 	start_API(logger);
 
 	return 0;
 }
 
-void conectar_Kernel(t_log *logger) {
-	char *queryFromClient;
-
-	queryFromClient = (char*) malloc(sizeof(char) * PACKAGESIZE);
-
-	printf("Iniciando servidor...\n");
-
-	int server = createServer();
-
-	printf("Esperando conexion con cliente...\n");
-
-	int client = connectToClient(server);
-
-	printf("Cliente conectado\n");
-
-	int readStatus = readQueryFromClient(client, queryFromClient);
-	while(readStatus > 0) {
-		processQuery(queryFromClient, logger);
-		readStatus = readQueryFromClient(client, queryFromClient);
-	}
-
-	printf("Cliente desconectado\n");
-
-	closeServer(server);
-}
-void iniciar_logger(t_log **logger)
+void iniciar_logger()
 {
-	*logger = log_create("Memory.log", "Memory", 1, LOG_LEVEL_INFO);
+	logger = log_create("Memory.log", "Memory", 1, LOG_LEVEL_INFO);
 }
 
-int conectar_FS(t_log *logger) {
-	return connectToServer();
+void *listen_client() {
+	int socket = createServer("127.0.0.1", "64782");
+	while(true) {
+		int status = listen(socket, 1);
+		if(status == 0) {
+			int cliSocket = connectToClient(socket);
+
+			e_query opCode;
+
+			recv(cliSocket, &opCode, sizeof(opCode), 0);
+
+			char *table;
+			int key, size;
+			e_response_code resCode;
+
+			switch(opCode) {
+				case QUERY_SELECT:
+
+					printf("Select");
+
+					recv(cliSocket, &size, sizeof(int), 0);
+					table = (char*)malloc(size);
+					recv(cliSocket, table, size, 0);
+					recv(cliSocket, &size, sizeof(int), 0);
+					recv(cliSocket, &key, size, 0);
+
+					char *response = selectM(table, key);
+					if(response == NULL) {
+						printf("Sale mal");
+						resCode = RESPONSE_ERROR;
+						send(cliSocket, &resCode, sizeof(resCode), 0);
+					} else {
+						printf("Sale bien");
+						resCode = RESPONSE_SUCCESS;
+						send(cliSocket, &resCode, sizeof(resCode), 0);
+						size = sizeof(response);
+						send(cliSocket, &size, sizeof(int), 0);
+						send(cliSocket, response, sizeof(response), 0);
+					}
+					break;
+			}
+		}
+	}
 }
 
 void start_API(t_log *logger){
@@ -86,6 +80,7 @@ void start_API(t_log *logger){
 
 	}
 }
+
 e_query processQuery(char *query, t_log *logger) {
 
 	char log_msg[100];
@@ -102,8 +97,8 @@ e_query processQuery(char *query, t_log *logger) {
 	switch(queryType) {
 
 		case QUERY_SELECT:
-			sendMessage(server,query);
-			printf("%s",selectM(args[1], atoi(args[2]),logger));
+//			sendMessage(server,query);
+			printf("%s",selectM(args[1], atoi(args[2])));
 //			queryToFileSystem(*query);
 			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
 
@@ -224,7 +219,7 @@ void insertM(char* segmentID, int key, char* value, t_log *logger){
 }
 
 
-char* selectM(char* segmentID, int key, t_log *logger){
+char* selectM(char* segmentID, int key){
 	//Busca si existe una pagina con esta key
 	//Develve el valor asociado
 

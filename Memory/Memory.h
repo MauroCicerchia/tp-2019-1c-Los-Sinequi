@@ -8,24 +8,22 @@
 #include<readline/readline.h>
 #include<sharedLib/console.h>
 #include<sharedLib/server.h>
+#include<sharedLib/query.h>
+#include<sharedLib/packaging.h>
 #include"Segment.h"
 #include<time.h>
 
 t_list* segmentList;
 e_query processQuery(char *, t_log*);
+t_log *logger;
 
-void conectar_Kernel(t_log*);
-void iniciar_logger(t_log**);
-int conectar_FS(t_log*);
-void start_API(t_log*);
+void iniciar_logger();
+void *listen_client();
+void start_API();
 segment* search_segment(char*);
 page* search_page(segment*,int);
-char* selectM(char*,int,t_log*);	   // (nombreTabla,key)
+char* selectM(char*,int);	   // (nombreTabla,key)
 void insertM(char*,int,char*,t_log*); // (nombreTabla,key,value)
 segment* segment_init(t_log*);
 void createM(char*,/*consistencia,*/int,int);
-
-int mockitoTimestamp(){
-	return 4;
-}
 
