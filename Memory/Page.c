@@ -23,7 +23,7 @@ page* create_load_page(int pageNum, pageData* pageData,int isModified){
 }
 
 pageData* create_load_pageData(int timestamp, int key, char* value){
-	pageData* segmentPageData = pageData_create()
+	pageData* segmentPageData = pageData_create();
 	segmentPageData->key=key;
 	segmentPageData->timestamp=timestamp;
 	segmentPageData->value=value;

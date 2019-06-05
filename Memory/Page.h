@@ -1,6 +1,8 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include<commons/collections/list.h>
+#include<stdbool.h>
 
 typedef struct{
 	int timestamp;
