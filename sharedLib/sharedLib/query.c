@@ -54,8 +54,8 @@ int validateQuerySyntax(char **array,e_query queryType){
 			return true;
 
 		case QUERY_INSERT:
-			if( sizeofArray(array) != 5) return false; // cantidad de parametros invalidos
-			if(atoi(array[2])) return false; //key invalida
+			if( sizeofArray(array) != 5 && sizeofArray(array) != 4) return false; // cantidad de parametros invalidos
+//			if(atoi(array[2])) return false; //key invalida
 			return true;
 
 		case QUERY_CREATE:

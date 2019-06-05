@@ -23,5 +23,5 @@ t_query *process_next_query(t_process *process) {
 }
 
 int process_finished(t_process *process) {
-	return process->pc > process_length(process);
+	return process->pc >= process_length(process);
 }

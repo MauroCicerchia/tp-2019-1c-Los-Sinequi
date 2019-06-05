@@ -14,6 +14,7 @@
 #include"entities/Process.h"
 #include"entities/Memory.h"
 #include"entities/Table.h"
+#include"entities/QueryExec.h"
 
 void load_logger();
 void load_config();
