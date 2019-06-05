@@ -25,7 +25,7 @@ void start_API(t_log *logger){
 	char *input;
 	input = readline(">");
 	while(strcmp("", input)) {
-		newQuery(input, logger);
+		//newQuery(input, logger);
 		free(input);
 		input = readline(">");
 	}

@@ -21,7 +21,7 @@ void iniciar_servidor(t_log *logger) {
 
 	printf("Iniciando servidor...\n");
 
-	int server = createServer();
+	int server = createServer("192.168.0.1", "80");
 
 	printf("Esperando conexion con cliente...\n");
 

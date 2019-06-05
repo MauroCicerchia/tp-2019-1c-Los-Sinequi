@@ -4,9 +4,12 @@
 #include<stdint.h>
 #include<commons/string.h>
 #include<commons/txt.h>
+
+#include"../../Fs/fs.h"
 #include"../memtable/memtable.h"
 
-#include "../../Fs/fs.h"
+extern t_list *memtable;
+extern char* absoluto;
 
-void qinsert(char*, char*, char*, char*);
-char* toLFSmode(char*,char*,char*);
+void dump();
+char *toLFSmode(char*,char*,char*);
