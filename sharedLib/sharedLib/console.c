@@ -7,6 +7,7 @@ e_query queryError() {
 
 int validateQuerySyntax(char **array,e_query queryType){
 	int tamano = sizeofArray(array);
+	printf("%d",tamano);
 	int key;
 	switch(queryType){
 
@@ -17,12 +18,12 @@ int validateQuerySyntax(char **array,e_query queryType){
 			return true;
 
 		case QUERY_INSERT:
-			if( sizeofArray(array) != 5) return false; // cantidad de parametros invalidos
-			if(atoi(array[2])) return false; //key invalida
+			if( tamano<4 && tamano>6) return false; // cantidad de parametros invalidos
+			//if(!atoi(array[2])) return false; //key invalida
 			return true;
 
 		case QUERY_CREATE:
-			if( sizeofArray(array) != 5 ) return 0; // cantidad de parametros invalidos
+			if( tamano != 5 ) return 0; // cantidad de parametros invalidos
 
 			key = atoi(array[3]);
 			if(!key) return false; //particiones o tiempo de compactacion invalidos
@@ -33,11 +34,11 @@ int validateQuerySyntax(char **array,e_query queryType){
 			return true;
 
 		case QUERY_DESCRIBE:
-			if( sizeofArray(array) != 2 ) return false; // cantidad de parametros invalidos
+			if( tamano!= 2 ) return false; // cantidad de parametros invalidos
 			return true;
 
 		case QUERY_DROP:
-			if( sizeofArray(array) != 2 ) return false; // cantidad de parametros invalidos
+			if( tamano != 2 ) return false; // cantidad de parametros invalidos
 			return true;
 
 		default:

@@ -33,9 +33,10 @@ int main(int argc, char **argv) {
 
 */
 
-	insertM("tabla1",2,"EstoAnda",logger);
-	printf("El valor es: %s",selectM("tabla1",2,logger));
+	//insertM("tabla1",2,"EstoAnda",logger);
+	//printf("El valor es: %s",selectM("tabla1",2,logger));
 
+	start_API(logger);
 
 	return 0;
 }
@@ -102,7 +103,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_SELECT:
 			sendMessage(server,query);
-			//select(args[1], args[2]);
+			printf("%s",selectM(args[1], atoi(args[2]),logger));
 //			queryToFileSystem(*query);
 			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
 
@@ -110,7 +111,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_INSERT:
 
-			//insert(args[1], args[2], args[3], args[4]);
+			insertM(args[1], atoi(args[2]), args[3], logger);
 
 			sprintf(log_msg, "Recibi un INSERT %s %s %s", args[1], args[2], args[3]);
 
@@ -171,7 +172,7 @@ segment* search_segment(char* segmentID){
 	return list_find(segmentList,isId);
 }
 
-segment* segment_init(){
+segment* segment_init(t_log* logger){
 
 	segment* memorySegment= segment_create();
 	memorySegment->page_list = list_create();
@@ -190,7 +191,7 @@ void insertM(char* segmentID, int key, char* value, t_log *logger){
 		if(pageFound != NULL){
 			log_info(logger,"Se encontro la pagina con el key buscado, modificando el valor.");
 			strcpy(pageFound->page_data->value,value);
-			pageFound->page_data->timestamp= mockitoTimestamp();
+			pageFound->page_data->timestamp= get_timestamp();
 			pageFound->isModified=1;
 		}
 		else{
@@ -211,7 +212,7 @@ void insertM(char* segmentID, int key, char* value, t_log *logger){
 	}
 	else{
 		log_info(logger,"No se encontro la tabla buscada, creando nuevo segmento.");
-		segment* newSegment = segment_init();
+		segment* newSegment = segment_init(logger);
 		newSegment->segment_id = segmentID;
 		segment_add_page(newSegment,key,value);
 		log_info(logger,"Se agrego la pagina con el nuevo valor.");
@@ -221,6 +222,7 @@ void insertM(char* segmentID, int key, char* value, t_log *logger){
 	}
 
 }
+
 
 char* selectM(char* segmentID, int key, t_log *logger){
 	//Busca si existe una pagina con esta key
@@ -248,5 +250,12 @@ char* selectM(char* segmentID, int key, t_log *logger){
 	}
 
 	return NULL;
+}
+
+//void createM(char segmentID*,/*consistencia,*/int partition_num, int compaction_time){
+	/*ENVIAR AL FS OPERACION PARA CREAR TABLA*/
+
+int get_timestamp(){
+	return (int)time(NULL);
 }
 

@@ -9,6 +9,7 @@
 #include<sharedLib/console.h>
 #include<sharedLib/server.h>
 #include"Segment.h"
+#include<time.h>
 
 t_list* segmentList;
 e_query processQuery(char *, t_log*);
@@ -21,7 +22,8 @@ segment* search_segment(char*);
 page* search_page(segment*,int);
 char* selectM(char*,int,t_log*);	   // (nombreTabla,key)
 void insertM(char*,int,char*,t_log*); // (nombreTabla,key,value)
-segment* segment_init();
+segment* segment_init(t_log*);
+void createM(char*,/*consistencia,*/int,int);
 
 int mockitoTimestamp(){
 	return 4;
