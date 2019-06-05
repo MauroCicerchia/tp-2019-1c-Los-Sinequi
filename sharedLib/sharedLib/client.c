@@ -1,6 +1,6 @@
 #include"client.h"
 
-int connectToServer() {
+int connectToServer(char *IP, int PORT) {
 	struct addrinfo hints;
 	struct addrinfo *serverInfo;
 
@@ -8,7 +8,7 @@ int connectToServer() {
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 
-	getaddrinfo(IP, PUERTO, &hints, &serverInfo);	// Carga en serverInfo los datos de la conexion
+	getaddrinfo(IP, string_itoa(PORT), &hints, &serverInfo);	// Carga en serverInfo los datos de la conexion
 
 	int serverSocket = socket(serverInfo->ai_family, serverInfo->ai_socktype, serverInfo->ai_protocol);
 

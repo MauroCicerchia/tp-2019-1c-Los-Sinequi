@@ -1,51 +1,17 @@
 #include"console.h"
 
-e_query queryError() {
-	printf("La consulta no es valida.\n");
-	return QUERY_ERROR;
-}
+char **validate_query_and_return_args(char *query) {
+	char **args = string_split(query, " "); //guardas en el vecor args la query
 
-int validateQuerySyntax(char **array,e_query queryType){
-	int tamano = sizeofArray(array);
-	printf("%d",tamano);
-	int key;
-	switch(queryType){
-
-		case QUERY_SELECT:
-			if( tamano != 3) return false; // cantidad de parametros invalidos
-			key = atoi(array[2]);
-			if(!key) return false; //key invalida
-			return true;
-
-		case QUERY_INSERT:
-			if( tamano<4 && tamano>6) return false; // cantidad de parametros invalidos
-			//if(!atoi(array[2])) return false; //key invalida
-			return true;
-
-		case QUERY_CREATE:
-			if( tamano != 5 ) return 0; // cantidad de parametros invalidos
-
-			key = atoi(array[3]);
-			if(!key) return false; //particiones o tiempo de compactacion invalidos
-
-			key = atoi(array[4]);
-			if(!key) return false;
-
-			return true;
-
-		case QUERY_DESCRIBE:
-			if( tamano!= 2 ) return false; // cantidad de parametros invalidos
-			return true;
-
-		case QUERY_DROP:
-			if( tamano != 2 ) return false; // cantidad de parametros invalidos
-			return true;
-
-		default:
-			return true;
+	int validQuery = validateQuerySyntax(args, args[0]); //validamos que sea correcta y sino lanzamos exception
+	if (!validQuery) {
+		free(args);
+		return NULL;
 	}
 
+	return args;
 }
+
 int sizeofArray(char **array){
 	int i=0;
 	if(!array[i]) return 0;
@@ -53,4 +19,15 @@ int sizeofArray(char **array){
 		i++;
 	}
 	return i;
+}
+
+void start_API(t_log *logger){
+	char *input;
+	input = readline(">");
+	while(strcmp("", input)) {
+		newQuery(input, logger);
+		free(input);
+		input = readline(">");
+	}
+	free(input);
 }

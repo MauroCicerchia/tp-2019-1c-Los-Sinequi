@@ -1,117 +1,366 @@
-#include "Kernel.h"
+#include"Kernel.h"
 
+#define MP 1
 
-int server;
+int server, QUANTUM, nroProcesos = 0;
+t_list *memories;
+t_config *config;
+t_queue *new, *ready;
+t_process *exec[MP];
+sem_t MUTEX_NEW, MUTEX_READY, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY, FREE_PROC[MP];
+t_log *logger;
+pthread_t threadNewReady, threadsExec[MP];
 
 int main(int argc, char **argv) {
 
-	t_log *logger = NULL;
+	init_kernel();
 
-	server = iniciar_cliente();
-	iniciar_logger(&logger);
+	display_memories();
+
+	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
+	pthread_detach(threadNewReady);
+	for(int i = 0; i < MP; i++) {
+		pthread_create(&threadsExec[i], NULL, processor_execute, (void*)i);
+		pthread_detach(threadsExec[i]);
+	}
 
 	start_API(logger);
 
-	closeConnection(server);
+//	printf("new:%d\n", queue_size(new));
+//	printf("ready:%d\n", queue_size(ready));
 
-	log_destroy(logger);
+	kill_kernel();
 
-	return 0;
+	exit(0);
 }
 
-e_query processQuery(char *query, t_log *logger) {
+void init_kernel() {
+	load_logger();
+	log_info(logger, "Iniciando Kernel");
+	load_config();
+	QUANTUM = get_quantum();
+	new = queue_create();
+	ready = queue_create();
+	memories = list_create();
+	sem_init(&MUTEX_NEW, 0, 1);
+	sem_init(&MUTEX_READY, 0, 1);
+	sem_init(&PROC_PEND_NEW, 0, 0);
+	sem_init(&PROC_PEND_READY, 0, 0);
+	sem_init(&MAX_PROC_READY, 0, get_multiprogramming_degree());
+	for(int i = 0; i < MP; i++) {
+		sem_init(&FREE_PROC[i], 0, 1);
+	}
+	init_memory();
+}
+
+void kill_kernel() {
+	log_info(logger, "Terminando Kernel");
+	log_info(logger, "------------------------------------------------------------");
+	config_destroy(config);
+	log_destroy(logger);
+//	pthread_cancel(threadNewReady);
+//	for(int i = 0; i < MP; i++) {
+//		pthread_cancel(threadsExec[i]);
+//	}
+	queue_destroy_and_destroy_elements(new, process_destroy);
+	queue_destroy_and_destroy_elements(ready, process_destroy);
+	list_destroy_and_destroy_elements(memories, memory_destroy);
+	sem_destroy(&MUTEX_NEW);
+	sem_destroy(&MUTEX_READY);
+	sem_destroy(&PROC_PEND_NEW);
+	sem_destroy(&PROC_PEND_READY);
+	sem_destroy(&MAX_PROC_READY);
+	for(int i = 0; i < MP; i++) {
+		sem_destroy(&FREE_PROC[i]);
+	}
+}
+
+e_query newQuery(char *query) {
 
 	char log_msg[100];
 	e_query queryType;
 
-	char **args = string_split(query, " "); //guardas en el vecor args la query
-
-	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
-
-	int invalidQuery = validateQuerySyntax(args, queryType); //validamos que sea correcta y sino lanzamos exception
-	if (!invalidQuery){
+	char **args = validate_query_and_return_args(query);
+	if(args == NULL)
 		return queryError();
-	}
 
+	queryType = getQueryType(args[0]);
+
+	int isQuery = 0;
 	switch(queryType) {
-
 		case QUERY_SELECT:
-
-			//select(args[1], args[2]);
-			sendMessage(server,query);
+			isQuery = 1;
 			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
-
 			break;
 
 		case QUERY_INSERT:
-
-			//insert(args[1], args[2], args[3], args[4]);
-
+			isQuery = 1;
 			sprintf(log_msg, "Recibi un INSERT %s %s %s", args[1], args[2], args[3]);
-
 			break;
 
 		case QUERY_CREATE:
-
-			//create(args[1], args[2], args[3], args[4]);
-
+			isQuery = 1;
 			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
-
 			break;
 
 		case QUERY_DESCRIBE:
-
-			//describe(args[1]);
-
+			isQuery = 1;
 			sprintf(log_msg, "Recibi un DESCRIBE %s", args[1]);
-
 			break;
 
 		case QUERY_DROP:
-
-			//drop(args[1]);
-
+			isQuery = 1;
 			sprintf(log_msg, "Recibi un DROP %s", args[1]);
-
 			break;
 
 		case QUERY_JOURNAL:
-
-			//journal();
-
 			sprintf(log_msg, "Recibi un JOURNAL");
-
 			break;
 
 		case QUERY_ADD:
-
-			//add(args[2], args[4]);
-
+			add_memory_to_cons_type(atoi(args[2]), getConsistencyType(args[4]));
 			sprintf(log_msg, "Recibi un ADD MEMORY %s TO %s", args[2], args[4]);
-
 			break;
 
 		case QUERY_RUN:
-
-			//run(args[1]);
-
+			if(!read_lql_file(args[1]))
+				return queryError();
 			sprintf(log_msg, "Recibi un RUN %s", args[1]);
-
 			break;
 
 		case QUERY_METRICS:
-
-			//metrics();
-
 			sprintf(log_msg, "Recibi un METRICS");
-
 			break;
 
 		default:
 			return queryError(logger);
-
 	}
 
 	log_info(logger, log_msg);
+
+	if(isQuery) {
+		t_query *newQuery = query_create(queryType, args);
+		t_list *queryList = list_create();
+		list_add(queryList, (void*)newQuery);
+		t_process *newProcess = process_create(nroProcesos, queryList);
+		nroProcesos++;
+
+		add_process_to_new(newProcess);
+	}
 	return queryType;
+}
+
+int read_lql_file(char *path) {
+	char buffer[200];
+	FILE *lql = fopen(path, "rt");
+	if(lql == NULL) {
+		char msg[200];
+		sprintf(msg, "No se ha podido abrir el archivo %s", path);
+		log_error(logger, msg);
+		return 0;
+	}
+
+	t_list *fileQuerys = list_create();
+
+	while(fgets(buffer, sizeof(buffer), lql)) {
+		char **args = string_split(buffer, " ");
+		if(args == NULL) {
+			list_destroy_and_destroy_elements(fileQuerys, query_destroy);
+			fclose(lql);
+			printf("El archivo no es valido.\n");
+			return 0;
+		}
+
+		e_query queryType = getQueryType(args[0]);
+		t_query *currentQuery = query_create(queryType, args);
+		list_add(fileQuerys, (void*)currentQuery);
+	}
+
+	t_process *newProcess = process_create(nroProcesos, fileQuerys);
+	nroProcesos++;
+	add_process_to_new(newProcess);
+
+	fclose(lql);
+	return 1;
+}
+
+void add_process_to_new(t_process* process) {
+	char msg[50];
+	sem_wait(&MUTEX_NEW);
+	queue_push(new, (void*) process);
+	sem_post(&MUTEX_NEW);
+	sprintf(msg, "Proceso %d agregado a la cola de NEW", process->pid);
+	sem_post(&PROC_PEND_NEW);
+	log_info(logger, msg);
+}
+
+void *new_to_ready() {
+	char msg[50];
+	while(true) {
+		sem_wait(&MAX_PROC_READY);
+		sem_wait(&PROC_PEND_NEW);
+		sem_wait(&MUTEX_NEW);
+		void *p = queue_pop(new);
+		sem_post(&MUTEX_NEW);
+		add_process_to_ready(p);
+		sprintf(msg, "Proceso %d agregado a la cola de READY", ((t_process*)p)->pid);
+		log_info(logger, msg);
+	}
+}
+
+void add_process_to_ready(t_process *process) {
+	sem_wait(&MUTEX_READY);
+	queue_push(ready, process);
+	sem_post(&MUTEX_READY);
+	sem_post(&PROC_PEND_READY);
+}
+
+void ready_to_exec(int processor) {
+	if(processor >= MP)
+		return;
+	sem_wait(&FREE_PROC[processor]);
+	sem_wait(&PROC_PEND_READY);
+	sem_wait(&MUTEX_READY);
+	void *p = queue_pop(ready);
+	sem_post(&MUTEX_READY);
+	exec[processor] = (t_process*)p;
+	char msg[50];
+	sprintf(msg, "Proceso %d ejecutando en procesador %d", exec[processor]->pid, processor);
+	log_info(logger, msg);
+}
+
+void *processor_execute(void *p) {
+	char msg[50];
+	int processor = (int)p;
+	if(processor >= MP)
+		return NULL;
+	while(true) {
+		ready_to_exec(processor);
+
+		for(int i = 0; i < QUANTUM; i++) {
+			if(process_finished(exec[processor]))
+				break;
+			t_query *nextQuery = process_next_query(exec[processor]);
+
+			if(getQueryType(nextQuery->args[0]) == QUERY_ERROR || validateQuerySyntax(nextQuery->args, nextQuery->queryType) == 0) {
+				sprintf(msg, "Error al ejecutar el proceso %d en la linea %d", exec[processor]->pid, exec[processor]->pc);
+				log_error(logger, msg);
+				exec[processor]->pc = process_length(exec[processor]);
+				break;
+			} else {
+				execute_query(nextQuery);
+				sleep(get_execution_delay() / 1000);
+			}
+		}
+
+		if(process_finished(exec[processor])) {
+			sprintf(msg, "Terminando proceso %d", exec[processor]->pid);
+			log_info(logger, msg);
+			process_destroy(exec[processor]);
+			sem_post(&MAX_PROC_READY);
+		} else {
+			add_process_to_ready(exec[processor]);
+		}
+		sem_post(&FREE_PROC[processor]);
+	}
+	return NULL;
+}
+
+void execute_query(t_query *query) {
+	switch(query->queryType) {
+		case QUERY_SELECT: qSelect(query->args); log_info(logger, "Ejecute un SELECT"); break;
+		case QUERY_INSERT: qInsert(query->args); log_info(logger, "Ejecute un INSERT"); break;
+		case QUERY_CREATE: qCreate(query->args); log_info(logger, "Ejecute un CREATE"); break;
+		case QUERY_DESCRIBE: qDescribe(query->args); log_info(logger, "Ejecute un DESCRIBE"); break;
+		case QUERY_DROP: qDrop(query->args); log_info(logger, "Ejecute un DROP"); break;
+		default: break;
+	}
+}
+
+void init_memory() {
+//	int memSocket = connect_to_memory(get_memory_ip(), get_memory_port());
+	request_memory_pool(0);
+//	closeConnection(memSocket);
+//	t_memory *scMem = get_sc_memory();
+//	printf("mid: %d", scMem->mid);
+}
+
+int connect_to_memory(char *IP, int PORT) {
+	return connectToServer(IP, PORT);
+}
+
+void request_memory_pool(int memSocket) {
+	//Mock
+	t_memory *mem = memory_create(get_memory_ip(), get_memory_port());
+	mem->mid = 1;
+	memory_add_cons_type(mem, CONS_SC);
+	list_add(memories, (void*) mem);
+}
+
+void display_memories() {
+	printf("MID	IP		PORT	CONS\n");
+
+	void display_memory(void *memory) {
+		printf("%d	%s	%d\n", ((t_memory*)memory)->mid, ((t_memory*)memory)->ip, ((t_memory*)memory)->port);
+	}
+
+	list_iterate(memories, display_memory);
+
+}
+
+void add_memory_to_cons_type(int memid, e_cons_type consType) {
+	bool findMemByID(void *mem) {
+		return ((t_memory*) mem)->mid == memid;
+	}
+	t_memory *selectedMem = list_find(memories, findMemByID);
+	if(selectedMem != NULL)
+		memory_add_cons_type(selectedMem, consType);
+}
+
+t_memory *get_memory_of_cons_type(e_cons_type consType) {
+	bool isConsTypeMem(void *mem) {
+		return memory_is_cons_type((t_memory*) mem, consType);
+	}
+	return (t_memory*) list_find(memories, isConsTypeMem);
+}
+
+char *get_memory_ip() {
+	return config_get_string_value(config, "MEM_IP");
+}
+
+int get_memory_port() {
+	return config_get_int_value(config, "MEM_PORT");
+}
+
+int get_quantum() {
+	return config_get_int_value(config, "QUANTUM");
+}
+
+int get_multiprogramming_degree() {
+	return config_get_int_value(config, "MULT_DEGREE");
+}
+
+int get_metadata_refresh_rate() {
+	return config_get_int_value(config, "MD_REFRESH_RATE");
+}
+
+int get_execution_delay() {
+	return config_get_int_value(config, "EXEC_DELAY");
+}
+
+void load_logger()
+{
+	logger = log_create("../Kernel.log", "Kernel", 0, LOG_LEVEL_INFO);
+	if(logger == NULL) {
+		printf("No se pudo crear el log.\n");
+		exit(-1);
+	}
+}
+
+void load_config() {
+	config = config_create(".config");
+	if(config == NULL) {
+		log_error(logger, "No se pudo abrir el archivo de configuracion");
+		exit(-1);
+	}
 }
