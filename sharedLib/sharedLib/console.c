@@ -5,6 +5,7 @@ char **validate_query_and_return_args(char *query) {
 
 	int validQuery = validateQuerySyntax(args, args[0]); //validamos que sea correcta y sino lanzamos exception
 	if (!validQuery) {
+		free(args);
 		return NULL;
 	}
 
@@ -28,4 +29,5 @@ void start_API(t_log *logger){
 		free(input);
 		input = readline(">");
 	}
+	free(input);
 }

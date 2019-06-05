@@ -1,5 +1,6 @@
 #include<stdio.h>
-#include<sharedLib/process.h>
+#include<stdlib.h>
+#include<sharedLib/consistency.h>
 
 typedef struct {
 	int mid;

@@ -11,8 +11,10 @@
 #include<readline/readline.h>
 #include<sharedLib/console.h>
 #include<sharedLib/client.h>
-#include"Memory.h"
-#include"Table.h"
+#include"entities/Process.h"
+#include"entities/Memory.h"
+#include"entities/Table.h"
+#include"entities/QueryExec.h"
 
 void load_logger();
 void load_config();
@@ -22,7 +24,10 @@ e_query newQuery(char *);
 int read_lql_file(char*);
 void add_process_to_new(t_process*);
 void *new_to_ready();
+void add_process_to_ready(t_process*);
 void ready_to_exec(int);
+void *processor_execute(void*);
+void execute_query(t_query*);
 void setConfigParameter(char*);
 void init_memory();
 int connect_to_memory();

@@ -1,6 +1,12 @@
+#include<stdio.h>
 #include<stdlib.h>
 #include<commons/string.h>
 #include"consistency.h"
+#include"console.h"
+#include<errno.h>
+
+#ifndef QUERY_H
+#define QUERY_H
 
 typedef enum {
 	QUERY_SELECT,
@@ -26,3 +32,5 @@ void query_destroy(void*);
 e_query getQueryType(char*);
 e_query queryError();
 int validateQuerySyntax(char**,e_query);
+
+#endif
