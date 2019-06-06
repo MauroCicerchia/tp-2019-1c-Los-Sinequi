@@ -268,7 +268,7 @@ void *processor_execute(void *p) {
 
 void execute_query(t_query *query) {
 	switch(query->queryType) {
-		case QUERY_SELECT: printf("Chau"); qSelect(query->args, logger); log_info(logger, "Ejecute un SELECT"); break;
+		case QUERY_SELECT: qSelect(query->args, logger); log_info(logger, "Ejecute un SELECT"); break;
 		case QUERY_INSERT: qInsert(query->args); log_info(logger, "Ejecute un INSERT"); break;
 		case QUERY_CREATE: qCreate(query->args); log_info(logger, "Ejecute un CREATE"); break;
 		case QUERY_DESCRIBE: qDescribe(query->args); log_info(logger, "Ejecute un DESCRIBE"); break;
@@ -304,7 +304,7 @@ void display_memories() {
 	printf("MID	IP		PORT	CONS\n");
 
 	void display_memory(void *memory) {
-		printf("%d	%s	%d\n", ((t_memory*)memory)->mid, ((t_memory*)memory)->ip, ((t_memory*)memory)->port);
+		printf("%d	%s	%s\n", ((t_memory*)memory)->mid, ((t_memory*)memory)->ip, ((t_memory*)memory)->port);
 	}
 
 	list_iterate(memories, display_memory);
@@ -332,7 +332,7 @@ char *get_memory_ip() {
 }
 
 int get_memory_port() {
-	return config_get_int_value(config, "MEM_PORT");
+	return config_get_string_value(config, "MEM_PORT");
 }
 
 int get_quantum() {

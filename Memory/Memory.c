@@ -5,8 +5,6 @@ int main(int argc, char **argv) {
 
 	segmentList = list_create();
 
-//	char *input;
-	//server = conectar_FS(logger);
 	iniciar_logger();
 
 	pthread_t threadClient;
@@ -21,50 +19,45 @@ int main(int argc, char **argv) {
 
 void iniciar_logger()
 {
-	logger = log_create("Memory.log", "Memory", 1, LOG_LEVEL_INFO);
+	logger = log_create("Memory.log", "Memory", 0, LOG_LEVEL_INFO);
 }
 
 void *listen_client() {
 	int socket = createServer("127.0.0.1", "64782");
 	while(true) {
-		int status = listen(socket, 1);
-		if(status == 0) {
-			int cliSocket = connectToClient(socket);
+		int cliSocket = connectToClient(socket);
 
-			e_query opCode;
+		e_query opCode;
 
-			recv(cliSocket, &opCode, sizeof(opCode), 0);
+		recv(cliSocket, &opCode, sizeof(opCode), 0);
 
-			char *table;
-			int key, size;
-			e_response_code resCode;
+		char *table;
+		int key, size;
+		e_response_code resCode;
 
-			switch(opCode) {
-				case QUERY_SELECT:
+		switch(opCode) {
+			case QUERY_SELECT:
 
-					printf("Select");
+				recv(cliSocket, &size, sizeof(int), 0);
+				table = (char*)malloc(size);
+				recv(cliSocket, table, size, 0);
+				table[strlen(table)] = '\0';
+				recv(cliSocket, &size, sizeof(int), 0);
+				recv(cliSocket, &key, size, 0);
 
-					recv(cliSocket, &size, sizeof(int), 0);
-					table = (char*)malloc(size);
-					recv(cliSocket, table, size, 0);
-					recv(cliSocket, &size, sizeof(int), 0);
-					recv(cliSocket, &key, size, 0);
+				char *response = selectM(table, key);
 
-					char *response = selectM(table, key);
-					if(response == NULL) {
-						printf("Sale mal");
-						resCode = RESPONSE_ERROR;
-						send(cliSocket, &resCode, sizeof(resCode), 0);
-					} else {
-						printf("Sale bien");
-						resCode = RESPONSE_SUCCESS;
-						send(cliSocket, &resCode, sizeof(resCode), 0);
-						size = sizeof(response);
-						send(cliSocket, &size, sizeof(int), 0);
-						send(cliSocket, response, sizeof(response), 0);
-					}
-					break;
-			}
+				if(response == NULL) {
+					resCode = RESPONSE_ERROR;
+					send(cliSocket, &resCode, sizeof(resCode), 0);
+				} else {
+					resCode = RESPONSE_SUCCESS;
+					send(cliSocket, &resCode, sizeof(resCode), 0);
+					size = sizeof(char) * (strlen(response) + 1);
+					send(cliSocket, &size, sizeof(size), 0);
+					send(cliSocket, response, size, 0);
+				}
+				break;
 		}
 	}
 }

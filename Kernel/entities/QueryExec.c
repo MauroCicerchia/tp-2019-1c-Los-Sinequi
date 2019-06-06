@@ -9,7 +9,7 @@ void qSelect(char** args, t_log *logger) {
 
 //	Paquetizar
 	t_package *p = create_package(queryType);
-	add_to_package(p, (void*)tabla, sizeof(tabla));
+	add_to_package(p, (void*)tabla, sizeof(char) * (strlen(tabla) + 1));
 	add_to_package(p, (void*)&key, sizeof(key));
 
 //	obtener memoria segun criterio
@@ -22,23 +22,23 @@ void qSelect(char** args, t_log *logger) {
 	e_response_code r;
 	recv(memSocket, &r, sizeof(r), NULL);
 
-	log_info(logger, "Hola");
-
 	if(r == RESPONSE_SUCCESS) {
 		int size;
 		recv(memSocket, &size, sizeof(size), NULL);
+
+		printf("%d", size);
+
 		char *value = (char*)malloc(size);
 		recv(memSocket, value, size, NULL);
-
 
 		FILE * output = txt_open_for_append("../output.txt");
 		txt_write_in_file(output, value);
 		txt_write_in_file(output, "\n");
 
-		printf("\nPara vos Adro: %s\n", value);
-
 	} else {
+		close(memSocket);
 //		notificar error
+		log_error(logger, "Error al realizar query en memoria.");
 		return;
 	}
 	return;

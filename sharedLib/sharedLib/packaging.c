@@ -15,8 +15,6 @@ void *serialize_package(t_package *package, int bytes) {
 
 	memcpy(serializedPackage + offset, &(package->op_code), sizeof(int));
 	offset += sizeof(int);
-	memcpy(serializedPackage + offset, &(package->buffer->size), sizeof(int));
-	offset += sizeof(int);
 	memcpy(serializedPackage + offset, package->buffer->stream, package->buffer->size);
 	offset += package->buffer->size;
 
