@@ -2,11 +2,14 @@
 #include<stdlib.h>
 #include<string.h>
 #include<stdint.h>
+#include<commons/log.h>
 #include<commons/string.h>
 #include<commons/txt.h>
 #include"../memtable/memtable.h"
+#include"../../Fs/fs.h"
+#include"../dump/dump.h"
 
-#include "../../Fs/fs.h"
+extern t_log *logger;
 
 void qinsert(char*, char*, char*, char*);
 char* toLFSmode(char*,char*,char*);

@@ -19,18 +19,23 @@ int fs_tableExists(char* table){
 }
 
 int fs_create(char *table,char *consistency,int parts,int ctime){
+	log_info(logger, "  Chequeo coherencia de particiones");
 	if(parts == 0){
-		printf("No puede haber 0 particiones\n");
+		log_error(logger,"No puede haber 0 particiones");
 		return 0;
 	}
+	log_info(logger, "  Chequeo coherencia en tiempo de compactacion");
 	if(ctime == 0){
-		printf("El tiempo de compactacion no puede ser 0\n");
+		log_error(logger,"El tiempo de compactacion no puede ser 0");
 		return 0;
 	}
 	makeDirectories(table);
+	log_info(logger, "  Creo los directorios");
 	makeFiles(table,parts);
+	log_info(logger, "  Creo los archivos de particion");
 	makeMetadataFile(table);
 	loadMetadata(table,consistency,parts,ctime);
+	log_info(logger, "  Creo y cargo el archivo de metadata");
 	return 1;
 }
 

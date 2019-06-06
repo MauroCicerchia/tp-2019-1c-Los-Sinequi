@@ -12,7 +12,7 @@
 #include<sys/time.h>
 
 
-char **parseQuery(char*);
-void start_API(t_log*);
+//char **parseQuery(char*);
+void start_API();
 e_query processQuery(char *, t_log*);
 uint64_t getCurrentTime();

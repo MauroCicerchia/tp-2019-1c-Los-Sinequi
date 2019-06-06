@@ -2,13 +2,15 @@
 #include<string.h>
 #include<stdio.h>
 #include<unistd.h>
-#include"commons/string.h"
+#include<commons/string.h>
+#include<commons/log.h>
 #include<commons/collections/list.h>
 #include"commons/txt.h"
 #include<sys/types.h>
 #include<sys/stat.h>
 
 extern char* absoluto;
+extern t_log *logger;
 
 int fs_tableExists(char*);
 int fs_create(char*,char*,int,int);

@@ -6,7 +6,7 @@ void dump(){ //averiguar por semaforos
 	Itable *pTable;
 	Iinsert *pInsert;
 	t_list *pMemtable = list_duplicate(memtable);
-	mt_clean(memtable);
+//	mt_clean(memtable);
 	for(int i=0; i<list_size(pMemtable); i++){ //recorro todas las tablas
 		toDump = string_new();
 		pTable = (Itable*)list_get(pMemtable,i);
