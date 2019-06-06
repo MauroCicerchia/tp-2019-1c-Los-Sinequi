@@ -28,7 +28,6 @@ void *listen_client() {
 		int cliSocket = connectToClient(socket);
 
 		e_query opCode;
-
 		recv(cliSocket, &opCode, sizeof(opCode), 0);
 
 		char *table;
@@ -37,26 +36,19 @@ void *listen_client() {
 
 		switch(opCode) {
 			case QUERY_SELECT:
-
-				recv(cliSocket, &size, sizeof(int), 0);
-				table = (char*)malloc(size);
-				recv(cliSocket, table, size, 0);
-				table[strlen(table)] = '\0';
-				recv(cliSocket, &size, sizeof(int), 0);
-				recv(cliSocket, &key, size, 0);
-
+				table = recv_str(cliSocket);
+				key = recv_int(cliSocket);
 				char *response = selectM(table, key);
 
-				if(response == NULL) {
-					resCode = RESPONSE_ERROR;
-					send(cliSocket, &resCode, sizeof(resCode), 0);
+				if(response != NULL) {
+					send_res_code(cliSocket, RESPONSE_SUCCESS);
+					send_str(cliSocket, response);
 				} else {
-					resCode = RESPONSE_SUCCESS;
-					send(cliSocket, &resCode, sizeof(resCode), 0);
-					size = sizeof(char) * (strlen(response) + 1);
-					send(cliSocket, &size, sizeof(size), 0);
-					send(cliSocket, response, size, 0);
+					send_res_code(cliSocket, RESPONSE_ERROR);
 				}
+				break;
+			case QUERY_INSERT:
+
 				break;
 		}
 	}

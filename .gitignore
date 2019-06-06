@@ -2,6 +2,7 @@
 # Edit at https://www.gitignore.io/?templates=c,eclipse
 
 *.log
+Kernel/output.txt
 
 ### C ###
 # Prerequisites

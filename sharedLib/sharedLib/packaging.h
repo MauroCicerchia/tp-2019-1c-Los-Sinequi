@@ -15,7 +15,8 @@ typedef struct{
 
 typedef enum {
 	REQUEST_QUERY,
-	REQUEST_MEMPOOL
+	REQUEST_MEMPOOL,
+	REQUEST_GOSSIP
 }e_request_code;
 
 typedef enum {
@@ -30,3 +31,11 @@ void add_to_package(t_package*, void*, int);
 void send_package(t_package*, int);
 void delete_package(t_package*);
 void set_buffer(t_package*, char**);
+void send_int(int, int);
+void send_str(int, char*);
+void send_req_code(int, e_request_code);
+void send_res_code(int, e_response_code);
+int recv_int(int);
+char *recv_str(int);
+e_request_code recv_req_code(int);
+e_response_code recv_res_code(int);

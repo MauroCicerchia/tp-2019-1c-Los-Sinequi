@@ -19,17 +19,10 @@ void qSelect(char** args, t_log *logger) {
 	int memSocket = connect_to_memory(mem->ip, mem->port);
 	send_package(p, memSocket);
 
-	e_response_code r;
-	recv(memSocket, &r, sizeof(r), NULL);
+	e_response_code r = recv_res_code(memSocket);
 
 	if(r == RESPONSE_SUCCESS) {
-		int size;
-		recv(memSocket, &size, sizeof(size), NULL);
-
-		printf("%d", size);
-
-		char *value = (char*)malloc(size);
-		recv(memSocket, value, size, NULL);
+		char *value = recv_str(memSocket);
 
 		FILE * output = txt_open_for_append("../output.txt");
 		txt_write_in_file(output, value);
@@ -39,10 +32,8 @@ void qSelect(char** args, t_log *logger) {
 		close(memSocket);
 //		notificar error
 		log_error(logger, "Error al realizar query en memoria.");
-		return;
 	}
 	return;
-//  Escribir resultado en archivo output
 }
 
 void qInsert(char** args) {

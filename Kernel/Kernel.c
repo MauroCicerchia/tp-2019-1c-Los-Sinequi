@@ -361,7 +361,7 @@ void load_logger()
 }
 
 void load_config() {
-	config = config_create(".config");
+	config = config_create("../.config");
 	if(config == NULL) {
 		log_error(logger, "No se pudo abrir el archivo de configuracion");
 		exit(-1);

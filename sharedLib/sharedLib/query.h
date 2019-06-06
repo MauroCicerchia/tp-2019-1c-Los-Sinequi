@@ -18,8 +18,7 @@ typedef enum {
 	QUERY_ADD,
 	QUERY_RUN,
 	QUERY_METRICS,
-	QUERY_ERROR,
-	GOSSIP
+	QUERY_ERROR
 }e_query;
 
 typedef struct {
