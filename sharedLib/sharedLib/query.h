@@ -9,6 +9,7 @@
 #ifndef QUERY_H
 #define QUERY_H
 
+
 typedef enum {
 	QUERY_SELECT,
 	QUERY_INSERT,

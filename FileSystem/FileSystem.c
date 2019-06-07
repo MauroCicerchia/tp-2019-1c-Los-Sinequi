@@ -57,14 +57,16 @@ void init_FileSystem(){
 void kill_FileSystem(){
 	log_destroy(logger);
 
-	//destruir memtable
+	dump();
+	list_destroy(memtable);
 
 	config_destroy(config);
 
 	sem_destroy(&MUTEX_MEMTABLE);
 	sem_destroy(&MUTEX_DUMPTIME);
 	sem_destroy(&MUTEX_RETARDTIME);
-}
+	log_info(logger, "Fin FileSystem");
+	log_info(logger, "----------------------------------------");
 
 void *threadConfigModify(){
 	log_info(logger, "----------------------------------------");

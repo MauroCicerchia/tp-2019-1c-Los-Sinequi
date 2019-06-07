@@ -148,3 +148,17 @@ int isNumeric(char *str) {
 	}
 	return 1;
 }
+
+char **parseQuery(char *query){
+	if(string_starts_with(query,"INSERT")){
+		char **a = string_split(query,"\"");
+		char **b = string_split(a[0]," ");
+		b[3] = strdup(a[1]);
+		string_trim(&a[2]);
+		b[4] = strdup(a[2]);
+		b[5] = NULL;
+		return b;
+	}
+	char **c = string_split(query," ");
+	return c;
+}
