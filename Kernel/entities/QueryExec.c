@@ -29,17 +29,43 @@ void qSelect(char** args, t_log *logger) {
 		txt_write_in_file(output, "\n");
 
 	} else {
-		close(memSocket);
 //		notificar error
-		log_error(logger, "Error al realizar query en memoria.");
+		log_error(logger, "Error al realizar select en memoria.");
 	}
+	close(memSocket);
 	return;
 }
 
-void qInsert(char** args) {
+void qInsert(char** args, t_log *logger) {
 //	Convertir args en tipo valido
+	e_query queryType = getQueryType(args[0]);
+	char *tabla = args[1];
+	int key = strtol(args[2], NULL, 10);
+	char *value = args[3];
+
 //	Paquetizar
-//	Enviar query a memoria
+	t_package *p = create_package(queryType);
+	add_to_package(p, (void*)tabla, sizeof(char) * (strlen(tabla) + 1));
+	add_to_package(p, (void*)&key, sizeof(key));
+	add_to_package(p, (void*)value, sizeof(char) * (strlen(value) + 1));
+
+//	obtener memoria segun criterio
+	t_memory *mem = get_memory_of_cons_type(CONS_SC);
+
+	//	Enviar query a memoria
+	int memSocket = connect_to_memory(mem->ip, mem->port);
+	send_package(p, memSocket);
+
+	e_response_code r = recv_res_code(memSocket);
+
+	if(r == RESPONSE_SUCCESS) {
+
+	} else {
+//		notificar error
+		log_error(logger, "Error al realizar insert en memoria.");
+	}
+	close(memSocket);
+	return;
 }
 
 void qCreate(char** args) {

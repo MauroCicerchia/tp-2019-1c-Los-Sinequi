@@ -39,7 +39,7 @@ void display_memories();
 void add_memory_to_cons_type(int, e_cons_type);
 t_memory *get_memory_of_cons_type(e_cons_type);
 char *get_memory_ip();
-int get_memory_port();
+char *get_memory_port();
 int get_quantum();
 int get_multiprogramming_degree();
 int get_metadata_refresh_rate();

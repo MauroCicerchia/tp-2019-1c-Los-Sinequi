@@ -2,7 +2,7 @@
 
 #define MP 1
 
-int server, QUANTUM, nroProcesos = 0;
+int server, nroProcesos = 0;
 t_list *memories;
 t_config *config;
 t_queue *new, *ready;
@@ -38,7 +38,7 @@ void init_kernel() {
 	load_logger();
 	log_info(logger, "Iniciando Kernel");
 	load_config();
-	QUANTUM = get_quantum();
+
 	new = queue_create();
 	ready = queue_create();
 	memories = list_create();
@@ -163,13 +163,13 @@ int read_lql_file(char *path) {
 	t_list *fileQuerys = list_create();
 
 	while(fgets(buffer, sizeof(buffer), lql)) {
-		char **args = string_split(buffer, " ");
-		if(args == NULL) {
-			list_destroy_and_destroy_elements(fileQuerys, query_destroy);
-			fclose(lql);
-			printf("El archivo no es valido.\n");
-			return 0;
-		}
+		char **args = parseQuery(buffer);
+//		if(args == NULL) {
+//			list_destroy_and_destroy_elements(fileQuerys, query_destroy);
+//			fclose(lql);
+//			printf("El archivo no es valido.\n");
+//			return 0;
+//		}
 
 		e_query queryType = getQueryType(args[0]);
 		t_query *currentQuery = query_create(queryType, args);
@@ -237,7 +237,7 @@ void *processor_execute(void *p) {
 	while(true) {
 		ready_to_exec(processor);
 
-		for(int i = 0; i < QUANTUM; i++) {
+		for(int i = 0; i < get_quantum(); i++) {
 			if(process_finished(exec[processor]))
 				break;
 			t_query *nextQuery = process_next_query(exec[processor]);
@@ -269,7 +269,7 @@ void *processor_execute(void *p) {
 void execute_query(t_query *query) {
 	switch(query->queryType) {
 		case QUERY_SELECT: qSelect(query->args, logger); log_info(logger, "Ejecute un SELECT"); break;
-		case QUERY_INSERT: qInsert(query->args); log_info(logger, "Ejecute un INSERT"); break;
+		case QUERY_INSERT: qInsert(query->args, logger); log_info(logger, "Ejecute un INSERT"); break;
 		case QUERY_CREATE: qCreate(query->args); log_info(logger, "Ejecute un CREATE"); break;
 		case QUERY_DESCRIBE: qDescribe(query->args); log_info(logger, "Ejecute un DESCRIBE"); break;
 		case QUERY_DROP: qDrop(query->args); log_info(logger, "Ejecute un DROP"); break;
@@ -331,7 +331,7 @@ char *get_memory_ip() {
 	return config_get_string_value(config, "MEM_IP");
 }
 
-int get_memory_port() {
+char *get_memory_port() {
 	return config_get_string_value(config, "MEM_PORT");
 }
 

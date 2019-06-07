@@ -30,7 +30,7 @@ void *listen_client() {
 		e_query opCode;
 		recv(cliSocket, &opCode, sizeof(opCode), 0);
 
-		char *table;
+		char *table, *value;
 		int key, size;
 		e_response_code resCode;
 
@@ -48,7 +48,11 @@ void *listen_client() {
 				}
 				break;
 			case QUERY_INSERT:
-
+				table = recv_str(cliSocket);
+				key = recv_int(cliSocket);
+				value = recv_str(cliSocket);
+				insertM(table, key, value);
+				send_res_code(cliSocket, RESPONSE_SUCCESS);
 				break;
 		}
 	}
@@ -91,7 +95,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_INSERT:
 
-			insertM(args[1], atoi(args[2]), args[3], logger);
+			insertM(args[1], atoi(args[2]), args[3]);
 
 			sprintf(log_msg, "Recibi un INSERT %s %s %s", args[1], args[2], args[3]);
 
@@ -161,7 +165,7 @@ segment* segment_init(t_log* logger){
 	return memorySegment;
 }
 
-void insertM(char* segmentID, int key, char* value, t_log *logger){
+void insertM(char* segmentID, int key, char* value){
 
 	segment* segmentFound = search_segment(segmentID);
 

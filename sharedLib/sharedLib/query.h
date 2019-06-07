@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<ctype.h>
 #include<commons/string.h>
 #include"consistency.h"
 #include"console.h"
@@ -32,4 +33,6 @@ e_query getQueryType(char*);
 e_query queryError();
 int validateQuerySyntax(char**,e_query);
 char **parseQuery(char*);
+int isNumeric(char*);
+
 #endif

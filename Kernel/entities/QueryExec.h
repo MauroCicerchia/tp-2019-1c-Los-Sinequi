@@ -5,7 +5,7 @@
 #include"Memory.h"
 
 void qSelect(char**, t_log*);
-void qInsert(char**);
+void qInsert(char**, t_log*);
 void qCreate(char**);
 void qDescribe(char**);
 void qDrop(char**);
