@@ -54,8 +54,9 @@ int validateQuerySyntax(char **array,e_query queryType){
 			return true;
 
 		case QUERY_INSERT:
-			if( sizeofArray(array) != 5) return false; // cantidad de parametros invalidos
-			if(atoi(array[2])) return false; //key invalida
+			if( tamano != 5) return false; // cantidad de parametros invalidos
+			key = atoi(array[2]);
+			if(!key) return false; //key invalida
 			return true;
 
 		case QUERY_CREATE:
@@ -96,4 +97,18 @@ int validateQuerySyntax(char **array,e_query queryType){
 		default:
 			return true;
 	}
+}
+
+char **parseQuery(char *query){
+	if(string_starts_with(query,"INSERT")){
+		char **a = string_split(query,"\"");
+		char **b = string_split(a[0]," ");
+		b[3] = strdup(a[1]);
+		string_trim(&a[2]);
+		b[4] = strdup(a[2]);
+		b[5] = NULL;
+		return b;
+	}
+	char **c = string_split(query," ");
+	return c;
 }

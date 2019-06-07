@@ -24,6 +24,7 @@ bool mt_tableExists(char *table){
 			return true;
 		}
 	}
+	return false;
 }
 
 //devuelve el puntero a la lista de "inserts" para agregar uno nuevo

@@ -2,6 +2,7 @@
 #include<commons/string.h>
 #include"consistency.h"
 
+
 typedef enum {
 	QUERY_SELECT,
 	QUERY_INSERT,
@@ -26,3 +27,5 @@ void query_destroy(void*);
 e_query getQueryType(char*);
 e_query queryError();
 int validateQuerySyntax(char**,e_query);
+char **parseQuery(char *);
+
