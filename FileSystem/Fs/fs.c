@@ -49,7 +49,7 @@ char *makeUrlForPartition(char *table,char *partition){
 char *makeTableUrl(char *table){
 	char *url = string_new();
 	string_append(&url,absoluto);
-	string_append(&url,"tables/");
+	string_append(&url,"Tables/");
 	string_append(&url,table);
 	string_append(&url,"/");
 	return url;
@@ -58,7 +58,7 @@ char *makeTableUrl(char *table){
 void makeDirectories(char *table){
 	char *url = string_new();
 	string_append(&url,absoluto);
-	string_append(&url,"tables/");
+	string_append(&url,"Tables/");
 	string_append(&url,table);
 	mkdir(url,0777);
 	free(url);
