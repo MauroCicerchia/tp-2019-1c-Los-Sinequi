@@ -1,14 +1,20 @@
 #!/bin/bash
 cd
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/utnso/workspace/sharedLib/Debug
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug/
+export LD_LIBRARY_PATH
 
 
 if test ! -d /home/utnso/so-commons-library; then
         git clone https://github.com/sisoputnfrba/so-commons-library.git
         cd so-commons-library/
-        make install
+        sudo make install
 fi
+
+cd
+
+git clone https://github.com/sisoputnfrba/1C2019-Scripts-lql-checkpoint.git
+mv 1C2019-Scripts-lql-checkpoint scripts
 
 cd
 
@@ -38,6 +44,9 @@ fi
 
 mv /home/utnso/tp-2019-1c-Los-Sinequi/  /home/utnso/workspace
 
+cd /home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug
+    make clean
+    make all
 
 cd /home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/Debug
     make clean
@@ -51,4 +60,6 @@ cd /home/utnso/workspace/tp-2019-1c-Los-Sinequi/Memory/Debug
     make clean
     make all
 
-exit
+cd /home/utnso/workspace/tp-2019-1c-Los-Sinequi
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug/
