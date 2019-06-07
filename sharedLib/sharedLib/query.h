@@ -31,5 +31,5 @@ void query_destroy(void*);
 e_query getQueryType(char*);
 e_query queryError();
 int validateQuerySyntax(char**,e_query);
-
+char **parseQuery(char*);
 #endif
