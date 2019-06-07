@@ -2,6 +2,9 @@
 #include<stdio.h>
 #include<stdlib.h>
 
+#ifndef PACKAGING_H
+#define PACKAGING_H
+
 typedef struct{
 	int size;
 	void *stream;
@@ -39,3 +42,5 @@ int recv_int(int);
 char *recv_str(int);
 e_request_code recv_req_code(int);
 e_response_code recv_res_code(int);
+
+#endif

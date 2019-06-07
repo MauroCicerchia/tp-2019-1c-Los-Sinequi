@@ -7,6 +7,9 @@
 #include<unistd.h>
 #include<commons/collections/list.h>
 
+#ifndef SERVER_H
+#define SERVER_H
+
 #define BACKLOG SOMAXCONN
 #define PACKAGESIZE 1024
 
@@ -14,3 +17,5 @@ int createServer(char*, char*);
 int connectToClient(int);
 int readQueryFromClient(int, char*);
 void closeServer(int);
+
+#endif
