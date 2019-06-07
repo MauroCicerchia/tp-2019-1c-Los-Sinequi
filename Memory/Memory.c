@@ -30,7 +30,6 @@ void iniciar_logger()
 void *listen_client() {
 	char *ip = config_get_string_value(config, "IP");
 	char *port = config_get_string_value(config, "PUERTO");
-	printf("%s %s", ip, port);
 	int socket = createServer(ip,port);
 	while(true) {
 		int cliSocket = connectToClient(socket);
