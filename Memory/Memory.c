@@ -19,11 +19,13 @@ int main(int argc, char **argv) {
 
 void iniciar_logger()
 {
-	logger = log_create("Memory.log", "Memory", 0, LOG_LEVEL_INFO);
+	logger = log_create("../Memory.log", "Memory", 0, LOG_LEVEL_INFO);
 }
 
 void *listen_client() {
-	int socket = createServer("127.0.0.1", "64782");
+	char *ip = config_get_string_value(config, "IP");
+	char *port = config_get_string_value(config, "PUERTO");
+	int socket = createServer(ip,port);
 	while(true) {
 		int cliSocket = connectToClient(socket);
 
@@ -242,4 +244,13 @@ char* selectM(char* segmentID, int key){
 int get_timestamp(){
 	return (int)time(NULL);
 }
+
+void load_config() {
+	config = config_create("../.config");
+	if(config == NULL) {
+		log_error(logger, " >> No se pudo abrir el archivo de configuracion");
+		exit(-1);
+	}
+}
+
 
