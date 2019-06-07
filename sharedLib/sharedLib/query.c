@@ -49,24 +49,24 @@ int validateQuerySyntax(char **array,e_query queryType){
 
 		case QUERY_SELECT:
 			if( tamano != 3) return false; // cantidad de parametros invalidos
-			key = atoi(array[2]);
-			if(!key) return false; //key invalida
+			key = strtol(array[2], NULL, 10);
+			if(!key && (errno == EINVAL || errno == ERANGE)) return false; //key invalida
 			return true;
 
 		case QUERY_INSERT:
-			if( tamano != 5) return false; // cantidad de parametros invalidos
-			key = atoi(array[2]);
-			if(!key) return false; //key invalida
+			if( sizeofArray(array) != 5 && sizeofArray(array) != 4) return false; // cantidad de parametros invalidos
+			key = strtol(array[2], NULL, 10);
+			if(!key && (errno == EINVAL || errno == ERANGE)) return false; //key invalida
 			return true;
 
 		case QUERY_CREATE:
 			if( sizeofArray(array) != 5 ) return 0; // cantidad de parametros invalidos
 
-			key = atoi(array[3]);
-			if(!key) return false; //particiones o tiempo de compactacion invalidos
+			key = strtol(array[3], NULL, 10);
+			if(!key && (errno == EINVAL || errno == ERANGE)) return false; //particiones o tiempo de compactacion invalidos
 
-			key = atoi(array[4]);
-			if(!key) return false;
+			key = strtol(array[4], NULL, 10);
+			if(!key && (errno == EINVAL || errno == ERANGE)) return false;
 
 			return true;
 
@@ -86,7 +86,8 @@ int validateQuerySyntax(char **array,e_query queryType){
 			if( sizeofArray(array) != 5 ) return false; // cantidad de parametros invalidos
 			if(strcasecmp(array[1], "MEMORY") != 0) return false;
 			if(strcasecmp(array[3], "MEMORY") != 0) return false;
-			if(!atoi(array[2])) return false;
+			key = strtol(array[2], NULL, 10);
+			if(!key && (errno == EINVAL || errno == ERANGE)) return false;
 			if(getConsistencyType(array[4]) == CONS_ERROR) return false;
 			return true;
 
@@ -97,18 +98,4 @@ int validateQuerySyntax(char **array,e_query queryType){
 		default:
 			return true;
 	}
-}
-
-char **parseQuery(char *query){
-	if(string_starts_with(query,"INSERT")){
-		char **a = string_split(query,"\"");
-		char **b = string_split(a[0]," ");
-		b[3] = strdup(a[1]);
-		string_trim(&a[2]);
-		b[4] = strdup(a[2]);
-		b[5] = NULL;
-		return b;
-	}
-	char **c = string_split(query," ");
-	return c;
 }

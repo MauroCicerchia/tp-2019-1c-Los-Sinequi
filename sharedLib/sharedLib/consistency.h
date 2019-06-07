@@ -1,6 +1,8 @@
 #include<stdio.h>
 #include<commons/string.h>
 
+#ifndef CONSISTENCY_H
+#define CONSISTENCY_H
 
 typedef enum {
 	CONS_SC,
@@ -12,3 +14,4 @@ typedef enum {
 
 e_cons_type getConsistencyType(char*);
 
+#endif
