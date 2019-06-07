@@ -10,16 +10,20 @@ void mt_insert(char *table,char* timestamp, char *key,char *value){
 	}
 	t_list *tableToInsert = mt_getTableToInsert(table);
 	mt_addNewInsert(tableToInsert,timestamp,key,value);
+	log_info(logger, "  Inserto en memtable");
 }
 
 //evalua si la tabla esta en la memtable
 bool mt_tableExists(char *table){
 	Itable *pTable;
+	if(list_size(memtable) == 0)return false;
 	for(int i=0;i<list_size(memtable);i++){
 		pTable = (Itable*)list_get(memtable,i);
-		if(!strcmp(pTable->table,table)) return true;
+		if(!strcmp(pTable->table,table)){
+			free(pTable);
+			return true;
+		}
 	}
-	free(pTable);
 	return false;
 }
 

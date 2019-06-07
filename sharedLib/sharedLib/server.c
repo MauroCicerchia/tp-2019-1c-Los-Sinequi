@@ -2,43 +2,33 @@
 
 int createServer(char* IP, char *PORT) {
 
-	int server_socket;
-
-	struct addrinfo hints, *servinfo, *p;
+	struct addrinfo hints;
+	struct addrinfo *serverInfo;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;
+	hints.ai_family = AF_INET;		// No importa si uso IPv4 o IPv6
+	hints.ai_flags = AI_PASSIVE;		// Asigna el address del localhost: 127.0.0.1
+	hints.ai_socktype = SOCK_STREAM;	// Indica que usaremos el protocolo TCP
 
-	getaddrinfo(IP, PORT, &hints, &servinfo);
+	getaddrinfo(NULL, PORT, &hints, &serverInfo);
 
-	for (p=servinfo; p != NULL; p = p->ai_next)
-	{
-		if ((server_socket = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
-			continue;
+	int listeningSocket = socket(serverInfo->ai_family, serverInfo->ai_socktype, serverInfo->ai_protocol);
 
-		if (bind(server_socket, p->ai_addr, p->ai_addrlen) == -1) {
-			close(server_socket);
-			continue;
-		}
-		break;
-	}
+	bind(listeningSocket,serverInfo->ai_addr, serverInfo->ai_addrlen);
+	freeaddrinfo(serverInfo);
 
-	listen(server_socket, SOMAXCONN);
+	listen(listeningSocket, BACKLOG);
 
-	freeaddrinfo(servinfo);
-
-	return server_socket;
+	return listeningSocket;
 }
 
 int connectToClient(int listeningSocket) {
-	struct sockaddr_in client_dir;
-	int dir_size = sizeof(struct sockaddr_in);
+	struct sockaddr_in addr;			// Esta estructura contendra los datos de la conexion del cliente. IP, puerto, etc.
+	socklen_t addrlen = sizeof(addr);
 
-	int client_socket = accept(listeningSocket, (void*) &client_dir, &dir_size);
+	int client = accept(listeningSocket, (struct sockaddr *) &addr, &addrlen);
 
-	return client_socket;
+	return client;
 }
 
 int readQueryFromClient(int client, char *package) {

@@ -3,11 +3,14 @@
 char *qselect(char *table, char* strKey){
 	t_list *list = list_create();
 	list = fs_getListOfInserts(table);
+	log_info(logger, "  Guardo en una lista toda la info de la tabla");
 	t_list *dataList = listToDATAmode(list);
+	log_info(logger, "  Convierto lista en estructura");
 	list_destroy_and_destroy_elements(list,free);
 	char *value = string_new();
 	uint16_t key = atoi(strKey);
 	value = getValue(dataList,key);
+	log_info(logger, "  tomo el valor de la key");
 //	list_destroy_and_destroy_elements(dataList,dataSelect_destroy); ESTA FUNCION ROMPE
 	return value;
 }

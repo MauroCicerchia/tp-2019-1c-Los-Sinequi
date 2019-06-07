@@ -3,11 +3,16 @@
 #include<string.h>
 #include<stdint.h>
 #include<stdbool.h>
+#include<commons/log.h>
 #include<commons/collections/list.h>
 #include<commons/string.h>
 #include<commons/txt.h>
 
 extern t_list *memtable;
+extern t_log *logger;
+
+#ifndef MEMTABLE_H
+#define MEMTABLE_H
 
 typedef struct{
 	char *timestamp;
@@ -29,3 +34,5 @@ void mt_clean();
 void mt_cleanPivot(t_list *);
 void tableDestroyer(void*);
 void insertDestroyer(void*);
+
+#endif

@@ -15,6 +15,8 @@ void *serialize_package(t_package *package, int bytes) {
 
 	memcpy(serializedPackage + offset, &(package->op_code), sizeof(int));
 	offset += sizeof(int);
+	memcpy(serializedPackage + offset, &(package->buffer->size), sizeof(int));
+	offset += sizeof(int);
 	memcpy(serializedPackage + offset, package->buffer->stream, package->buffer->size);
 	offset += package->buffer->size;
 
@@ -92,52 +94,4 @@ void set_buffer(t_package *paquete,char **args) {
 		case QUERY_JOURNAL: //[]
 			break;
 	}
-}
-
-void send_int(int socket, int value) {
-	int size = sizeof(value);
-	send(socket, &size, sizeof(size), 0);
-	send(socket, &value, size, 0);
-}
-
-void send_str(int socket, char *value) {
-	int size = sizeof(char) * (strlen(value) + 1);
-	send(socket, &size, sizeof(size), 0);
-	send(socket, value, size, 0);
-}
-
-void send_req_code(int socket, e_request_code reqCode) {
-	send(socket, &reqCode, sizeof(reqCode), 0);
-}
-
-void send_res_code(int socket, e_response_code resCode) {
-	send(socket, &resCode, sizeof(resCode), 0);
-}
-
-int recv_int(int socket) {
-	int size, value;
-	recv(socket, &size, sizeof(size), 0);
-	recv(socket, &value, size, 0);
-	return value;
-}
-
-char *recv_str(int socket) {
-	int size;
-	char *value;
-	recv(socket, &size, sizeof(size), 0);
-	value = (char*)malloc(size);
-	recv(socket, value, size, 0);
-	return value;
-}
-
-e_request_code recv_req_code(int socket) {
-	e_request_code reqCode;
-	recv(socket, &reqCode, sizeof(reqCode), 0);
-	return reqCode;
-}
-
-e_response_code recv_res_code(int socket) {
-	e_response_code resCode;
-	recv(socket, &resCode, sizeof(resCode), 0);
-	return resCode;
 }
