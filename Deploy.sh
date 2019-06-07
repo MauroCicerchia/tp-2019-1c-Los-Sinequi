@@ -1,10 +1,6 @@
 #!/bin/bash
 cd
 
-LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug/
-export LD_LIBRARY_PATH
-
-
 if test ! -d /home/utnso/so-commons-library; then
         git clone https://github.com/sisoputnfrba/so-commons-library.git
         cd so-commons-library/
@@ -61,5 +57,3 @@ cd /home/utnso/workspace/tp-2019-1c-Los-Sinequi/Memory/Debug
     make all
 
 cd /home/utnso/workspace/tp-2019-1c-Los-Sinequi
-
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug/
