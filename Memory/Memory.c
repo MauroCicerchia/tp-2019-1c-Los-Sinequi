@@ -1,73 +1,93 @@
 #include "Memory.h"
 int server;
-t_list* segmentList;
+
 int main(int argc, char **argv) {
+
 	segmentList = list_create();
-	/*
-	t_log *logger = NULL;
-	char *input;
-	//server = conectar_FS(logger);
-	iniciar_logger(&logger);
-	pthread_t threadKernel;
-	pthread_t threadFS;
 
-	//2 hilos diferentes
-//	pthread_create(&threadFS,NULL,start_API,logger);
-	//pthread_create(&threadKernel,NULL,conectar_Kernel,logger);
+	iniciar_logger();
 
+	pthread_t threadClient;
 
-	//pthread_join(threadKernel,NULL);
-	pthread_join(threadFS,NULL);
-	closeConnection(server);
+	pthread_create(&threadClient, NULL, listen_client, NULL);
+	pthread_detach(threadClient);
 
-//	conectar_Kernel(logger);//conectar con kernel
-//	conectar_FS(logger);
-//	start_API(logger);
+	start_API(logger);
 
-	log_destroy(logger);
-	//segment testSegment;
-
-	//testSegment=segment_init();
-
-*/
 	return 0;
 }
 
-page* search_page(segment aSegment,int aKey){
-	bool isKey(void* aPage){
-			return ((page*) aPage)->page_data->key == aKey;
+void iniciar_logger()
+{
+	logger = log_create("Memory.log", "Memory", 0, LOG_LEVEL_INFO);
+}
+
+void *listen_client() {
+	int socket = createServer("127.0.0.1", "64782");
+	while(true) {
+		int cliSocket = connectToClient(socket);
+
+		e_query opCode;
+		recv(cliSocket, &opCode, sizeof(opCode), 0);
+
+		char *table, *value;
+		int key, size;
+		e_response_code resCode;
+
+		switch(opCode) {
+			case QUERY_SELECT:
+				table = recv_str(cliSocket);
+				key = recv_int(cliSocket);
+				char *response = selectM(table, key);
+
+				if(response != NULL) {
+					send_res_code(cliSocket, RESPONSE_SUCCESS);
+					send_str(cliSocket, response);
+				} else {
+					send_res_code(cliSocket, RESPONSE_ERROR);
+				}
+				break;
+			case QUERY_INSERT:
+				table = recv_str(cliSocket);
+				key = recv_int(cliSocket);
+				value = recv_str(cliSocket);
+				insertM(table, key, value);
+				send_res_code(cliSocket, RESPONSE_SUCCESS);
+				break;
 		}
-		return list_find(aSegment.page_list,isKey);
-}
-
-segment* search_segment(char* segmentID){
-	//proximamente buscar en tabla de segmentos
-	bool isId(void* aSegment){
-		return strcasecmp(((segment*) aSegment)->segment_id,segmentID)==0;
 	}
-	return list_find(segmentList,isId);
 }
 
+void start_API(t_log *logger){
+
+	char *input;
+	input = readline(">");
+	while(strcmp("", input)) {
+		processQuery(input, logger);
+		free(input);
+		input = readline(">");
+
+	}
+}
 
 e_query processQuery(char *query, t_log *logger) {
 
 	char log_msg[100];
 	e_query queryType;
 
-	char **args = string_split(query, " "); //guardas en el vecor args la query
+	char **args = parseQuery(query); //guardas en el vecor args la query
 
 	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
 
 	int invalidQuery = validateQuerySyntax(args, queryType); //validamos que sea correcta y sino lanzamos exception
-	if (!invalidQuery){
+	if (!invalidQuery)
 		return queryError();
-	}
 
 	switch(queryType) {
 
 		case QUERY_SELECT:
-			sendMessage(server,query);
-			//select(args[1], args[2]);
+//			sendMessage(server,query);
+			printf("%s",selectM(args[1], atoi(args[2])));
 //			queryToFileSystem(*query);
 			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
 
@@ -75,7 +95,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_INSERT:
 
-			//insert(args[1], args[2], args[3], args[4]);
+			insertM(args[1], atoi(args[2]), args[3]);
 
 			sprintf(log_msg, "Recibi un INSERT %s %s %s", args[1], args[2], args[3]);
 
@@ -121,3 +141,105 @@ e_query processQuery(char *query, t_log *logger) {
 	log_info(logger, log_msg);
 	return queryType;
 }
+
+page* search_page(segment* aSegment,int aKey){
+	bool isKey(void* aPage){
+			return ((page*) aPage)->page_data->key == aKey;
+		}
+		return list_find(aSegment->page_list,isKey);
+}
+
+segment* search_segment(char* segmentID){
+	bool isId(void* aSegment){
+		return strcasecmp(((segment*) aSegment)->segment_id,segmentID)==0;
+	}
+	return list_find(segmentList,isId);
+}
+
+segment* segment_init(t_log* logger){
+
+	segment* memorySegment= segment_create();
+	memorySegment->page_list = list_create();
+	list_add(segmentList,memorySegment);
+	log_info(logger,"Nuevo segmento añadido a la tabla.");
+	return memorySegment;
+}
+
+void insertM(char* segmentID, int key, char* value){
+
+	segment* segmentFound = search_segment(segmentID);
+
+	if(segmentFound != NULL){
+		log_info(logger,"Se encontro la tabla buscada.");
+		page* pageFound = search_page(segmentFound,key);
+		if(pageFound != NULL){
+			log_info(logger,"Se encontro la pagina con el key buscado, modificando el valor.");
+			strcpy(pageFound->page_data->value,value);
+			pageFound->page_data->timestamp= get_timestamp();
+			pageFound->isModified=1;
+		}
+		else{
+			log_info(logger,"No se encontro la pagina con el key buscado, chequeando si hay paginas disponibles.");
+			if(segment_Pages_Available(segmentFound)){
+				segment_add_page(segmentFound,key,value);
+				log_info(logger,"Se agrego la pagina con el nuevo valor.");
+			}
+			else{
+				if(segment_Full(segmentFound)){
+					//ejecutarJournal
+				}
+				else{
+					//ejecutarReemplazo
+				}
+			}
+		}
+	}
+	else{
+		log_info(logger,"No se encontro la tabla buscada, creando nuevo segmento.");
+		segment* newSegment = segment_init(logger);
+		newSegment->segment_id = segmentID;
+		segment_add_page(newSegment,key,value);
+		log_info(logger,"Se agrego la pagina con el nuevo valor.");
+
+		//ACA HABRIA QUE CONSIDERAR QUE UN SEGMENTO NO PUEDA TENER PAGINAS POR MEMORIA PRINCIPAL LLENA,
+		//POR EL MOMENTO NO NOS AFECTA
+	}
+
+}
+
+
+char* selectM(char* segmentID, int key){
+	//Busca si existe una pagina con esta key
+	//Develve el valor asociado
+
+	segment* segmentFound = search_segment(segmentID);
+
+
+	if(segmentFound != NULL){
+		log_info(logger,"Se encontro la tabla buscada.");
+		page* pageFound = search_page(segmentFound,key);
+		if(pageFound != NULL){
+			log_info(logger,"Se encontro la pagina con el key buscado, retornando el valor.");
+			return pageFound->page_data->value;
+		}else{
+			log_info(logger,"No se encontro la pagina con el key buscado, consultando a FS.");
+			return NULL;
+			//value = fileSystem.solicitarValor(key);
+			//if(hayLugar)agregar_pagina(segmentID,key,value)
+			//return value
+		}
+	}
+	else{
+		log_error(logger,"No existe la tabla ingresada");
+	}
+
+	return NULL;
+}
+
+//void createM(char segmentID*,/*consistencia,*/int partition_num, int compaction_time){
+	/*ENVIAR AL FS OPERACION PARA CREAR TABLA*/
+
+int get_timestamp(){
+	return (int)time(NULL);
+}
+

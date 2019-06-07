@@ -1,21 +1,24 @@
 #include"client.h"
 
-int connectToServer(char *IP, int PORT) {
+int connectToServer(char *IP, char *PORT) {
 	struct addrinfo hints;
-	struct addrinfo *serverInfo;
+	struct addrinfo *server_info;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_INET;
+	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE;
 
-	getaddrinfo(IP, string_itoa(PORT), &hints, &serverInfo);	// Carga en serverInfo los datos de la conexion
+	getaddrinfo(IP, PORT, &hints, &server_info);
 
-	int serverSocket = socket(serverInfo->ai_family, serverInfo->ai_socktype, serverInfo->ai_protocol);
+	int client_socket = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
 
-	connect(serverSocket, serverInfo->ai_addr, serverInfo->ai_addrlen);
-	freeaddrinfo(serverInfo);
+	if(connect(client_socket, server_info->ai_addr, server_info->ai_addrlen) == -1)
+		printf("error");
 
-	return serverSocket;
+	freeaddrinfo(server_info);
+
+	return client_socket;
 }
 
 void sendMessage(int serverSocket,char *message){

@@ -48,55 +48,105 @@ int validateQuerySyntax(char **array,e_query queryType){
 	switch(queryType) {
 
 		case QUERY_SELECT:
-			if( tamano != 3) return false; // cantidad de parametros invalidos
-			key = atoi(array[2]);
-			if(!key) return false; //key invalida
-			return true;
+			if( tamano != 3) return 0; // cantidad de parametros invalidos
+			if(!isNumeric(array[2])) return 0;
+			key = strtol(array[2], NULL, 10);
+			if(errno == EINVAL || errno == ERANGE) return 0; //key invalida
+			return 1;
+			break;
 
 		case QUERY_INSERT:
-			if( tamano != 5) return false; // cantidad de parametros invalidos
-			key = atoi(array[2]);
-			if(!key) return false; //key invalida
-			return true;
+			if( sizeofArray(array) != 5 && sizeofArray(array) != 4) return 0; // cantidad de parametros invalidos
+			if(!isNumeric(array[2])) return 0;
+			key = strtol(array[2], NULL, 10);
+			if(!key && (errno == EINVAL || errno == ERANGE)) return 0; //key invalida
+			return 1;
+			break;
 
 		case QUERY_CREATE:
 			if( sizeofArray(array) != 5 ) return 0; // cantidad de parametros invalidos
 
-			key = atoi(array[3]);
-			if(!key) return false; //particiones o tiempo de compactacion invalidos
+			if(!isNumeric(array[3])) return 0;
+			key = strtol(array[3], NULL, 10);
+			if(!key && (errno == EINVAL || errno == ERANGE)) return 0; //particiones o tiempo de compactacion invalidos
 
-			key = atoi(array[4]);
-			if(!key) return false;
+			if(!isNumeric(array[4])) return 0;
+			key = strtol(array[4], NULL, 10);
+			if(!key && (errno == EINVAL || errno == ERANGE)) return 0;
 
-			return true;
+			return 1;
+			break;
 
 		case QUERY_DESCRIBE:
-			if( sizeofArray(array) != 2 ) return false; // cantidad de parametros invalidos
-			return true;
+			if( sizeofArray(array) != 2 ) return 0; // cantidad de parametros invalidos
+			return 1;
+			break;
 
 		case QUERY_DROP:
-			if( sizeofArray(array) != 2 ) return false; // cantidad de parametros invalidos
-			return true;
+			if( sizeofArray(array) != 2 ) return 0; // cantidad de parametros invalidos
+			return 1;
+			break;
 
 		case QUERY_JOURNAL:
-			if( sizeofArray(array) != 1 ) return false; // cantidad de parametros invalidos
-			return true;
+			if( sizeofArray(array) != 1 ) return 0; // cantidad de parametros invalidos
+			return 1;
+			break;
 
 		case QUERY_ADD:
-			if( sizeofArray(array) != 5 ) return false; // cantidad de parametros invalidos
-			if(strcasecmp(array[1], "MEMORY") != 0) return false;
-			if(strcasecmp(array[3], "MEMORY") != 0) return false;
-			if(!atoi(array[2])) return false;
-			if(getConsistencyType(array[4]) == CONS_ERROR) return false;
-			return true;
+			if( sizeofArray(array) != 5 ) return 0; // cantidad de parametros invalidos
+			if(strcasecmp(array[1], "MEMORY") != 0) return 0;
+			if(strcasecmp(array[3], "TO") != 0) return 0;
+			if(!isNumeric(array[2])) return 0;
+			key = strtol(array[2], NULL, 10);
+			if(!key && (errno == EINVAL || errno == ERANGE)) return 0;
+			if(getConsistencyType(array[4]) == CONS_ERROR) return 0;
+			return 1;
+			break;
 
 		case QUERY_RUN:
-			if( sizeofArray(array) != 2 ) return false; // cantidad de parametros invalidos
-			return true;
+			if( sizeofArray(array) != 2 ) return 0; // cantidad de parametros invalidos
+			return 1;
+			break;
 
 		default:
-			return true;
+			return 0;
+			break;
 	}
+}
+
+char **parseQuery(char *query){
+//	[INSERT T K "V" T]
+//	[INSERT T K] [V] [T]
+//	[INSERT] [T] [K]      [V] [T]
+
+	char **b;
+
+	if(string_starts_with(query,"INSERT")) {
+		char **a = string_split(query,"\"");
+		b = string_split(a[0]," ");
+		b[3] = string_duplicate(a[1]);
+
+		if(!(string_ends_with(query, "\"") || !!string_ends_with(query, "\"\n"))) {
+			string_trim(&a[2]);
+			b[4] = string_duplicate(a[2]);
+			b[5] = NULL;
+		} else {
+			b[4] = NULL;
+		}
+	} else {
+		b = string_split(query," ");
+	}
+	return b;
+}
+
+int isNumeric(char *str) {
+	int i = 0;
+	while(str[i] != '\0' && str[i] != '\n') {
+		if(!isdigit(str[i]))
+			return 0;
+		i++;
+	}
+	return 1;
 }
 
 char **parseQuery(char *query){
