@@ -2,7 +2,6 @@
 int server;
 
 int main(int argc, char **argv) {
-
 	load_config();
 
 	segmentList = list_create();
@@ -15,6 +14,10 @@ int main(int argc, char **argv) {
 	pthread_detach(threadClient);
 
 	start_API(logger);
+
+	list_destroy_and_destroy_elements(segmentList,segment_destroy);
+	config_destroy(config);
+	log_destroy(logger);
 
 	return 0;
 }
@@ -255,5 +258,3 @@ void load_config() {
 		exit(-1);
 	}
 }
-
-

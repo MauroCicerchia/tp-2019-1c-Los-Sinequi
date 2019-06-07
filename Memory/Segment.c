@@ -24,4 +24,11 @@ void segment_add_page(segment* segment, int key, char* value){
 	list_add(segment->page_list,segmentPage);
 }
 
+void segment_destroy(void* aSegment){
+
+//	free(((segment*) aSegment)->segment_id);
+	list_destroy_and_destroy_elements(((segment*) aSegment)->page_list,page_destroy);
+	free(aSegment);
+
+}
 

@@ -20,3 +20,4 @@ pageData* pageData_create();
 page* page_create();
 page* create_load_page(int, pageData*,int);
 pageData* create_load_pageData(int, int, char*);
+void page_destroy(void*);
