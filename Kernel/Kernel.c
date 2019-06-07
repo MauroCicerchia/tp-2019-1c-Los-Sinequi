@@ -90,46 +90,46 @@ e_query processQuery(char *query) {
 	switch(queryType) {
 		case QUERY_SELECT:
 			isQuery = 1;
-			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
+			sprintf(log_msg, " >> Recibi un SELECT %s %s", args[1], args[2]);
 			break;
 
 		case QUERY_INSERT:
 			isQuery = 1;
-			sprintf(log_msg, "Recibi un INSERT %s %s %s", args[1], args[2], args[3]);
+			sprintf(log_msg, " >> Recibi un INSERT %s %s %s", args[1], args[2], args[3]);
 			break;
 
 		case QUERY_CREATE:
 			isQuery = 1;
-			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
+			sprintf(log_msg, " >> Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
 			break;
 
 		case QUERY_DESCRIBE:
 			isQuery = 1;
-			sprintf(log_msg, "Recibi un DESCRIBE %s", args[1]);
+			sprintf(log_msg, " >> Recibi un DESCRIBE %s", args[1]);
 			break;
 
 		case QUERY_DROP:
 			isQuery = 1;
-			sprintf(log_msg, "Recibi un DROP %s", args[1]);
+			sprintf(log_msg, " >> Recibi un DROP %s", args[1]);
 			break;
 
 		case QUERY_JOURNAL:
-			sprintf(log_msg, "Recibi un JOURNAL");
+			sprintf(log_msg, " >> Recibi un JOURNAL");
 			break;
 
 		case QUERY_ADD:
 			add_memory_to_cons_type(atoi(args[2]), getConsistencyType(args[4]));
-			sprintf(log_msg, "Recibi un ADD MEMORY %s TO %s", args[2], args[4]);
+			sprintf(log_msg, " >> Recibi un ADD MEMORY %s TO %s", args[2], args[4]);
 			break;
 
 		case QUERY_RUN:
 			if(!read_lql_file(args[1]))
 				return queryError();
-			sprintf(log_msg, "Recibi un RUN %s", args[1]);
+			sprintf(log_msg, " >> Recibi un RUN %s", args[1]);
 			break;
 
 		case QUERY_METRICS:
-			sprintf(log_msg, "Recibi un METRICS");
+			sprintf(log_msg, " >> Recibi un METRICS");
 			break;
 
 		default:
@@ -155,7 +155,7 @@ int read_lql_file(char *path) {
 	FILE *lql = fopen(path, "rt");
 	if(lql == NULL) {
 		char msg[200];
-		sprintf(msg, "No se ha podido abrir el archivo %s", path);
+		sprintf(msg, " >> No se ha podido abrir el archivo %s", path);
 		log_error(logger, msg);
 		return 0;
 	}
@@ -189,9 +189,9 @@ void add_process_to_new(t_process* process) {
 	sem_wait(&MUTEX_NEW);
 	queue_push(new, (void*) process);
 	sem_post(&MUTEX_NEW);
-	sprintf(msg, "Proceso %d agregado a la cola de NEW", process->pid);
+//	sprintf(msg, " >> Proceso %d agregado a la cola de NEW", process->pid);
 	sem_post(&PROC_PEND_NEW);
-	log_info(logger, msg);
+//	log_info(logger, msg);
 }
 
 void *new_to_ready() {
@@ -203,7 +203,7 @@ void *new_to_ready() {
 		void *p = queue_pop(new);
 		sem_post(&MUTEX_NEW);
 		add_process_to_ready(p);
-		sprintf(msg, "Proceso %d agregado a la cola de READY", ((t_process*)p)->pid);
+		sprintf(msg, " >> Proceso %d agregado a la cola de READY", ((t_process*)p)->pid);
 		log_info(logger, msg);
 	}
 }
@@ -225,7 +225,7 @@ void ready_to_exec(int processor) {
 	sem_post(&MUTEX_READY);
 	exec[processor] = (t_process*)p;
 	char msg[50];
-	sprintf(msg, "Proceso %d ejecutando en procesador %d", exec[processor]->pid, processor);
+	sprintf(msg, " >> Proceso %d ejecutando en procesador %d", exec[processor]->pid, processor);
 	log_info(logger, msg);
 }
 
@@ -243,7 +243,7 @@ void *processor_execute(void *p) {
 			t_query *nextQuery = process_next_query(exec[processor]);
 
 			if(getQueryType(nextQuery->args[0]) == QUERY_ERROR || validateQuerySyntax(nextQuery->args, nextQuery->queryType) == 0) {
-				sprintf(msg, "Error al ejecutar el proceso %d en la linea %d", exec[processor]->pid, exec[processor]->pc);
+				sprintf(msg, " >> Error al ejecutar el proceso %d en la linea %d", exec[processor]->pid, exec[processor]->pc);
 				log_error(logger, msg);
 				exec[processor]->pc = process_length(exec[processor]);
 				break;
@@ -254,7 +254,7 @@ void *processor_execute(void *p) {
 		}
 
 		if(process_finished(exec[processor])) {
-			sprintf(msg, "Terminando proceso %d", exec[processor]->pid);
+			sprintf(msg, " >> Terminando proceso %d", exec[processor]->pid);
 			log_info(logger, msg);
 			process_destroy(exec[processor]);
 			sem_post(&MAX_PROC_READY);
@@ -268,11 +268,11 @@ void *processor_execute(void *p) {
 
 void execute_query(t_query *query) {
 	switch(query->queryType) {
-		case QUERY_SELECT: qSelect(query->args, logger); log_info(logger, "Ejecute un SELECT"); break;
-		case QUERY_INSERT: qInsert(query->args, logger); log_info(logger, "Ejecute un INSERT"); break;
-		case QUERY_CREATE: qCreate(query->args); log_info(logger, "Ejecute un CREATE"); break;
-		case QUERY_DESCRIBE: qDescribe(query->args); log_info(logger, "Ejecute un DESCRIBE"); break;
-		case QUERY_DROP: qDrop(query->args); log_info(logger, "Ejecute un DROP"); break;
+		case QUERY_SELECT: qSelect(query->args, logger); log_info(logger, " >> Ejecute un SELECT %s %s", query->args[1], query->args[2]); break;
+		case QUERY_INSERT: qInsert(query->args, logger); log_info(logger, " >> Ejecute un INSERT %s %s \"%s\"", query->args[1], query->args[2], query->args[3]); break;
+		case QUERY_CREATE: qCreate(query->args, logger); log_info(logger, " >> Ejecute un CREATE %s %s %s %s", query->args[1], query->args[2], query->args[3], query->args[4]); break;
+		case QUERY_DESCRIBE: qDescribe(query->args, logger); log_info(logger, " >> Ejecute un DESCRIBE %s", query->args[1]); break;
+		case QUERY_DROP: qDrop(query->args, logger); log_info(logger, " >> Ejecute un DROP %s", query->args[1]); break;
 		default: break;
 	}
 }
@@ -363,7 +363,7 @@ void load_logger()
 void load_config() {
 	config = config_create("../.config");
 	if(config == NULL) {
-		log_error(logger, "No se pudo abrir el archivo de configuracion");
+		log_error(logger, " >> No se pudo abrir el archivo de configuracion");
 		exit(-1);
 	}
 }

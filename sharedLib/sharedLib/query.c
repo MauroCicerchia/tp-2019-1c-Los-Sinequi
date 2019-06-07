@@ -118,9 +118,12 @@ char **parseQuery(char *query){
 //	[INSERT T K "V" T]
 //	[INSERT T K] [V] [T]
 //	[INSERT] [T] [K]      [V] [T]
+
+	char **b;
+
 	if(string_starts_with(query,"INSERT")) {
 		char **a = string_split(query,"\"");
-		char **b = string_split(a[0]," ");
+		b = string_split(a[0]," ");
 		b[3] = string_duplicate(a[1]);
 
 		if(!(string_ends_with(query, "\"") || !!string_ends_with(query, "\"\n"))) {
@@ -130,11 +133,10 @@ char **parseQuery(char *query){
 		} else {
 			b[4] = NULL;
 		}
-
-		return b;
+	} else {
+		b = string_split(query," ");
 	}
-	char **c = string_split(query," ");
-	return c;
+	return b;
 }
 
 int isNumeric(char *str) {

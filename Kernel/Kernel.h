@@ -45,10 +45,4 @@ int get_multiprogramming_degree();
 int get_metadata_refresh_rate();
 int get_execution_delay();
 
-int iniciar_cliente() {
-	return connectToServer();
-//	sendMessages(server);
-//	closeConnection(server);
-}
-
 #endif

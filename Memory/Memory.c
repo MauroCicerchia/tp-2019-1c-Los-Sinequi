@@ -75,7 +75,7 @@ e_query processQuery(char *query, t_log *logger) {
 	char log_msg[100];
 	e_query queryType;
 
-	char **args = string_split(query, " "); //guardas en el vecor args la query
+	char **args = parseQuery(query); //guardas en el vecor args la query
 
 	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
 

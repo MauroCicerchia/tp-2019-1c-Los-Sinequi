@@ -6,6 +6,6 @@
 
 void qSelect(char**, t_log*);
 void qInsert(char**, t_log*);
-void qCreate(char**);
-void qDescribe(char**);
-void qDrop(char**);
+void qCreate(char**, t_log*);
+void qDescribe(char**, t_log*);
+void qDrop(char**, t_log*);
