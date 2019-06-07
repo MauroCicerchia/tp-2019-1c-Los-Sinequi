@@ -34,6 +34,7 @@ void init_FileSystem(){
 	memtable = list_create();
 
 	absoluto = string_new();
+
 	string_append(&absoluto,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/mnt/");
 
 	logger = NULL;
