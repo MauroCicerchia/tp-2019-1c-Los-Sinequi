@@ -20,8 +20,7 @@ extern t_config *config;
 extern int retardTime;
 extern sem_t MUTEX_RETARDTIME;
 
-char **parseQuery(char*);
-void *start_API();
+void *start_Api();
 void processQuery(char *);
 uint64_t getCurrentTime();
 void delayer();

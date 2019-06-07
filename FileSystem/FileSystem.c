@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
 	pthread_create(&tDump,NULL,threadDump,NULL);
 	pthread_detach(tDump);
 
-	start_API();
+	start_Api();
 
 
 	kill_FileSystem();
@@ -67,6 +67,7 @@ void kill_FileSystem(){
 	sem_destroy(&MUTEX_RETARDTIME);
 	log_info(logger, "Fin FileSystem");
 	log_info(logger, "----------------------------------------");
+}
 
 void *threadConfigModify(){
 	log_info(logger, "----------------------------------------");
@@ -86,6 +87,7 @@ void *threadConfigModify(){
 		log_info(logger, "Valores actualizados y disponibles para su uso");
 		log_info(logger, "----------------------------------------");
 	}
+	return NULL;
 }
 
 void *threadDump(){
@@ -103,6 +105,7 @@ void *threadDump(){
 		log_info(logger, "Fin Dump");
 		log_info(logger, "----------------------------------------");
 	}
+	return NULL;
 }
 void iniciar_logger(t_log **logger){
 	*logger = log_create("FileSystem.log", "FileSystem", 1, LOG_LEVEL_INFO);

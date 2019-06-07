@@ -2,7 +2,7 @@
 
 int retard;
 
-void *start_API(){
+void *start_Api(){
 	char *input;
 	input = readline(">");
 	while(strcmp("", input)) {
