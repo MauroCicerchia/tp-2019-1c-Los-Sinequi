@@ -34,7 +34,7 @@ int createServer(char* IP, char *PORT) {
 
 int connectToClient(int listeningSocket) {
 	struct sockaddr_in client_dir;
-	int dir_size = sizeof(struct sockaddr_in);
+	socklen_t  dir_size = sizeof(struct sockaddr_in);
 
 	int client_socket = accept(listeningSocket, (void*) &client_dir, &dir_size);
 

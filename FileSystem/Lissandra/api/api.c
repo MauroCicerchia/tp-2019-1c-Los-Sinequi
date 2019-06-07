@@ -2,7 +2,7 @@
 
 int retard;
 
-void *start_API(){
+void *start_Api(){
 	char *input;
 	input = readline(">");
 	while(strcmp("", input)) {
@@ -43,7 +43,7 @@ void processQuery(char *query) {
 			log_info(logger, "Fin SELECT");
 			log_info(logger, "----------------------------------------");
 			free(args);
-			free(selectReturnValue);
+			if(selectReturnValue != NULL) free(selectReturnValue);
 			break;
 
 		case QUERY_INSERT:

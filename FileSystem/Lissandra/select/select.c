@@ -2,7 +2,22 @@
 
 char *qselect(char *table, char* strKey){
 	t_list *list = list_create();
+	if (!fs_tableExists(table)){
+		log_error(logger, "No existe la tabla sobre la cual se intenta hacer el SELECT");
+		return NULL;
+	}
+	char *url = makeTableUrl(table);
+	string_append(&url,table);
+	string_append(&url, ".bin");
+	if(access(url,F_OK) == -1){
+		log_error(logger,"No se hizo ningun insert sobre la tabla");
+		return NULL;
+	}
 	list = fs_getListOfInserts(table);
+	if(list_size(list) == 0){
+		log_error(logger, "No hay nada en la tabla");
+		return NULL;
+	}
 	log_info(logger, "  Guardo en una lista toda la info de la tabla");
 	t_list *dataList = listToDATAmode(list);
 	log_info(logger, "  Convierto lista en estructura");
@@ -30,7 +45,11 @@ char *getValue(t_list *list,uint16_t key){
 	}
 	char *value = malloc(sizeof(char)*100);
 	dataSelect *returnValue =  (dataSelect*) list_find(sortedList, _lastKey);
-	strcpy(value,returnValue->value);
+	if(returnValue == NULL){
+		log_error(logger,"No hay values con esa key");
+		return NULL;
+	}else strcpy(value,returnValue->value);
+
 	list_destroy_and_destroy_elements(sortedList,dataSelect_destroy);
 	return value;
 }

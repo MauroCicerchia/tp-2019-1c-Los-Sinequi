@@ -2,6 +2,9 @@
 #include<commons/collections/queue.h>
 #include"query.h"
 
+#ifndef PROCESS_H
+#define PROCESS_H
+
 typedef struct {
 	int pid;
 	int pc;
@@ -17,3 +20,5 @@ t_process *process_create(t_list*);
  * Destruye un proceso y su lista de querys.
  */
 void process_destroy(void*);
+
+#endif

@@ -16,6 +16,8 @@ void kill_FileSystem();
 void iniciar_logger(t_log **logger);
 int get_dump_time();
 int get_retard_time();
+char *get_fs_route();
 void *threadConfigModify();
 void *threadDump();
 void load_config();
+

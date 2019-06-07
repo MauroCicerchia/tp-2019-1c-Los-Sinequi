@@ -22,7 +22,8 @@ int main(int argc, char **argv) {
 	pthread_create(&tDump,NULL,threadDump,NULL);
 	pthread_detach(tDump);
 
-	start_API();
+	start_Api();
+
 
 
 	kill_FileSystem();
@@ -35,8 +36,6 @@ void init_FileSystem(){
 
 	absoluto = string_new();
 
-	string_append(&absoluto,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/mnt/");
-
 	logger = NULL;
 	iniciar_logger(&logger);
 
@@ -47,6 +46,11 @@ void init_FileSystem(){
 
 	dumpTime = get_dump_time();
 	retardTime = get_retard_time();
+	absoluto = string_new();
+	char *x = get_fs_route();
+	string_append(&absoluto,x);
+	free(x);
+//	string_append(&absoluto,"/home/utnso/lissandra-checkpoint/");
 
 	sem_init(&MUTEX_MEMTABLE,1,1);
 	sem_init(&MUTEX_DUMPTIME,1,1);
@@ -55,18 +59,25 @@ void init_FileSystem(){
 
 
 void kill_FileSystem(){
-	log_destroy(logger);
 
+	log_info(logger, "----------------------------------------");
+	log_info(logger, "Dump de seguridad");
+	sem_wait(&MUTEX_MEMTABLE);
 	dump();
+	sem_post(&MUTEX_MEMTABLE);
+	log_info(logger, "----------------------------------------");
+
 	list_destroy(memtable);
 
-	config_destroy(config);
 
 	sem_destroy(&MUTEX_MEMTABLE);
 	sem_destroy(&MUTEX_DUMPTIME);
 	sem_destroy(&MUTEX_RETARDTIME);
 	log_info(logger, "Fin FileSystem");
 	log_info(logger, "----------------------------------------");
+	log_destroy(logger);
+//	config_destroy(config);
+}
 
 void *threadConfigModify(){
 	log_info(logger, "----------------------------------------");
@@ -86,6 +97,7 @@ void *threadConfigModify(){
 		log_info(logger, "Valores actualizados y disponibles para su uso");
 		log_info(logger, "----------------------------------------");
 	}
+	return NULL;
 }
 
 void *threadDump(){
@@ -103,6 +115,7 @@ void *threadDump(){
 		log_info(logger, "Fin Dump");
 		log_info(logger, "----------------------------------------");
 	}
+	return NULL;
 }
 void iniciar_logger(t_log **logger){
 	*logger = log_create("FileSystem.log", "FileSystem", 1, LOG_LEVEL_INFO);
@@ -120,4 +133,7 @@ int get_dump_time(){
 }
 int get_retard_time(){
 	return config_get_int_value(config,"RETARDO");
+}
+char *get_fs_route(){
+	return config_get_string_value(config,"PUNTO_MONTAJE");
 }
