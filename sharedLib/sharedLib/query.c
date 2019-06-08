@@ -46,8 +46,6 @@ int validateQuerySyntax(char **array,e_query queryType){
 	int tamano = sizeofArray(array);
 	int key;
 
-	printf("%s %s\n", array[0], array[1]);
-
 	switch(queryType) {
 
 		case QUERY_SELECT:
