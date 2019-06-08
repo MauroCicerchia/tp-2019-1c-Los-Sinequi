@@ -9,11 +9,6 @@ fi
 
 cd
 
-git clone https://github.com/sisoputnfrba/1C2019-Scripts-lql-checkpoint.git
-mv 1C2019-Scripts-lql-checkpoint scripts
-
-cd
-
 if test ! -d /home/utnso/lissandra-checkpoint/; then
 	mkdir /home/utnso/lissandra-checkpoint/
 fi
