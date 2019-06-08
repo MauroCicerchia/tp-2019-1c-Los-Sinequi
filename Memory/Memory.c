@@ -31,8 +31,17 @@ void *listen_client() {
 	char *ip = config_get_string_value(config, "IP");
 	char *port = config_get_string_value(config, "PUERTO");
 	int socket = createServer(ip,port);
+	if(socket == -1) {
+		printf("No se pudo crear el servidor");
+		exit(1);
+	}
 	while(true) {
 		int cliSocket = connectToClient(socket);
+
+		if(cliSocket == -1) {
+			printf("No se pudo conectar con el cliente");
+			exit(1);
+		}
 
 		e_query opCode;
 		recv(cliSocket, &opCode, sizeof(opCode), 0);

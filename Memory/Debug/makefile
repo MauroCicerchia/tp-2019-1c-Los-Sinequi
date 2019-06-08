@@ -8,7 +8,6 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
--include entities/subdir.mk
 -include subdir.mk
 -include objects.mk
 
@@ -23,22 +22,22 @@ endif
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: Kernel
+all: Memory
 
 dependents:
 	-cd /home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug && $(MAKE) clean all
 
 # Tool invocations
-Kernel: $(OBJS) $(USER_OBJS) /home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug/libsharedLib.so
+Memory: $(OBJS) $(USER_OBJS) /home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug/libsharedLib.so
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C Linker'
-	gcc -L"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug" -o "Kernel" $(OBJS) $(USER_OBJS) $(LIBS)
+	gcc -L"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug" -o "Memory" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(EXECUTABLES)$(OBJS)$(C_DEPS) Kernel
+	-$(RM) $(EXECUTABLES)$(OBJS)$(C_DEPS) Memory
 	-@echo ' '
 
 .PHONY: all clean dependents
