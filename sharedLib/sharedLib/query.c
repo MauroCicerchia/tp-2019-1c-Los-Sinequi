@@ -45,6 +45,9 @@ e_query queryError() {
 int validateQuerySyntax(char **array,e_query queryType){
 	int tamano = sizeofArray(array);
 	int key;
+
+	printf("%s %s\n", array[0], array[1]);
+
 	switch(queryType) {
 
 		case QUERY_SELECT:
@@ -78,7 +81,7 @@ int validateQuerySyntax(char **array,e_query queryType){
 			break;
 
 		case QUERY_DESCRIBE:
-			if( sizeofArray(array) != 2 && sizeofArray(array) != 1 ) return 0; // cantidad de parametros invalidos
+			if( tamano != 2 && tamano != 1 ) return 0; // cantidad de parametros invalidos
 			return 1;
 			break;
 
@@ -120,7 +123,6 @@ char **parseQuery(char *query){
 //	[INSERT] [T] [K]      [V] [T]
 
 	char **b;
-
 	if(string_starts_with(query,"INSERT")) {
 		char **a = string_split(query,"\"");
 		b = string_split(a[0]," ");
@@ -133,6 +135,10 @@ char **parseQuery(char *query){
 		} else {
 			b[4] = NULL;
 		}
+	} else if(strcasecmp(query, "DESCRIBE\n") == 0){
+		b = (char**)malloc(sizeof(char*) * 2);
+		b[0] = string_duplicate("DESCRIBE");
+		b[1] = NULL;
 	} else {
 		b = string_split(query," ");
 	}

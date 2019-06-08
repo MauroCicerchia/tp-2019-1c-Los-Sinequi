@@ -243,6 +243,7 @@ void *processor_execute(void *p) {
 			t_query *nextQuery = process_next_query(exec[processor]);
 
 			if(getQueryType(nextQuery->args[0]) == QUERY_ERROR || validateQuerySyntax(nextQuery->args, nextQuery->queryType) == 0) {
+				printf("%d, %d;\n", getQueryType(nextQuery->args[0]) == QUERY_ERROR, validateQuerySyntax(nextQuery->args, nextQuery->queryType) == 0);
 				sprintf(msg, " >> Error al ejecutar el proceso %d en la linea %d", exec[processor]->pid, exec[processor]->pc);
 				log_error(logger, msg);
 				exec[processor]->pc = process_length(exec[processor]);
