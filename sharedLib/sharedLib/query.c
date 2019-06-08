@@ -78,7 +78,7 @@ int validateQuerySyntax(char **array,e_query queryType){
 			break;
 
 		case QUERY_DESCRIBE:
-			if( sizeofArray(array) != 2 ) return 0; // cantidad de parametros invalidos
+			if( sizeofArray(array) != 2 && sizeofArray(array) != 1 ) return 0; // cantidad de parametros invalidos
 			return 1;
 			break;
 
