@@ -37,6 +37,10 @@ int connectToClient(int listeningSocket) {
 	socklen_t  dir_size = sizeof(struct sockaddr_in);
 
 	int client_socket = accept(listeningSocket, (void*) &client_dir, &dir_size);
+	if(client_socket < 0) {
+		perror("accept error : ");
+		exit(1);
+	}
 
 	return client_socket;
 }
