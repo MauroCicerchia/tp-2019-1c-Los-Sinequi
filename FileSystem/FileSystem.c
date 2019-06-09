@@ -8,13 +8,9 @@ pthread_t tApi,tDump,tListenCfg;
 t_config *config;
 sem_t MUTEX_MEMTABLE, MUTEX_RETARDTIME, MUTEX_DUMPTIME;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 	init_FileSystem();
-
-//	descomentar cuando se use las conexiones con memoria
-//	pthread_create(&tApi,NULL,start_API,NULL);
-//	pthread_detach(tApi);
-
 
 	pthread_create(&tListenCfg,NULL,threadConfigModify,NULL);
 	pthread_detach(tListenCfg);
@@ -24,14 +20,13 @@ int main(int argc, char **argv) {
 
 	start_Api();
 
-
-
 	kill_FileSystem();
+
 	return 0;
 }
 
-void init_FileSystem(){
-
+void init_FileSystem()
+{
 	memtable = list_create();
 
 	absoluto = string_new();
@@ -50,7 +45,7 @@ void init_FileSystem(){
 	char *x = get_fs_route();
 	string_append(&absoluto,x);
 	free(x);
-//	string_append(&absoluto,"/home/utnso/lissandra-checkpoint/");
+//	config_destroy(config);
 
 	sem_init(&MUTEX_MEMTABLE,1,1);
 	sem_init(&MUTEX_DUMPTIME,1,1);
@@ -58,42 +53,51 @@ void init_FileSystem(){
 }
 
 
-void kill_FileSystem(){
-
+void kill_FileSystem()
+{
 	log_info(logger, "----------------------------------------");
 	log_info(logger, "Dump de seguridad");
+
 	sem_wait(&MUTEX_MEMTABLE);
 	dump();
 	sem_post(&MUTEX_MEMTABLE);
+
 	log_info(logger, "----------------------------------------");
 
 	list_destroy(memtable);
 
-
 	sem_destroy(&MUTEX_MEMTABLE);
 	sem_destroy(&MUTEX_DUMPTIME);
 	sem_destroy(&MUTEX_RETARDTIME);
+
 	log_info(logger, "Fin FileSystem");
 	log_info(logger, "----------------------------------------");
 	log_destroy(logger);
-//	config_destroy(config);
 }
 
 void *threadConfigModify(){
 	log_info(logger, "----------------------------------------");
 	log_info(logger, "Inicia monitoreo de cambios en .config");
 	log_info(logger, "----------------------------------------");
+
 	while(1){
 		read(fd,NULL,200);
 		log_info(logger, "----------------------------------------");
 		log_info(logger, "Se podrujo un cambio en el .config");
 		log_info(logger, "Actualizando valores...");
+
+		load_config();
+
 		sem_wait(&MUTEX_DUMPTIME);
 		dumpTime = get_dump_time();
 		sem_post(&MUTEX_DUMPTIME);
+
 		sem_wait(&MUTEX_RETARDTIME);
 		retardTime = get_retard_time();
 		sem_post(&MUTEX_RETARDTIME);
+
+//		config_destroy(config);
+
 		log_info(logger, "Valores actualizados y disponibles para su uso");
 		log_info(logger, "----------------------------------------");
 	}
