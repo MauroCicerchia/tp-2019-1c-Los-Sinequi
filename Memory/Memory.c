@@ -32,14 +32,14 @@ void *listen_client() {
 	char *port = config_get_string_value(config, "PUERTO");
 	int socket = createServer(ip,port);
 	if(socket == -1) {
-		printf("No se pudo crear el servidor");
+		printf("No se pudo crear el servidor\n");
 		exit(1);
 	}
 	while(true) {
 		int cliSocket = connectToClient(socket);
 
 		if(cliSocket == -1) {
-			printf("No se pudo conectar con el cliente");
+			printf("No se pudo conectar con el cliente\n");
 			exit(1);
 		}
 

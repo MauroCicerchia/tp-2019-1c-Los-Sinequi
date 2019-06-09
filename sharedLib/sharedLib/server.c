@@ -33,13 +33,12 @@ int createServer(char* IP, char *PORT) {
 }
 
 int connectToClient(int listeningSocket) {
-	struct sockaddr_in client_dir;
-	socklen_t  dir_size = sizeof(struct sockaddr_in);
+	struct sockaddr_in client_addr;
+	socklen_t addr_size = sizeof(struct sockaddr_in);
 
-	int client_socket = accept(listeningSocket, (void*) &client_dir, &dir_size);
+	int client_socket = accept(listeningSocket, (void*) &client_addr, &addr_size);
 	if(client_socket < 0) {
 		perror("accept error : ");
-		exit(1);
 	}
 
 	return client_socket;
@@ -48,7 +47,6 @@ int connectToClient(int listeningSocket) {
 int readQueryFromClient(int client, char *package) {
 
 	int status = recv(client, (void*) package, PACKAGESIZE, 0);
-
 	if(strcasecmp("exit\n", package) == 0) return -1;
 
 	return status;
