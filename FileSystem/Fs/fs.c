@@ -1,10 +1,5 @@
 #include"fs.h"
 
-//char *absolutePath(){
-//	return "/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/"; //usar con consola
-////	return ""; //usar con eclipse
-//}
-
 
 int fs_tableExists(char* table){
 	char *tableUrl = makeUrlForPartition(table,"0");
@@ -150,4 +145,65 @@ t_list *fs_getListOfInserts(char* table){
 	free(line);
 	free(url);
 	return list;
+}
+
+//devuelve un struct con la metadata de la tabla que se le pasa por param
+metadata *fs_getTableMetadata(char *table)
+{
+	metadata *tableMetadata = malloc(sizeof(metadata));
+
+	char *url = makeTableUrl(table);
+	string_append(&url,"Metadata.bin");
+printf("\n%s\n",url);
+
+	t_config *config = NULL;
+	if(load_metadataConfig(config,url) == NULL) return NULL;
+
+	log_info(logger,"  Abro el archivo de metadata");
+
+	tableMetadata->consistency = getConsistency(config);
+	tableMetadata->ctime = getCTime(config);
+	tableMetadata->partitions = getPartitions(config);
+
+	log_info(logger,"  Guardo la metadata");
+
+	config_destroy(config);
+
+	free(url);
+
+	return tableMetadata;
+}
+
+void *load_metadataConfig(t_config *config,char *url)
+{
+	config = config_create(url);
+	if(config == NULL){
+		log_error(logger,"No se pudo abrir el archivo de metadata");
+		return NULL;
+	}
+	return "no soy null :)";
+
+}
+
+char *getConsistency(t_config *config)
+{
+	log_info(logger,"   Leo tipo de consistencia");
+
+	return config_get_string_value(config,"CONS");
+}
+
+char *getCTime(t_config *config)
+{
+	log_info(logger,"   Leo el tiempo de compactacion");
+
+	int ctime =config_get_int_value(config,"CTIME");
+	return string_itoa(ctime);
+}
+
+char *getPartitions(t_config *config)
+{
+	log_info(logger,"   Leo la cantidad de particiones");
+
+	int parts =config_get_int_value(config,"PARTS");
+	return string_itoa(parts);
 }

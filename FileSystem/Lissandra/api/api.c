@@ -2,25 +2,27 @@
 
 int retard;
 
-void *start_Api(){
+void *start_Api()
+{
 	char *input;
 	input = readline(">");
+
 	while(strcmp("", input)) {
 		processQuery(input);
 		free(input);
 		input = readline("\n>");
 	}
+
 	free(input);
-	return "keti";
+	return NULL;
 }
 
-void processQuery(char *query) {
-	char log_msg[100];
+void processQuery(char *query)
+{
 	e_query queryType;
+	char log_msg[100];
 	char *selectReturnValue = string_new();
 	char **args = parseQuery(query);
-	//string_split(query," ");
-
 
 	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
 
@@ -29,69 +31,99 @@ void processQuery(char *query) {
 		log_error(logger,"Query invalida");
 		return;
 	}
+
 	switch(queryType) { //identificamos query y procedemos a su ejecucion
 
 		case QUERY_SELECT:
-			printf("\n");
 			log_info(logger, "----------------------------------------");
 			log_info(logger, "Recibi un SELECT");
+
 			delayer();
+
 			selectReturnValue = qselect(args[1], args[2]);
+
 			log_info(logger, ">>>>");
 			log_info(logger, selectReturnValue);
 			log_info(logger, ">>>>");
+
 			log_info(logger, "Fin SELECT");
 			log_info(logger, "----------------------------------------");
-			free(args);
+
 			if(selectReturnValue != NULL) free(selectReturnValue);
+			free(args);
 			break;
 
 		case QUERY_INSERT:
 			log_info(logger, "----------------------------------------");
 			log_info(logger, "Recibi un INSERT");
+
 			delayer();
+
 			if(args[4] == NULL) args[4] = string_itoa(getCurrentTime());
+
 			qinsert(args[1], args[2], args[3], args[4]);
+
 			log_info(logger, "Fin INSERT");
 			log_info(logger, "----------------------------------------");
+
 //			free(args);
 			break;
 
 		case QUERY_CREATE:
 			log_info(logger, "----------------------------------------");
 			log_info(logger, "Recibi un CREATE");
+
 			delayer();
+
 			if(qcreate(args[1], args[2], args[3], args[4])){
 				log_info(logger, ">>>");
 				log_info(logger, "Tabla creada con exito");
 				log_info(logger, ">>>");
-			}
+			}else log_error(logger,"error en la creacion");
 
-			else log_error(logger,"error en la creacion");
 			log_info(logger, "Fin CREATE");
 			log_info(logger, "----------------------------------------");
+
 			free(args);
 			break;
 
 		case QUERY_DESCRIBE:
 			log_info(logger, "----------------------------------------");
 			log_info(logger, "Recibi un DESCRIBE");
+
 			delayer();
-			//describe(args[1]);
+
+			metadata *tableInfo = qdescribe(args[1]);
+
+			if(tableInfo != NULL){
+				log_info(logger, ">>>");
+				sprintf(log_msg,"Consistencia: %s",tableInfo->consistency);
+				sprintf(log_msg,"Particiones: %s",tableInfo->partitions);
+				sprintf(log_msg,"Tiempo de compactacion: %s",tableInfo->ctime);
+				log_info(logger, ">>>");
+
+				free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
+				free(tableInfo);
+			}
+
 			log_info(logger, "Fin DESCRIBE");
 			log_info(logger, "----------------------------------------");
 
-			sprintf(log_msg, "Recibi un DESCRIBE %s", args[1]);
 			free(args);
+
 			break;
 
 		case QUERY_DROP:
 			log_info(logger, "----------------------------------------");
 			log_info(logger, "Recibi un DROP");
+
 			delayer();
+
 			//drop(args[1]);
+
 			log_info(logger, "Fin DROP");
 			log_info(logger, "----------------------------------------");
+
 			free(args);
 			break;
 
@@ -100,7 +132,9 @@ void processQuery(char *query) {
 	}
 }
 
-void delayer(){
+
+void delayer()
+{
 	sem_wait(&MUTEX_RETARDTIME);
 	int rt = retardTime;
 	sem_post(&MUTEX_RETARDTIME);
@@ -108,9 +142,11 @@ void delayer(){
 }
 
 
-uint64_t getCurrentTime(){
+uint64_t getCurrentTime()
+{
 	struct timeval tv;
 	gettimeofday(&tv,NULL);
+
 	return (uint64_t)((tv.tv_sec)*1000 + (tv.tv_usec)/1000);
 }
 
