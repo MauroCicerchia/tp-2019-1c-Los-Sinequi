@@ -1,5 +1,6 @@
 #include"fs.h"
 
+t_config *metadataCfg;
 
 int fs_tableExists(char* table){
 	char *tableUrl = makeUrlForPartition(table,"0");
@@ -154,30 +155,29 @@ metadata *fs_getTableMetadata(char *table)
 
 	char *url = makeTableUrl(table);
 	string_append(&url,"Metadata.bin");
-printf("\n%s\n",url);
 
-	t_config *config = NULL;
-	if(load_metadataConfig(config,url) == NULL) return NULL;
+
+	if(load_metadataConfig(url) == NULL) return NULL;
 
 	log_info(logger,"  Abro el archivo de metadata");
 
-	tableMetadata->consistency = getConsistency(config);
-	tableMetadata->ctime = getCTime(config);
-	tableMetadata->partitions = getPartitions(config);
+	tableMetadata->consistency = getConsistency();
+	tableMetadata->ctime = getCTime();
+	tableMetadata->partitions = getPartitions();
 
 	log_info(logger,"  Guardo la metadata");
 
-	config_destroy(config);
+//	config_destroy(metadataCfg);
 
 	free(url);
 
 	return tableMetadata;
 }
 
-void *load_metadataConfig(t_config *config,char *url)
+void *load_metadataConfig(char *url)
 {
-	config = config_create(url);
-	if(config == NULL){
+	metadataCfg = config_create(url);
+	if(metadataCfg == NULL){
 		log_error(logger,"No se pudo abrir el archivo de metadata");
 		return NULL;
 	}
@@ -185,25 +185,25 @@ void *load_metadataConfig(t_config *config,char *url)
 
 }
 
-char *getConsistency(t_config *config)
+char *getConsistency()
 {
 	log_info(logger,"   Leo tipo de consistencia");
 
-	return config_get_string_value(config,"CONS");
+	return config_get_string_value(metadataCfg,"CONS");
 }
 
-char *getCTime(t_config *config)
+char *getCTime()
 {
 	log_info(logger,"   Leo el tiempo de compactacion");
 
-	int ctime =config_get_int_value(config,"CTIME");
+	int ctime =config_get_int_value(metadataCfg,"CTIME");
 	return string_itoa(ctime);
 }
 
-char *getPartitions(t_config *config)
+char *getPartitions()
 {
 	log_info(logger,"   Leo la cantidad de particiones");
 
-	int parts =config_get_int_value(config,"PARTS");
+	int parts =config_get_int_value(metadataCfg,"PARTS");
 	return string_itoa(parts);
 }

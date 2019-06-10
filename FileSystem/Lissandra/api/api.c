@@ -97,13 +97,20 @@ void processQuery(char *query)
 
 			if(tableInfo != NULL){
 				log_info(logger, ">>>");
-				sprintf(log_msg,"Consistencia: %s",tableInfo->consistency);
-				sprintf(log_msg,"Particiones: %s",tableInfo->partitions);
-				sprintf(log_msg,"Tiempo de compactacion: %s",tableInfo->ctime);
+				char *cons = string_new(); strcpy(cons,tableInfo->consistency);
+				char *parts = tableInfo->partitions; char *ctime = tableInfo->ctime;
+				sprintf(log_msg,"Consistencia: %s",cons);
+				log_info(logger,log_msg);
+				sprintf(log_msg,"Particiones: %s",parts);
+				log_info(logger,log_msg);
+				sprintf(log_msg,"Tiempo de compactacion: %s",ctime);
+				log_info(logger,log_msg);
 				log_info(logger, ">>>");
 
 				free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
 				free(tableInfo);
+				free(cons);
+//				config_destroy(metadataCfg);
 			}
 
 			log_info(logger, "Fin DESCRIBE");

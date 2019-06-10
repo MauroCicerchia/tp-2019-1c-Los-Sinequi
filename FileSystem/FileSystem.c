@@ -96,7 +96,7 @@ void *threadConfigModify(){
 		retardTime = get_retard_time();
 		sem_post(&MUTEX_RETARDTIME);
 
-//		config_destroy(config);
+		config_destroy(config);
 
 		log_info(logger, "Valores actualizados y disponibles para su uso");
 		log_info(logger, "----------------------------------------");

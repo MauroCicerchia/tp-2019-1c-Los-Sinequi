@@ -33,10 +33,10 @@ void makeFiles(char *,int);
 void makeDirectories(char*);
 void makeMetadataFile(char *);
 void loadMetadata(char *,char *,int ,int);
-void *load_metadataConfig(t_config*,char*);
-char *getConsistency(t_config*);
-char *getCTime(t_config*);
-char *getPartitions(t_config *);
+void *load_metadataConfig(char*);
+char *getConsistency();
+char *getCTime();
+char *getPartitions();
 
 void fs_toDump(char*,char*); //nombre de tabla y el string a dumpear
 
