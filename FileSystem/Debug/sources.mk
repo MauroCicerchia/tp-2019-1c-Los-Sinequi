@@ -17,6 +17,8 @@ SUBDIRS := \
 Fs \
 Lissandra/api \
 Lissandra/create \
+Lissandra/describe \
+Lissandra/drop \
 Lissandra/dump \
 Lissandra/insert \
 Lissandra/memtable \

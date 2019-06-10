@@ -20,6 +20,7 @@ void *start_Api()
 void processQuery(char *query)
 {
 	e_query queryType;
+	char log_msg[100];
 	char *selectReturnValue = string_new();
 	char **args = parseQuery(query);
 
@@ -92,12 +93,24 @@ void processQuery(char *query)
 
 			delayer();
 
-			//describe(args[1]);
+			metadata *tableInfo = qdescribe(args[1]);
+
+			if(tableInfo != NULL){
+				log_info(logger, ">>>");
+				sprintf(log_msg,"Consistencia: %s",tableInfo->consistency);
+				sprintf(log_msg,"Particiones: %s",tableInfo->partitions);
+				sprintf(log_msg,"Tiempo de compactacion: %s",tableInfo->ctime);
+				log_info(logger, ">>>");
+
+				free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
+				free(tableInfo);
+			}
 
 			log_info(logger, "Fin DESCRIBE");
 			log_info(logger, "----------------------------------------");
 
 			free(args);
+
 			break;
 
 		case QUERY_DROP:

@@ -2,15 +2,28 @@
 #include<string.h>
 #include<stdio.h>
 #include<unistd.h>
+
 #include<commons/string.h>
 #include<commons/log.h>
 #include<commons/collections/list.h>
-#include"commons/txt.h"
+#include<commons/txt.h>
+#include<commons/config.h>
+
 #include<sys/types.h>
 #include<sys/stat.h>
 
+
 extern char* absoluto;
 extern t_log *logger;
+
+#ifndef FS_H
+#define FS_H
+
+typedef struct{
+	char *consistency;
+	char *partitions;
+	char *ctime;
+}metadata;
 
 int fs_tableExists(char*);
 int fs_create(char*,char*,int,int);
@@ -20,7 +33,15 @@ void makeFiles(char *,int);
 void makeDirectories(char*);
 void makeMetadataFile(char *);
 void loadMetadata(char *,char *,int ,int);
+void *load_metadataConfig(t_config*,char*);
+char *getConsistency(t_config*);
+char *getCTime(t_config*);
+char *getPartitions(t_config *);
 
 void fs_toDump(char*,char*); //nombre de tabla y el string a dumpear
 
+metadata *fs_getTableMetadata(char*);
+
 t_list *fs_getListOfInserts(char*);
+
+#endif /* FS_H */

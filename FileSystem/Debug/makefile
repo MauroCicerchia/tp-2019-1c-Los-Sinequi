@@ -12,6 +12,8 @@ RM := rm -rf
 -include Lissandra/memtable/subdir.mk
 -include Lissandra/insert/subdir.mk
 -include Lissandra/dump/subdir.mk
+-include Lissandra/drop/subdir.mk
+-include Lissandra/describe/subdir.mk
 -include Lissandra/create/subdir.mk
 -include Lissandra/api/subdir.mk
 -include Fs/subdir.mk
