@@ -10,6 +10,8 @@
 #include<sharedLib/server.h>
 #include"Lissandra/api/api.h"
 #include"sys/inotify.h"
+#include"./Fs/bitarray.h"
+
 
 void init_FileSystem();
 void kill_FileSystem();

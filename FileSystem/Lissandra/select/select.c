@@ -1,11 +1,15 @@
 #include"select.h"
 
-char *qselect(char *table, char* strKey){
+char *qselect(char *table, char* strKey)
+{
+	uint16_t key = atoi(strKey);
 	t_list *list = list_create();
+
 	if (!fs_tableExists(table)){
 		log_error(logger, "No existe la tabla sobre la cual se intenta hacer el SELECT");
 		return NULL;
 	}
+
 	char *url = makeTableUrl(table);
 	string_append(&url,table);
 	string_append(&url, ".bin");
@@ -13,20 +17,24 @@ char *qselect(char *table, char* strKey){
 		log_error(logger,"No se hizo ningun insert sobre la tabla");
 		return NULL;
 	}
+
 	list = fs_getListOfInserts(table);
+
 	if(list_size(list) == 0){
 		log_error(logger, "No hay nada en la tabla");
 		return NULL;
 	}
 	log_info(logger, "  Guardo en una lista toda la info de la tabla");
+
 	t_list *dataList = listToDATAmode(list);
-	log_info(logger, "  Convierto lista en estructura");
 	list_destroy_and_destroy_elements(list,free);
+	log_info(logger, "  Convierto lista en estructura");
+
 	char *value = string_new();
-	uint16_t key = atoi(strKey);
 	value = getValue(dataList,key);
 	log_info(logger, "  tomo el valor de la key");
 //	list_destroy_and_destroy_elements(dataList,dataSelect_destroy); ESTA FUNCION ROMPE
+
 	return value;
 }
 

@@ -8,7 +8,7 @@ void dump(){ //averiguar por semaforos
 	if(size != 0){
 		log_info(logger,"  Hay informacion para dumpear");
 		log_info(logger,"  Dumpeando...");
-		for(int i=0; i<size; i++){
+		for(int i=0; i<size; i++){ //recorro todas las tablas
 			toDump = string_new();
 			pTable = (Itable*)list_get(memtable,i);
 			for(int j=0;j<list_size(pTable->inserts);j++){

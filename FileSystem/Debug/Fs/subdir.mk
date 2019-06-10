@@ -4,12 +4,18 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../Fs/bitarray.c \
+../Fs/blocks.c \
 ../Fs/fs.c 
 
 OBJS += \
+./Fs/bitarray.o \
+./Fs/blocks.o \
 ./Fs/fs.o 
 
 C_DEPS += \
+./Fs/bitarray.d \
+./Fs/blocks.d \
 ./Fs/fs.d 
 
 

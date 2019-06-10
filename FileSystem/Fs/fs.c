@@ -1,6 +1,5 @@
 #include"fs.h"
 
-t_config *metadataCfg;
 
 int fs_tableExists(char* table){
 	char *tableUrl = makeUrlForPartition(table,"0");
@@ -30,6 +29,8 @@ int fs_create(char *table,char *consistency,int parts,int ctime){
 	makeFiles(table,parts);
 	log_info(logger, "  Creo los archivos de particion");
 	makeMetadataFile(table);
+	b_loadPartitionsFiles(parts); //le asigna el size y un bloque a cada bloque de particion
+	log_info(logger, "  Les asigno un bloque inicial a cada particion");
 	loadMetadata(table,consistency,parts,ctime);
 	log_info(logger, "  Creo y cargo el archivo de metadata");
 	return 1;
@@ -120,33 +121,19 @@ void loadMetadata(char *table,char *consistency,int parts,int ctime){
 void fs_toDump(char *table,char *toDump){
 	char *tableUrl = makeTableUrl(table);
 	string_append(&tableUrl,table);
-	string_append(&tableUrl,".bin");
+	string_append(&tableUrl,tmpNo);
+	string_append(&tableUrl,".tmp");
+
 	FILE *file = txt_open_for_append(tableUrl);
-	txt_write_in_file(file,toDump);
 	fclose(file);
+
+	b_assignSizeAndBlock(tableUrl); //le asigno un bloque y un size
+
+	b_saveData(tableUrl,toDump); //guarda en la url tableUrl el char* que se le pasa
+
 	free(tableUrl);
 }
 
-//duelve una lista con la info del archivo
-t_list *fs_getListOfInserts(char* table){
-	FILE *file;
-	char *url = makeTableUrl(table);
-	string_append(&url,table);
-	string_append(&url, ".bin");
-	file = fopen(url,"r");
-	t_list *list = list_create();
-	char *line = malloc(sizeof(char)*100);
-	char *aux;
-	while(fgets(line, sizeof(char)*100, file) != NULL){
-		aux = malloc(sizeof(char)*(strlen(line)+1));
-		strcpy(aux,line);
-		list_add(list,aux);
-	}
-	fclose(file);
-	free(line);
-	free(url);
-	return list;
-}
 
 //devuelve un struct con la metadata de la tabla que se le pasa por param
 metadata *fs_getTableMetadata(char *table)
@@ -206,4 +193,44 @@ char *getPartitions()
 
 	int parts =config_get_int_value(metadataCfg,"PARTS");
 	return string_itoa(parts);
+}
+
+char *fs_getBitmapUrl()
+{
+	char *url =string_new();
+	string_append(&url,absoluto);
+	string_append(&url,"Metadata/Bitmap.bin");
+	return url;
+}
+
+char *fs_getlfsMetadataUrl()
+{
+	char *url = string_new();
+	string_append(&url,absoluto);
+	string_append(&url,"Metadata/Metadata.bin");
+	return url;
+}
+
+char* fs_getBlocksUrl()
+{
+	char *url = string_new();
+	string_append(&url,absoluto);
+	string_append(&url,"Blocks/");
+	return url;
+}
+
+void fs_createBlocks(int blocks)
+{
+	char *url = fs_getBlocksUrl();
+	char *block;
+	for(int i=0;i<blocks;i++){
+		block = string_new();
+		string_append(&block,url);
+		string_append(&block,string_itoa(i));
+		string_append(&block,".bin");
+		FILE *f = fopen(block,"w+");
+		fclose(f);
+		free(block);
+	}
+	free(url);
 }

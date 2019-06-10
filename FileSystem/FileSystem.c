@@ -1,12 +1,21 @@
 #include "FileSystem.h"
-
+/*GLOBALES*/
 t_list *memtable;
+
 char *absoluto;
+
 t_log *logger;
-int fd,wd,dumpTime,retardTime;
+
+int fd,wd,dumpTime,retardTime, tmpNo;
+
 pthread_t tApi,tDump,tListenCfg;
+
 t_config *config;
+t_config *metadataCfg;
+t_config *lfsMetadata;
+
 sem_t MUTEX_MEMTABLE, MUTEX_RETARDTIME, MUTEX_DUMPTIME;
+/*GLOBALES*/
 
 int main(int argc, char **argv)
 {
@@ -29,6 +38,8 @@ void init_FileSystem()
 {
 	memtable = list_create();
 
+	tpmNo = 0;
+
 	absoluto = string_new();
 
 	logger = NULL;
@@ -46,6 +57,9 @@ void init_FileSystem()
 	string_append(&absoluto,x);
 	free(x);
 //	config_destroy(config);
+
+	ba_load_lfsMetadata();
+	if(!ba_exists())ba_create();
 
 	sem_init(&MUTEX_MEMTABLE,1,1);
 	sem_init(&MUTEX_DUMPTIME,1,1);
@@ -72,6 +86,7 @@ void kill_FileSystem()
 
 	log_info(logger, "Fin FileSystem");
 	log_info(logger, "----------------------------------------");
+//	config_destroy(lfsMetadata);
 	log_destroy(logger);
 }
 
