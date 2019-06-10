@@ -71,3 +71,9 @@ void insertDestroyer(void *insert){
 	free(((Iinsert*)insert)->value);
 	free(insert);
 }
+
+t_list *mt_getListofInserts(char *table){
+	t_list *toReturn = list_create();
+	list_add_all(toReturn,mt_getListofInserts(table));
+	return toReturn;
+}

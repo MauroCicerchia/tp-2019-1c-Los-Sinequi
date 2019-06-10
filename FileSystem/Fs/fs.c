@@ -161,37 +161,37 @@ metadata *fs_getTableMetadata(char *table)
 	return tableMetadata;
 }
 
-void *load_metadataConfig(char *url)
+t_config *load_metadataConfig(char *url)
 {
-	metadataCfg = config_create(url);
+	t_config *metadataCfg = config_create(url);
 	if(metadataCfg == NULL){
 		log_error(logger,"No se pudo abrir el archivo de metadata");
 		return NULL;
 	}
-	return "no soy null :)";
+	return metadataCfg;
 
 }
 
-char *getConsistency()
+char *getConsistency(t_config *config)
 {
 	log_info(logger,"   Leo tipo de consistencia");
 
-	return config_get_string_value(metadataCfg,"CONS");
+	return config_get_string_value(config,"CONS");
 }
 
-char *getCTime()
+char *getCTime(t_config *config)
 {
 	log_info(logger,"   Leo el tiempo de compactacion");
 
-	int ctime =config_get_int_value(metadataCfg,"CTIME");
+	int ctime =config_get_int_value(config,"CTIME");
 	return string_itoa(ctime);
 }
 
-char *getPartitions()
+char *getPartitions(t_config *config)
 {
 	log_info(logger,"   Leo la cantidad de particiones");
 
-	int parts =config_get_int_value(metadataCfg,"PARTS");
+	int parts =config_get_int_value(config,"PARTS");
 	return string_itoa(parts);
 }
 
@@ -234,3 +234,47 @@ void fs_createBlocks(int blocks)
 	}
 	free(url);
 }
+
+t_list *fs_getListOfInserts(char* table,int key){
+	char *tableUrl = makeTableUrl(table);
+	char *metadataUrl, *partUrl, *tmpUrl;
+
+
+	string_append(&metadataUrl,tableUrl);
+	string_append(&metadataUrl,"Metadata.bin");
+	t_config *metadataCfg = load_metadataConfig(metadataUrl);
+
+	char *partition = string_itoa(key % strtol(getPartitions(metadataCfg),NULL,10));
+
+	config_destroy(metadataCfg);
+
+	string_append(&partUrl,tableUrl);
+	string_append(&partUrl,partition);
+	string_append(&partUrl, ".bin");
+
+	t_list *partList = b_getListOfInserts(partUrl); //trae todas los inserts de esa url (la de particion adecuada)
+
+	char **tmps = getAllTmps(tableUrl);
+	t_list *tmpsList = list_create();
+	for (int i = 0; i < sizeofArray(tmps); i++)
+	{
+		tmpUrl = string_new();
+		string_append(&tmpUrl,tableUrl);
+		string_append(&tmpUrl,tmps[i]);
+		list_add(tmpsList,b_getListOfInserts(tmpUrl));
+		free(tmpUrl);
+	}
+
+	t_list *mtList = mt_getListofInserts(table); //toma todos los inserts de la memtable referidos a la tabla
+
+	//juntas todas las listas en una para retornar esa
+	list_add_all(partList,mtList);
+	list_add_all(partList,tmpsList);
+
+	list_destroy_and_destroy_elements(tmpsList,free);
+	list_destroy_and_destroy_elements(mtList,free);
+	free(partUrl); free(metadataUrl); free(tableUrl);
+
+	return partList;
+}
+

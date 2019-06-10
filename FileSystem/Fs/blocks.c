@@ -27,15 +27,17 @@ void b_assignSizeAndBlock(char *partUrl)
 t_list *b_getListOfInserts(char *partUrl)
 {
 	t_list *listOfInserts = list_create();
-	t_list *pivot;
 
 	char** inserts = string_get_string_as_array(getListOfBlocks(partUrl));
+	int size = sizeofArray(inserts);
+
+	char ** inserts = malloc(*size);
 
 	int block;
 	for(int i = 0; i<sizeofArray(inserts); i++)
 	{
 		block = strtol(inserts[i],NULL,10);
-		pivot = b_getListOfInserts(block);
+		pivot = b_getBlockInserts(block);
 		list_add_all(listOfInserts, pivot);
 		free(pivot);
 	}
@@ -78,20 +80,21 @@ char *getListOfBlocks(partUrl)
 	return blocks;
 }
 
-
-/*DEPRECATED*/
-//duelve una lista con la info del archivo
-t_list *b_getListOfInserts(char* table,int key){
-	char *partition = string_itoa(key % strtol(getPartitions(),NULL,10));
-	FILE *file;
-	char *url = makeTableUrl(table);
-	string_append(&url,partition);
-	string_append(&url, ".bin");
-	t_list *list = b_getListOfInserts(url); //trae todas los inserts de esa url, que es la particion.bin
-	free(url);
-	return list;
+int getSizeOfBlocks(){
+	return config_get_int_value(lfsMetadata,"BLOCK_SIZE");
 }
 
+
+tb_getBlockInserts(block)
+{
+
+}
+
+//
+char **getAllTmps(char *tableUrl)
+{
+
+}
 
 
 //void b_loadPartitionsFiles(int parts);   //le asigna el size y un bloque a cada bloque de particion

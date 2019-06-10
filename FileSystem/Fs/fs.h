@@ -17,7 +17,7 @@
 
 extern char* absoluto;
 extern t_log *logger;
-extern t_config *metadataCfg;
+//extern t_config *metadataCfg;
 extern int tmpNo;
 
 /* FS_H */
@@ -43,9 +43,9 @@ void makeMetadataFile(char *);
 void loadMetadata(char *,char *,int ,int);
 void *load_metadataConfig(char*);
 
-char *getConsistency();
-char *getCTime();
-char *getPartitions();
+char *getConsistency(t_config*);
+char *getCTime(t_config*);
+char *getPartitions(t_config*);
 
 char *fs_getBitmapUrl();
 char *fs_getlfsMetadataUrl();
@@ -55,7 +55,7 @@ void fs_toDump(char*,char*); //nombre de tabla y el string a dumpear
 
 metadata *fs_getTableMetadata(char*);
 
-//t_list *fs_getListOfInserts(char*);
+t_list *fs_getListOfInserts(char*,int);
 
 void fs_createBlocks(int);
 
