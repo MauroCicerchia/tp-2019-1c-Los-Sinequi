@@ -20,6 +20,7 @@ t_config *config;
 
 void iniciar_logger();
 void *listen_client();
+void process_query_from_client(int);
 void start_API();
 segment* search_segment(char*);
 page* search_page(segment*,int);

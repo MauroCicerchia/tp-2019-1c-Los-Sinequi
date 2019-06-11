@@ -17,6 +17,7 @@ void qSelect(char** args, t_log *logger) {
 
 	//	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
+	send_req_code(memSocket, REQUEST_QUERY);
 	send_package(p, memSocket);
 
 	e_response_code r = recv_res_code(memSocket);
@@ -62,6 +63,8 @@ void qInsert(char** args, t_log *logger) {
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
+
+	send_req_code(memSocket, REQUEST_QUERY);
 	send_package(p, memSocket);
 
 	e_response_code r = recv_res_code(memSocket);

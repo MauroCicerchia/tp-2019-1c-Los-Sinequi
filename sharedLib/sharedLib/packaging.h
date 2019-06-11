@@ -18,13 +18,14 @@ typedef struct{
 
 typedef enum {
 	REQUEST_QUERY,
-	REQUEST_MEMPOOL,
+	REQUEST_JOURNAL,
 	REQUEST_GOSSIP
 }e_request_code;
 
 typedef enum {
 	RESPONSE_SUCCESS,
-	RESPONSE_ERROR
+	RESPONSE_ERROR,
+	RESPONSE_FULL
 }e_response_code;
 
 void *serialize_package(t_package*, int);

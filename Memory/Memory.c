@@ -43,34 +43,45 @@ void *listen_client() {
 			exit(1);
 		}
 
-		e_query opCode;
-		recv(cliSocket, &opCode, sizeof(opCode), 0);
 
-		char *table, *value;
-		int key, size;
-		e_response_code resCode;
+		e_request_code rc = recv_req_code(cliSocket);
 
-		switch(opCode) {
-			case QUERY_SELECT:
-				table = recv_str(cliSocket);
-				key = recv_int(cliSocket);
-				char *response = selectM(table, key);
-
-				if(response != NULL) {
-					send_res_code(cliSocket, RESPONSE_SUCCESS);
-					send_str(cliSocket, response);
-				} else {
-					send_res_code(cliSocket, RESPONSE_ERROR);
-				}
-				break;
-			case QUERY_INSERT:
-				table = recv_str(cliSocket);
-				key = recv_int(cliSocket);
-				value = recv_str(cliSocket);
-				insertM(table, key, value);
-				send_res_code(cliSocket, RESPONSE_SUCCESS);
-				break;
+		switch(rc) {
+			case REQUEST_QUERY: process_query_from_client(cliSocket); break;
+			case REQUEST_GOSSIP: break;
+			case REQUEST_JOURNAL: break;
 		}
+	}
+}
+
+void process_query_from_client(int client) {
+	e_query opCode;
+	recv(client, &opCode, sizeof(opCode), 0);
+
+	char *table, *value;
+	int key, size;
+	e_response_code resCode;
+
+	switch(opCode) {
+		case QUERY_SELECT:
+			table = recv_str(client);
+			key = recv_int(client);
+			char *response = selectM(table, key);
+
+			if(response != NULL) {
+				send_res_code(client, RESPONSE_SUCCESS);
+				send_str(client, response);
+			} else {
+				send_res_code(client, RESPONSE_ERROR);
+			}
+			break;
+		case QUERY_INSERT:
+			table = recv_str(client);
+			key = recv_int(client);
+			value = recv_str(client);
+			insertM(table, key, value);
+			send_res_code(client, RESPONSE_SUCCESS);
+			break;
 	}
 }
 
