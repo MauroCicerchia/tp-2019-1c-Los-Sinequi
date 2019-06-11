@@ -59,8 +59,8 @@ void process_query_from_client(int client) {
 	recv(client, &opCode, sizeof(opCode), 0);
 
 	char *table, *value;
-	int key, size;
-	e_response_code resCode;
+	int key, part, compTime;
+	e_cons_type consType;
 
 	switch(opCode) {
 		case QUERY_SELECT:
@@ -79,7 +79,19 @@ void process_query_from_client(int client) {
 			table = recv_str(client);
 			key = recv_int(client);
 			value = recv_str(client);
-			insertM(table, key, value);
+			int status = insertM(table, key, value);
+			switch(status) {
+				case 0: send_res_code(client, RESPONSE_SUCCESS); break;
+				case 1: send_res_code(client, RESPONSE_ERROR); break;
+				case 2: send_res_code(client, RESPONSE_FULL); break;
+			}
+			break;
+		case QUERY_CREATE:
+			table = recv_str(client);
+			consType = getConsistencyType(recv_str(client));
+			part = recv_int(client);
+			compTime = recv_int(client);
+//			int status = createM(table, key, value);
 			send_res_code(client, RESPONSE_SUCCESS);
 			break;
 	}
@@ -192,7 +204,7 @@ segment* segment_init(t_log* logger){
 	return memorySegment;
 }
 
-void insertM(char* segmentID, int key, char* value){
+int insertM(char* segmentID, int key, char* value){
 
 	segment* segmentFound = search_segment(segmentID);
 
@@ -204,19 +216,22 @@ void insertM(char* segmentID, int key, char* value){
 			strcpy(pageFound->page_data->value,value);
 			pageFound->page_data->timestamp= get_timestamp();
 			pageFound->isModified=1;
+			return 0;
 		}
 		else{
 			log_info(logger,"No se encontro la pagina con el key buscado, chequeando si hay paginas disponibles.");
 			if(segment_Pages_Available(segmentFound)){
 				segment_add_page(segmentFound,key,value);
 				log_info(logger,"Se agrego la pagina con el nuevo valor.");
+				return 0;
 			}
 			else{
 				if(segment_Full(segmentFound)){
-					//ejecutarJournal
+					return 2;
 				}
 				else{
 					//ejecutarReemplazo
+					return 0;
 				}
 			}
 		}
@@ -231,7 +246,7 @@ void insertM(char* segmentID, int key, char* value){
 		//ACA HABRIA QUE CONSIDERAR QUE UN SEGMENTO NO PUEDA TENER PAGINAS POR MEMORIA PRINCIPAL LLENA,
 		//POR EL MOMENTO NO NOS AFECTA
 	}
-
+	return 0;
 }
 
 
