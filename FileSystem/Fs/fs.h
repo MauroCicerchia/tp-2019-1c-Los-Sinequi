@@ -2,6 +2,7 @@
 #include<string.h>
 #include<stdio.h>
 #include<unistd.h>
+#include<stddef.h>
 
 #include<commons/string.h>
 #include<commons/log.h>
@@ -17,7 +18,7 @@
 
 extern char* absoluto;
 extern t_log *logger;
-//extern t_config *metadataCfg;
+extern t_config *FsMetadataCfg;
 extern int tmpNo;
 
 /* FS_H */
@@ -41,7 +42,7 @@ void makeDirectories(char*);
 void makeMetadataFile(char *);
 
 void loadMetadata(char *,char *,int ,int);
-void *load_metadataConfig(char*);
+t_config *load_metadataConfig(char*);
 
 char *getConsistency(t_config*);
 char *getCTime(t_config*);

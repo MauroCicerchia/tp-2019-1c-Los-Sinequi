@@ -9,7 +9,7 @@ void b_loadPartitionsFiles(char *tableUrl,int parts)
 		string_append(&tableUrl,i);
 		string_append(&tableUrl,".bin");
 
-		assignSizeAndBlock(tableUrl);
+		b_assignSizeAndBlock(tableUrl);
 	}
 }
 
@@ -26,23 +26,54 @@ void b_assignSizeAndBlock(char *partUrl)
 //trae todas los inserts de esa url, que es la particion.bin o el .tmp
 t_list *b_getListOfInserts(char *partUrl)
 {
-	t_list *listOfInserts = list_create();
+	FILE *f;
+	long fSize;
+	t_list *listOfInserts;
 
-	char** inserts = string_get_string_as_array(getListOfBlocks(partUrl));
-	int size = sizeofArray(inserts);
+	char** blocks = string_get_string_as_array(getListOfBlocks(partUrl));// ["1","43","550"]
+	int size = sizeofArray(blocks); // tamano de array de bloques
 
-	char ** inserts = malloc(*size);
-
-	int block;
-	for(int i = 0; i<sizeofArray(inserts); i++)
+	char *inserts = string_new();
+	char *blockUrl; // url de cada block particular
+	char *url = fs_getBlocksUrl(); //url absoluta de donde estan los bloques "mnt/blocks"
+	char *pivot;
+	for(int i = 0; i<size; i++)
 	{
-		block = strtol(inserts[i],NULL,10);
-		pivot = b_getBlockInserts(block);
-		list_add_all(listOfInserts, pivot);
-		free(pivot);
+		pivot = (char*)malloc(getSizeOfBlocks(partUrl));
+
+		blockUrl = string_new();
+		string_append(&blockUrl,url);
+		string_append(&blockUrl,blocks[i]);
+
+		f = fopen(blockUrl,"r");
+		fseek(f,0,SEEK_END);
+		fSize = ftell(f);
+		fseek(f,0,SEEK_SET);
+		fread(pivot,1,fSize,f);
+		fclose(f);
+
+		string_append(&inserts,pivot);
+
+		free(pivot); free(blockUrl);
 	}
 
+	listOfInserts = insertsToList(inserts); //parsea el char *inserts por \n y los mete en la lista
+	free(inserts); free(url);
 	return listOfInserts;
+}
+
+t_list *insertsToList(char *inserts)
+{
+	t_list *toReturn = list_create();
+	char **arrayOfInserts = string_split(inserts,"\n");
+	char *pivot;
+	for(int i =0; i<sizeofArray(arrayOfInserts); i++)
+	{
+		pivot = string_duplicate(arrayOfInserts[i]);
+		list_add(toReturn,pivot);
+	}
+	free(arrayOfInserts);
+	return toReturn;
 }
 
 
@@ -72,7 +103,7 @@ void startPartition(char *url, int blockNumber)
 }
 
 //toma el array de bloques del ,archivo pasado por url, asociado a BLOCKS=
-char *getListOfBlocks(partUrl)
+char *getListOfBlocks(char *partUrl)
 {
 	t_config *partition = config_create(partUrl);
 	char *blocks = config_get_string_value(partition,"BLOCKS");

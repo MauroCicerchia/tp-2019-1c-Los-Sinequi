@@ -38,7 +38,7 @@ void init_FileSystem()
 {
 	memtable = list_create();
 
-	tpmNo = 0;
+	tmpNo = 0;
 
 	absoluto = string_new();
 

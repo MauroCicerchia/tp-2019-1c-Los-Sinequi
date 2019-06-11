@@ -29,7 +29,7 @@ int fs_create(char *table,char *consistency,int parts,int ctime){
 	makeFiles(table,parts);
 	log_info(logger, "  Creo los archivos de particion");
 	makeMetadataFile(table);
-	b_loadPartitionsFiles(parts); //le asigna el size y un bloque a cada bloque de particion
+	b_loadPartitionsFiles(makeTableUrl(table),parts); //le asigna el size y un bloque a cada bloque de particion
 	log_info(logger, "  Les asigno un bloque inicial a cada particion");
 	loadMetadata(table,consistency,parts,ctime);
 	log_info(logger, "  Creo y cargo el archivo de metadata");
@@ -143,14 +143,15 @@ metadata *fs_getTableMetadata(char *table)
 	char *url = makeTableUrl(table);
 	string_append(&url,"Metadata.bin");
 
-
-	if(load_metadataConfig(url) == NULL) return NULL;
+	t_config *tableMetadataCfg;
+	tableMetadataCfg =load_metadataConfig(url);
+	if(tableMetadataCfg == NULL) return NULL;
 
 	log_info(logger,"  Abro el archivo de metadata");
 
-	tableMetadata->consistency = getConsistency();
-	tableMetadata->ctime = getCTime();
-	tableMetadata->partitions = getPartitions();
+	tableMetadata->consistency = getConsistency(tableMetadataCfg);
+	tableMetadata->ctime = getCTime(tableMetadataCfg);
+	tableMetadata->partitions = getPartitions(tableMetadataCfg);
 
 	log_info(logger,"  Guardo la metadata");
 
@@ -237,16 +238,16 @@ void fs_createBlocks(int blocks)
 
 t_list *fs_getListOfInserts(char* table,int key){
 	char *tableUrl = makeTableUrl(table);
-	char *metadataUrl, *partUrl, *tmpUrl;
+	char *tableMetadataUrl, *partUrl, *tmpUrl;
 
+	tableMetadataUrl = string_new();
+	string_append(&tableMetadataUrl,tableUrl);
+	string_append(&tableMetadataUrl,"Metadata.bin");
+	t_config *tableMetadataCfg = load_metadataConfig(tableMetadataUrl);
 
-	string_append(&metadataUrl,tableUrl);
-	string_append(&metadataUrl,"Metadata.bin");
-	t_config *metadataCfg = load_metadataConfig(metadataUrl);
+	char *partition = string_itoa(key % strtol(getPartitions(tableMetadataCfg),NULL,10));
 
-	char *partition = string_itoa(key % strtol(getPartitions(metadataCfg),NULL,10));
-
-	config_destroy(metadataCfg);
+	config_destroy(tableMetadataCfg);
 
 	string_append(&partUrl,tableUrl);
 	string_append(&partUrl,partition);
@@ -273,7 +274,7 @@ t_list *fs_getListOfInserts(char* table,int key){
 
 	list_destroy_and_destroy_elements(tmpsList,free);
 	list_destroy_and_destroy_elements(mtList,free);
-	free(partUrl); free(metadataUrl); free(tableUrl);
+	free(partUrl); free(tableMetadataUrl); free(tableUrl);
 
 	return partList;
 }

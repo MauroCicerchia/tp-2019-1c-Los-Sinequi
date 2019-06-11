@@ -1,7 +1,6 @@
 #include"select.h"
 
-char *qselect(char *table, char* strKey)
-{
+char *qselect(char *table, char* strKey){
 	uint16_t key = atoi(strKey);
 	t_list *list = list_create();
 
@@ -18,7 +17,7 @@ char *qselect(char *table, char* strKey)
 		return NULL;
 	}
 
-	list = fs_getListOfInserts(table);
+	list = fs_getListOfInserts(table,key);
 
 	if(list_size(list) == 0){
 		log_error(logger, "No hay nada en la tabla");
