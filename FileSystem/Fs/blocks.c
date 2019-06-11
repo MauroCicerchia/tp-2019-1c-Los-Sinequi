@@ -128,6 +128,10 @@ char **getAllTmps(char *tableUrl)
 }
 
 
+
+void b_saveData(char *url,char *data){
+
+}
 //void b_loadPartitionsFiles(int parts);   //le asigna el size y un bloque a cada bloque de particion
 //void b_assignSizeAndBlock(tableUrl) ;  //le asigna un bloque y el size a esa url
 // t_list *b_getListOfInserts(url); //trae todas los inserts de esa url, que es la particion.bin
