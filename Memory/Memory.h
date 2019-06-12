@@ -10,25 +10,38 @@
 #include<sharedLib/server.h>
 #include<sharedLib/query.h>
 #include<sharedLib/packaging.h>
+#include<sharedLib/consistency.h>
+#include<commons/bitarray.h>
 #include"Segment.h"
 #include<time.h>
+
+void* main_memory;
+t_bitarray* bitmap;
+int get_value_size();
+void THEGREATMALLOC();
 
 t_list* segmentList;
 e_query processQuery(char *, t_log*);
 t_log *logger;
 t_config *config;
 
+void load_config();
 void iniciar_logger();
+segment* segment_init(t_log*);
 void *listen_client();
 void process_query_from_client(int);
 void start_API();
 segment* search_segment(char*);
 page* search_page(segment*,int);
+
 char* selectM(char*,int);	   // (nombreTabla,key)
 int insertM(char*,int,char*); // (nombreTabla,key,value)
-segment* segment_init(t_log*);
-void createM(char*,/*consistencia,*/int,int);
-void load_config();
+int createM(char*,e_cons_type,int,int);
+int dropM(char*);
+
+/*table_t *describeM(char*);
+t_list *describeM();*/
+
 
 /*	PUERTO=8000
     IP_FS="192.168.1.2"

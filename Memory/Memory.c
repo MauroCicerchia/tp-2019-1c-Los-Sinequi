@@ -8,6 +8,7 @@ int main(int argc, char **argv) {
 
 	iniciar_logger();
 
+	THEGREATMALLOC();
 	pthread_t threadClient;
 
 	pthread_create(&threadClient, NULL, listen_client, NULL);
@@ -18,8 +19,36 @@ int main(int argc, char **argv) {
 	list_destroy_and_destroy_elements(segmentList,segment_destroy);
 	config_destroy(config);
 	log_destroy(logger);
+	free(main_memory);
 
 	return 0;
+}
+
+void THEGREATMALLOC(){
+	int memSize = config_get_int_value(config, "TAM_MEM");
+	int frameSize = 0;
+
+	frameSize += sizeof(uint16_t); //key
+	frameSize += sizeof(int); //timestamp
+	//Preguntar tamanio del value a luzquito
+	frameSize += get_value_size();
+
+	main_memory = malloc(memSize); //EL GRAN MALLOC
+
+	int bitNumbers = memSize/frameSize;
+	printf("%d \n",frameSize);
+
+	char* bitParameter = (char*)malloc(sizeof(char)*(bitNumbers/8) + 1);
+	for(int i = 0; i<=(bitNumbers/8); i++){
+		bitParameter[i] = '0';
+	}
+	bitParameter[(bitNumbers/8)+1] = '/0';
+
+	printf("%s",bitParameter);
+
+	bitmap = bitarray_create(bitParameter,memSize);
+
+	log_info(logger,"Memoria principal alocada");
 }
 
 void iniciar_logger()
@@ -143,7 +172,7 @@ void start_API(t_log *logger){
 }
 
 e_query processQuery(char *query, t_log *logger) {
-
+	int insertResult;
 	char log_msg[100];
 	e_query queryType;
 
@@ -166,10 +195,18 @@ e_query processQuery(char *query, t_log *logger) {
 			break;
 
 		case QUERY_INSERT:
-
-			insertM(args[1], atoi(args[2]), args[3]);
+			insertResult = insertM(args[1], atoi(args[2]), args[3]);
 
 			sprintf(log_msg, "Recibi un INSERT %s %s %s", args[1], args[2], args[3]);
+			log_info(logger,log_msg);
+
+			if(insertResult == 1){
+				log_error(logger,"No se puedo insertar un valor");
+			}else if(insertResult == 2){
+				log_info(logger,"No se puedo cargar el valor, pues la memoria se encuentra llena");
+			}else{
+				log_info(logger,"Valor insertado con exito");
+			}
 
 			break;
 
@@ -311,9 +348,25 @@ char* selectM(char* segmentID, int key){
 	return NULL;
 }
 
-//void createM(char segmentID*,/*consistencia,*/int partition_num, int compaction_time){
+int createM(char* segmentID,e_cons_type consistency ,int partition_num, int compaction_time){
 	/*ENVIAR AL FS OPERACION PARA CREAR TABLA*/
+	return 0;
+}
 
+/*table_t *describeM(char* table_id){
+	return 0;
+}
+t_list *describeM(){
+	return 0;
+}*/
+
+int dropM(char* segment_id){
+	return 0;
+}
+
+int get_value_size(){
+	return 64*sizeof(char);
+}
 int get_timestamp(){
 	return (int)time(NULL);
 }

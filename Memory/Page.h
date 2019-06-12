@@ -11,8 +11,8 @@ typedef struct{
 }pageData;
 
 typedef struct{
-	int page_num;
-	pageData* page_data;
+	int page_num; //key;
+	pageData* page_data;//void* frame;
 	int isModified;
 }page;
 
