@@ -3,11 +3,13 @@
 #include<string.h>
 #include<stdint.h>
 #include<stdbool.h>
-#include<commons/collections/list.h>
+#include<commons/log.h>
+//#include<commons/collections/list.h>
 #include<commons/string.h>
 #include<commons/txt.h>
+#include"../../Fs/fs.h"
 
-
+extern t_log *logger;
 
 typedef struct{
 	uint64_t timeStamp;
@@ -17,7 +19,7 @@ typedef struct{
 
 char *qselect(char *, char*);
 
-void loadList(t_list *,FILE *);
+//void loadList(t_list *,FILE *);
 
 char *getValue(t_list *,uint16_t);
 

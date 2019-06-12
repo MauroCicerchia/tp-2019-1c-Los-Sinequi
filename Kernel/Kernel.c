@@ -2,7 +2,7 @@
 
 #define MP 1
 
-int server, QUANTUM, nroProcesos = 0;
+int server, nroProcesos = 0;
 t_list *memories;
 t_config *config;
 t_queue *new, *ready;
@@ -38,7 +38,7 @@ void init_kernel() {
 	load_logger();
 	log_info(logger, "Iniciando Kernel");
 	load_config();
-	QUANTUM = get_quantum();
+
 	new = queue_create();
 	ready = queue_create();
 	memories = list_create();
@@ -75,7 +75,7 @@ void kill_kernel() {
 	}
 }
 
-e_query newQuery(char *query) {
+e_query processQuery(char *query) {
 
 	char log_msg[100];
 	e_query queryType;
@@ -90,46 +90,46 @@ e_query newQuery(char *query) {
 	switch(queryType) {
 		case QUERY_SELECT:
 			isQuery = 1;
-			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
+			sprintf(log_msg, " >> Recibi un SELECT %s %s", args[1], args[2]);
 			break;
 
 		case QUERY_INSERT:
 			isQuery = 1;
-			sprintf(log_msg, "Recibi un INSERT %s %s %s", args[1], args[2], args[3]);
+			sprintf(log_msg, " >> Recibi un INSERT %s %s %s", args[1], args[2], args[3]);
 			break;
 
 		case QUERY_CREATE:
 			isQuery = 1;
-			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
+			sprintf(log_msg, " >> Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
 			break;
 
 		case QUERY_DESCRIBE:
 			isQuery = 1;
-			sprintf(log_msg, "Recibi un DESCRIBE %s", args[1]);
+			sprintf(log_msg, " >> Recibi un DESCRIBE %s", args[1]);
 			break;
 
 		case QUERY_DROP:
 			isQuery = 1;
-			sprintf(log_msg, "Recibi un DROP %s", args[1]);
+			sprintf(log_msg, " >> Recibi un DROP %s", args[1]);
 			break;
 
 		case QUERY_JOURNAL:
-			sprintf(log_msg, "Recibi un JOURNAL");
+			sprintf(log_msg, " >> Recibi un JOURNAL");
 			break;
 
 		case QUERY_ADD:
 			add_memory_to_cons_type(atoi(args[2]), getConsistencyType(args[4]));
-			sprintf(log_msg, "Recibi un ADD MEMORY %s TO %s", args[2], args[4]);
+			sprintf(log_msg, " >> Recibi un ADD MEMORY %s TO %s", args[2], args[4]);
 			break;
 
 		case QUERY_RUN:
 			if(!read_lql_file(args[1]))
 				return queryError();
-			sprintf(log_msg, "Recibi un RUN %s", args[1]);
+			sprintf(log_msg, " >> Recibi un RUN %s", args[1]);
 			break;
 
 		case QUERY_METRICS:
-			sprintf(log_msg, "Recibi un METRICS");
+			sprintf(log_msg, " >> Recibi un METRICS");
 			break;
 
 		default:
@@ -155,7 +155,7 @@ int read_lql_file(char *path) {
 	FILE *lql = fopen(path, "rt");
 	if(lql == NULL) {
 		char msg[200];
-		sprintf(msg, "No se ha podido abrir el archivo %s", path);
+		sprintf(msg, " >> No se ha podido abrir el archivo %s", path);
 		log_error(logger, msg);
 		return 0;
 	}
@@ -163,13 +163,13 @@ int read_lql_file(char *path) {
 	t_list *fileQuerys = list_create();
 
 	while(fgets(buffer, sizeof(buffer), lql)) {
-		char **args = string_split(buffer, " ");
-		if(args == NULL) {
-			list_destroy_and_destroy_elements(fileQuerys, query_destroy);
-			fclose(lql);
-			printf("El archivo no es valido.\n");
-			return 0;
-		}
+		char **args = parseQuery(buffer);
+//		if(args == NULL) {
+//			list_destroy_and_destroy_elements(fileQuerys, query_destroy);
+//			fclose(lql);
+//			printf("El archivo no es valido.\n");
+//			return 0;
+//		}
 
 		e_query queryType = getQueryType(args[0]);
 		t_query *currentQuery = query_create(queryType, args);
@@ -188,10 +188,11 @@ void add_process_to_new(t_process* process) {
 	char msg[50];
 	sem_wait(&MUTEX_NEW);
 	queue_push(new, (void*) process);
-	sem_post(&MUTEX_NEW);
-	sprintf(msg, "Proceso %d agregado a la cola de NEW", process->pid);
-	sem_post(&PROC_PEND_NEW);
+	sprintf(msg, " >> Proceso %d agregado a la cola de NEW", process->pid);
 	log_info(logger, msg);
+	sem_post(&MUTEX_NEW);
+	sem_post(&PROC_PEND_NEW);
+
 }
 
 void *new_to_ready() {
@@ -203,7 +204,7 @@ void *new_to_ready() {
 		void *p = queue_pop(new);
 		sem_post(&MUTEX_NEW);
 		add_process_to_ready(p);
-		sprintf(msg, "Proceso %d agregado a la cola de READY", ((t_process*)p)->pid);
+		sprintf(msg, " >> Proceso %d agregado a la cola de READY", ((t_process*)p)->pid);
 		log_info(logger, msg);
 	}
 }
@@ -225,7 +226,7 @@ void ready_to_exec(int processor) {
 	sem_post(&MUTEX_READY);
 	exec[processor] = (t_process*)p;
 	char msg[50];
-	sprintf(msg, "Proceso %d ejecutando en procesador %d", exec[processor]->pid, processor);
+	sprintf(msg, " >> Proceso %d ejecutando en procesador %d", exec[processor]->pid, processor);
 	log_info(logger, msg);
 }
 
@@ -237,13 +238,13 @@ void *processor_execute(void *p) {
 	while(true) {
 		ready_to_exec(processor);
 
-		for(int i = 0; i < QUANTUM; i++) {
+		for(int i = 0; i < get_quantum(); i++) {
 			if(process_finished(exec[processor]))
 				break;
 			t_query *nextQuery = process_next_query(exec[processor]);
 
 			if(getQueryType(nextQuery->args[0]) == QUERY_ERROR || validateQuerySyntax(nextQuery->args, nextQuery->queryType) == 0) {
-				sprintf(msg, "Error al ejecutar el proceso %d en la linea %d", exec[processor]->pid, exec[processor]->pc);
+				sprintf(msg, " >> Error al ejecutar el proceso %d en la linea %d", exec[processor]->pid, exec[processor]->pc);
 				log_error(logger, msg);
 				exec[processor]->pc = process_length(exec[processor]);
 				break;
@@ -254,7 +255,7 @@ void *processor_execute(void *p) {
 		}
 
 		if(process_finished(exec[processor])) {
-			sprintf(msg, "Terminando proceso %d", exec[processor]->pid);
+			sprintf(msg, " >> Terminando proceso %d", exec[processor]->pid);
 			log_info(logger, msg);
 			process_destroy(exec[processor]);
 			sem_post(&MAX_PROC_READY);
@@ -268,11 +269,11 @@ void *processor_execute(void *p) {
 
 void execute_query(t_query *query) {
 	switch(query->queryType) {
-		case QUERY_SELECT: qSelect(query->args); log_info(logger, "Ejecute un SELECT"); break;
-		case QUERY_INSERT: qInsert(query->args); log_info(logger, "Ejecute un INSERT"); break;
-		case QUERY_CREATE: qCreate(query->args); log_info(logger, "Ejecute un CREATE"); break;
-		case QUERY_DESCRIBE: qDescribe(query->args); log_info(logger, "Ejecute un DESCRIBE"); break;
-		case QUERY_DROP: qDrop(query->args); log_info(logger, "Ejecute un DROP"); break;
+		case QUERY_SELECT: qSelect(query->args, logger); log_info(logger, " >> Ejecute un SELECT %s %s", query->args[1], query->args[2]); break;
+		case QUERY_INSERT: qInsert(query->args, logger); log_info(logger, " >> Ejecute un INSERT %s %s \"%s\"", query->args[1], query->args[2], query->args[3]); break;
+		case QUERY_CREATE: qCreate(query->args, logger); log_info(logger, " >> Ejecute un CREATE %s %s %s %s", query->args[1], query->args[2], query->args[3], query->args[4]); break;
+		case QUERY_DESCRIBE: qDescribe(query->args, logger); log_info(logger, " >> Ejecute un DESCRIBE %s", query->args[1]); break;
+		case QUERY_DROP: qDrop(query->args, logger); log_info(logger, " >> Ejecute un DROP %s", query->args[1]); break;
 		default: break;
 	}
 }
@@ -290,6 +291,9 @@ int connect_to_memory(char *IP, int PORT) {
 }
 
 void request_memory_pool(int memSocket) {
+//	enviar REQUEST_GOSSIP
+//	recibir RESPONSE_SUCCESS cant_memorias sizeip ip size port port n veces
+
 	//Mock
 	t_memory *mem = memory_create(get_memory_ip(), get_memory_port());
 	mem->mid = 1;
@@ -301,7 +305,7 @@ void display_memories() {
 	printf("MID	IP		PORT	CONS\n");
 
 	void display_memory(void *memory) {
-		printf("%d	%s	%d\n", ((t_memory*)memory)->mid, ((t_memory*)memory)->ip, ((t_memory*)memory)->port);
+		printf("%d	%s	%s\n", ((t_memory*)memory)->mid, ((t_memory*)memory)->ip, ((t_memory*)memory)->port);
 	}
 
 	list_iterate(memories, display_memory);
@@ -328,8 +332,8 @@ char *get_memory_ip() {
 	return config_get_string_value(config, "MEM_IP");
 }
 
-int get_memory_port() {
-	return config_get_int_value(config, "MEM_PORT");
+char *get_memory_port() {
+	return config_get_string_value(config, "MEM_PORT");
 }
 
 int get_quantum() {
@@ -358,9 +362,9 @@ void load_logger()
 }
 
 void load_config() {
-	config = config_create(".config");
+	config = config_create("../.config");
 	if(config == NULL) {
-		log_error(logger, "No se pudo abrir el archivo de configuracion");
+		log_error(logger, " >> No se pudo abrir el archivo de configuracion");
 		exit(-1);
 	}
 }

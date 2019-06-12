@@ -1,84 +1,154 @@
 #include"api.h"
 
-void start_API(t_log *logger){
+int retard;
 
+void *start_Api()
+{
 	char *input;
 	input = readline(">");
+
 	while(strcmp("", input)) {
-		processQuery(input, logger);
+		processQuery(input);
 		free(input);
-		input = readline(">");
+		input = readline("\n>");
 	}
+
+	free(input);
+	return NULL;
 }
 
-e_query processQuery(char *query, t_log *logger) {
-
-	char log_msg[100];
+void processQuery(char *query)
+{
 	e_query queryType;
-
-	char **args = string_split(query, " "); //guardas en el vecor args la query
+	char log_msg[100];
+	char *selectReturnValue = string_new();
+	char **args = parseQuery(query);
 
 	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
 
 	int invalidQuery = validateQuerySyntax(args, queryType); //validamos que sea correcta y sino lanzamos exception
 	if (!invalidQuery){
-		return queryError();
+		log_error(logger,"Query invalida");
+		return;
 	}
-uint64_t a;
-char *b = string_new();
+
 	switch(queryType) { //identificamos query y procedemos a su ejecucion
 
 		case QUERY_SELECT:
+			log_info(logger, "----------------------------------------");
+			log_info(logger, "Recibi un SELECT");
 
-			printf("%s",qselect(args[1], args[2]));
-//			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
+			delayer();
 
+			selectReturnValue = qselect(args[1], args[2]);
+
+			log_info(logger, ">>>>");
+			log_info(logger, selectReturnValue);
+			log_info(logger, ">>>>");
+
+			log_info(logger, "Fin SELECT");
+			log_info(logger, "----------------------------------------");
+
+			if(selectReturnValue != NULL) free(selectReturnValue);
+			free(args);
 			break;
 
 		case QUERY_INSERT:
+			log_info(logger, "----------------------------------------");
+			log_info(logger, "Recibi un INSERT");
+
+			delayer();
 
 			if(args[4] == NULL) args[4] = string_itoa(getCurrentTime());
-;
-			qinsert(args[1], args[2], args[3], args[4]);
-//			sprintf(log_msg, "Recibi un INSERT %s %s %s", args[1], args[2], args[3]);
 
+			qinsert(args[1], args[2], args[3], args[4]);
+
+			log_info(logger, "Fin INSERT");
+			log_info(logger, "----------------------------------------");
+
+//			free(args);
 			break;
 
 		case QUERY_CREATE:
+			log_info(logger, "----------------------------------------");
+			log_info(logger, "Recibi un CREATE");
 
-			if(qcreate(args[1], args[2], args[3], args[4]))printf("creado con exito");
-//			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
+			delayer();
 
+			if(qcreate(args[1], args[2], args[3], args[4])){
+				log_info(logger, ">>>");
+				log_info(logger, "Tabla creada con exito");
+				log_info(logger, ">>>");
+			}else log_error(logger,"error en la creacion");
+
+			log_info(logger, "Fin CREATE");
+			log_info(logger, "----------------------------------------");
+
+			free(args);
 			break;
 
 		case QUERY_DESCRIBE:
+			log_info(logger, "----------------------------------------");
+			log_info(logger, "Recibi un DESCRIBE");
 
-			//describe(args[1]);
+			delayer();
 
-			sprintf(log_msg, "Recibi un DESCRIBE %s", args[1]);
+			metadata *tableInfo = qdescribe(args[1]);
+
+			if(tableInfo != NULL){
+				log_info(logger, ">>>");
+				sprintf(log_msg,"Consistencia: %s",tableInfo->consistency);
+				sprintf(log_msg,"Particiones: %s",tableInfo->partitions);
+				sprintf(log_msg,"Tiempo de compactacion: %s",tableInfo->ctime);
+				log_info(logger, ">>>");
+
+				free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
+				free(tableInfo);
+			}
+
+			log_info(logger, "Fin DESCRIBE");
+			log_info(logger, "----------------------------------------");
+
+			free(args);
 
 			break;
 
 		case QUERY_DROP:
+			log_info(logger, "----------------------------------------");
+			log_info(logger, "Recibi un DROP");
+
+			delayer();
 
 			//drop(args[1]);
 
-			sprintf(log_msg, "Recibi un DROP %s", args[1]);
+			log_info(logger, "Fin DROP");
+			log_info(logger, "----------------------------------------");
 
+			free(args);
 			break;
 
 		default:
-			return queryError(logger);
-
+			free(args);
 	}
-
-//	log_info(logger, log_msg);
-	return queryType;
 }
 
 
-uint64_t getCurrentTime(){
+void delayer()
+{
+	sem_wait(&MUTEX_RETARDTIME);
+	int rt = retardTime;
+	sem_post(&MUTEX_RETARDTIME);
+	sleep(rt/1000);
+}
+
+
+uint64_t getCurrentTime()
+{
 	struct timeval tv;
 	gettimeofday(&tv,NULL);
+
 	return (uint64_t)((tv.tv_sec)*1000 + (tv.tv_usec)/1000);
 }
+
+
+

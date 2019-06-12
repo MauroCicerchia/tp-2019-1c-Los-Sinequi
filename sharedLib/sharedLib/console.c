@@ -1,9 +1,9 @@
 #include"console.h"
 
 char **validate_query_and_return_args(char *query) {
-	char **args = string_split(query, " "); //guardas en el vecor args la query
+	char **args = parseQuery(query); //guardas en el vecor args la query
 
-	int validQuery = validateQuerySyntax(args, args[0]); //validamos que sea correcta y sino lanzamos exception
+	int validQuery = validateQuerySyntax(args, getQueryType(args[0])); //validamos que sea correcta y sino lanzamos exception
 	if (!validQuery) {
 		free(args);
 		return NULL;
@@ -25,7 +25,7 @@ void start_API(t_log *logger){
 	char *input;
 	input = readline(">");
 	while(strcmp("", input)) {
-		newQuery(input, logger);
+		processQuery(input, logger);
 		free(input);
 		input = readline(">");
 	}

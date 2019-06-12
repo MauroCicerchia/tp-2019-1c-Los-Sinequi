@@ -29,5 +29,9 @@ pageData* create_load_pageData(int timestamp, int key, char* value){
 	segmentPageData->value=value;
 	return segmentPageData;
 }
+void page_destroy(void* aPage){
+	free(((page*)aPage)->page_data);
+	free(aPage);
+}
 
 

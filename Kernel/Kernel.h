@@ -16,6 +16,9 @@
 #include"entities/Table.h"
 #include"entities/QueryExec.h"
 
+#ifndef KERNEL_H
+#define KERNEL_H
+
 void load_logger();
 void load_config();
 void init_kernel();
@@ -34,16 +37,12 @@ int connect_to_memory();
 void request_memory_pool(int);
 void display_memories();
 void add_memory_to_cons_type(int, e_cons_type);
-t_memory *get_sc_memory();
+t_memory *get_memory_of_cons_type(e_cons_type);
 char *get_memory_ip();
-int get_memory_port();
+char *get_memory_port();
 int get_quantum();
 int get_multiprogramming_degree();
 int get_metadata_refresh_rate();
 int get_execution_delay();
 
-int iniciar_cliente() {
-	return connectToServer();
-//	sendMessages(server);
-//	closeConnection(server);
-}
+#endif

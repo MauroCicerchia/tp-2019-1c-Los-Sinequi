@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<ctype.h>
 #include<commons/string.h>
 #include"consistency.h"
 #include"console.h"
@@ -7,6 +8,7 @@
 
 #ifndef QUERY_H
 #define QUERY_H
+
 
 typedef enum {
 	QUERY_SELECT,
@@ -18,8 +20,7 @@ typedef enum {
 	QUERY_ADD,
 	QUERY_RUN,
 	QUERY_METRICS,
-	QUERY_ERROR,
-	GOSSIP
+	QUERY_ERROR
 }e_query;
 
 typedef struct {
@@ -32,5 +33,7 @@ void query_destroy(void*);
 e_query getQueryType(char*);
 e_query queryError();
 int validateQuerySyntax(char**,e_query);
+char **parseQuery(char*);
+int isNumeric(char*);
 
 #endif

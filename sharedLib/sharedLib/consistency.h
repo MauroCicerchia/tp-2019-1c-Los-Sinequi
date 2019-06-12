@@ -15,3 +15,4 @@ typedef enum {
 e_cons_type getConsistencyType(char*);
 
 #endif
+
