@@ -106,6 +106,10 @@ void send_str(int socket, char *value) {
 	send(socket, value, size, 0);
 }
 
+void send_q_type(int socket, e_query qType) {
+	send(socket, &qType, sizeof(qType), 0);
+}
+
 void send_req_code(int socket, e_request_code reqCode) {
 	send(socket, &reqCode, sizeof(reqCode), 0);
 }
@@ -128,6 +132,12 @@ char *recv_str(int socket) {
 	value = (char*)malloc(size);
 	recv(socket, value, size, 0);
 	return value;
+}
+
+e_query recv_q_type(int socket) {
+	e_query qType;
+	recv(socket, &qType, sizeof(qType), 0);
+	return qType;
 }
 
 e_request_code recv_req_code(int socket) {

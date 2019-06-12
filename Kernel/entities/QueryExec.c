@@ -115,14 +115,72 @@ void qCreate(char** args, t_log *logger) {
 
 void qDescribe(char** args, t_log *logger) {
 //	Convertir args en tipo valido
-//	Paquetizar
+	e_query queryType = getQueryType(args[0]);
+	char *table = args[1];
+
+//	obtener memoria segun criterio
+	t_memory *mem = get_memory_of_cons_type(CONS_SC);
+
 //	Enviar query a memoria
-//	Actualizar estructuras administrativas
+	int memSocket = connect_to_memory(mem->ip, mem->port);
+
+	if(table != NULL) {
+//		Paquetizar
+		t_package *p = create_package(queryType);
+		add_to_package(p, (void*)table, sizeof(char) * strlen(table) + 1);
+
+		send_req_code(memSocket, REQUEST_QUERY);
+		send_package(p, memSocket);
+
+		e_response_code r = recv_res_code(memSocket);
+
+		if(r == RESPONSE_SUCCESS) {
+//			TODO Actualizar Tabla
+		} else {
+			log_error(logger, " >> Error al realizar describe en memoria.");
+		}
+	} else {
+		send_req_code(memSocket, REQUEST_QUERY);
+		send_q_type(memSocket, QUERY_DESCRIBE);
+		send_int(memSocket, 0);
+
+		e_response_code r = recv_res_code(memSocket);
+
+		if(r == RESPONSE_SUCCESS) {
+//			TODO Actualizar Tablas
+		} else {
+			log_error(logger, " >> Error al realizar describe en memoria.");
+		}
+	}
+	close(memSocket);
+	return;
 }
 
 void qDrop(char** args, t_log *logger) {
 //	Convertir args en tipo valido
+	e_query queryType = getQueryType(args[0]);
+	char *table = args[1];
+
 //	Paquetizar
+	t_package *p = create_package(queryType);
+	add_to_package(p, (void*)table, sizeof(char) * strlen(table) + 1);
+
+//	obtener memoria segun criterio
+	t_memory *mem = get_memory_of_cons_type(CONS_SC);
+
 //	Enviar query a memoria
-//	Actualizar estructuras administrativas
+	int memSocket = connect_to_memory(mem->ip, mem->port);
+
+	send_req_code(memSocket, REQUEST_QUERY);
+	send_package(p, memSocket);
+
+	e_response_code r = recv_res_code(memSocket);
+
+	if(r == RESPONSE_SUCCESS) {
+
+	} else {
+		log_error(logger, " >> Error al realizar drop en memoria.");
+	}
+	close(memSocket);
+	return;
 }

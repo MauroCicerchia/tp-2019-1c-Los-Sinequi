@@ -59,7 +59,7 @@ void process_query_from_client(int client) {
 	recv(client, &opCode, sizeof(opCode), 0);
 
 	char *table, *value;
-	int key, part, compTime;
+	int key, part, compTime, size;
 	e_cons_type consType;
 
 	switch(opCode) {
@@ -91,7 +91,40 @@ void process_query_from_client(int client) {
 			consType = getConsistencyType(recv_str(client));
 			part = recv_int(client);
 			compTime = recv_int(client);
-//			int status = createM(table, key, value);
+//			int status = createM(table, consType, part, compTime);
+			send_res_code(client, RESPONSE_SUCCESS);
+			break;
+		case QUERY_DESCRIBE:
+			size = recv_int(client);
+			if(size != 0) {
+				table = (char*)malloc(size);
+				recv(client, table, size, 0);
+//				table_t *t = describeM(table);
+//				if(t != NULL) {
+					send_res_code(client, RESPONSE_SUCCESS);
+//					send_int(client, 1);
+//					send_table(client, t);
+//				} else {
+//					send_res_code(client, RESPONSE_ERROR);
+//				}
+			} else {
+//				t_list *tl = describeM();
+//				int tCount = list_size(tl);
+//				if(tCount != 0) {
+					send_res_code(client, RESPONSE_SUCCESS);
+//					send_int(client, tCount);
+					void sendTable(void *t) {
+//						send_table(client, (table_t*)t);
+					}
+//					list_iterate(tl, sendTable);
+//				} else {
+					send_res_code(client, RESPONSE_ERROR);
+//				}
+			}
+			break;
+		case QUERY_DROP:
+			table = recv_str(client);
+//			int status = dropM(table);
 			send_res_code(client, RESPONSE_SUCCESS);
 			break;
 	}
