@@ -3,7 +3,7 @@
 #define MP 1
 
 int server, nroProcesos = 0;
-t_list *memories;
+t_list *memories, *tables;
 t_config *config;
 t_queue *new, *ready;
 t_process *exec[MP];
@@ -42,6 +42,7 @@ void init_kernel() {
 	new = queue_create();
 	ready = queue_create();
 	memories = list_create();
+	tables = list_create();
 	sem_init(&MUTEX_NEW, 0, 1);
 	sem_init(&MUTEX_READY, 0, 1);
 	sem_init(&PROC_PEND_NEW, 0, 0);

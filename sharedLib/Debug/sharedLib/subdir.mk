@@ -8,7 +8,6 @@ C_SRCS += \
 ../sharedLib/consistency.c \
 ../sharedLib/console.c \
 ../sharedLib/packaging.c \
-../sharedLib/process.c \
 ../sharedLib/query.c \
 ../sharedLib/server.c 
 
@@ -17,7 +16,6 @@ OBJS += \
 ./sharedLib/consistency.o \
 ./sharedLib/console.o \
 ./sharedLib/packaging.o \
-./sharedLib/process.o \
 ./sharedLib/query.o \
 ./sharedLib/server.o 
 
@@ -26,7 +24,6 @@ C_DEPS += \
 ./sharedLib/consistency.d \
 ./sharedLib/console.d \
 ./sharedLib/packaging.d \
-./sharedLib/process.d \
 ./sharedLib/query.d \
 ./sharedLib/server.d 
 

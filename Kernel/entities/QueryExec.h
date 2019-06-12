@@ -3,6 +3,7 @@
 #include<sharedLib/packaging.h>
 #include<commons/txt.h>
 #include"Memory.h"
+#include"Table.h"
 
 void qSelect(char**, t_log*);
 void qInsert(char**, t_log*);
