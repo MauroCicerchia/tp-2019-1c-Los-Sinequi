@@ -188,10 +188,11 @@ void add_process_to_new(t_process* process) {
 	char msg[50];
 	sem_wait(&MUTEX_NEW);
 	queue_push(new, (void*) process);
+	sprintf(msg, " >> Proceso %d agregado a la cola de NEW", process->pid);
+	log_info(logger, msg);
 	sem_post(&MUTEX_NEW);
-//	sprintf(msg, " >> Proceso %d agregado a la cola de NEW", process->pid);
 	sem_post(&PROC_PEND_NEW);
-//	log_info(logger, msg);
+
 }
 
 void *new_to_ready() {
@@ -290,7 +291,7 @@ int connect_to_memory(char *IP, int PORT) {
 }
 
 void request_memory_pool(int memSocket) {
-//	enviar REQUEST_MEMPOOL
+//	enviar REQUEST_GOSSIP
 //	recibir RESPONSE_SUCCESS cant_memorias sizeip ip size port port n veces
 
 	//Mock

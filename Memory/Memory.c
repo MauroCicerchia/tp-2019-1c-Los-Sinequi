@@ -43,34 +43,90 @@ void *listen_client() {
 			exit(1);
 		}
 
-		e_query opCode;
-		recv(cliSocket, &opCode, sizeof(opCode), 0);
 
-		char *table, *value;
-		int key, size;
-		e_response_code resCode;
+		e_request_code rc = recv_req_code(cliSocket);
 
-		switch(opCode) {
-			case QUERY_SELECT:
-				table = recv_str(cliSocket);
-				key = recv_int(cliSocket);
-				char *response = selectM(table, key);
-
-				if(response != NULL) {
-					send_res_code(cliSocket, RESPONSE_SUCCESS);
-					send_str(cliSocket, response);
-				} else {
-					send_res_code(cliSocket, RESPONSE_ERROR);
-				}
-				break;
-			case QUERY_INSERT:
-				table = recv_str(cliSocket);
-				key = recv_int(cliSocket);
-				value = recv_str(cliSocket);
-				insertM(table, key, value);
-				send_res_code(cliSocket, RESPONSE_SUCCESS);
-				break;
+		switch(rc) {
+			case REQUEST_QUERY: process_query_from_client(cliSocket); break;
+			case REQUEST_GOSSIP: break;
+			case REQUEST_JOURNAL: break;
 		}
+	}
+}
+
+void process_query_from_client(int client) {
+	e_query opCode;
+	recv(client, &opCode, sizeof(opCode), 0);
+
+	char *table, *value;
+	int key, part, compTime, size;
+	e_cons_type consType;
+
+	switch(opCode) {
+		case QUERY_SELECT:
+			table = recv_str(client);
+			key = recv_int(client);
+			char *response = selectM(table, key);
+
+			if(response != NULL) {
+				send_res_code(client, RESPONSE_SUCCESS);
+				send_str(client, response);
+			} else {
+				send_res_code(client, RESPONSE_ERROR);
+			}
+			break;
+		case QUERY_INSERT:
+			table = recv_str(client);
+			key = recv_int(client);
+			value = recv_str(client);
+			int status = insertM(table, key, value);
+			switch(status) {
+				case 0: send_res_code(client, RESPONSE_SUCCESS); break;
+				case 1: send_res_code(client, RESPONSE_ERROR); break;
+				case 2: send_res_code(client, RESPONSE_FULL); break;
+			}
+			break;
+		case QUERY_CREATE:
+			table = recv_str(client);
+			consType = getConsistencyType(recv_str(client));
+			part = recv_int(client);
+			compTime = recv_int(client);
+//			int status = createM(table, consType, part, compTime);
+			send_res_code(client, RESPONSE_SUCCESS);
+			break;
+		case QUERY_DESCRIBE:
+			size = recv_int(client);
+			if(size != 0) {
+				table = (char*)malloc(size);
+				recv(client, table, size, 0);
+//				table_t *t = describeM(table);
+//				if(t != NULL) {
+					send_res_code(client, RESPONSE_SUCCESS);
+//					send_int(client, 1);
+//					send_table(client, t);
+//				} else {
+//					send_res_code(client, RESPONSE_ERROR);
+//				}
+			} else {
+//				t_list *tl = describeM();
+//				int tCount = list_size(tl);
+//				if(tCount != 0) {
+					send_res_code(client, RESPONSE_SUCCESS);
+//					send_int(client, tCount);
+					void sendTable(void *t) {
+//						send_table(client, (table_t*)t);
+					}
+//					list_iterate(tl, sendTable);
+//				} else {
+					send_res_code(client, RESPONSE_ERROR);
+//				}
+			}
+			break;
+		case QUERY_DROP:
+			table = recv_str(client);
+//			int status = dropM(table);
+			send_res_code(client, RESPONSE_SUCCESS);
+			break;
 	}
 }
 
@@ -181,7 +237,7 @@ segment* segment_init(t_log* logger){
 	return memorySegment;
 }
 
-void insertM(char* segmentID, int key, char* value){
+int insertM(char* segmentID, int key, char* value){
 
 	segment* segmentFound = search_segment(segmentID);
 
@@ -193,19 +249,22 @@ void insertM(char* segmentID, int key, char* value){
 			strcpy(pageFound->page_data->value,value);
 			pageFound->page_data->timestamp= get_timestamp();
 			pageFound->isModified=1;
+			return 0;
 		}
 		else{
 			log_info(logger,"No se encontro la pagina con el key buscado, chequeando si hay paginas disponibles.");
 			if(segment_Pages_Available(segmentFound)){
 				segment_add_page(segmentFound,key,value);
 				log_info(logger,"Se agrego la pagina con el nuevo valor.");
+				return 0;
 			}
 			else{
 				if(segment_Full(segmentFound)){
-					//ejecutarJournal
+					return 2;
 				}
 				else{
 					//ejecutarReemplazo
+					return 0;
 				}
 			}
 		}
@@ -220,7 +279,7 @@ void insertM(char* segmentID, int key, char* value){
 		//ACA HABRIA QUE CONSIDERAR QUE UN SEGMENTO NO PUEDA TENER PAGINAS POR MEMORIA PRINCIPAL LLENA,
 		//POR EL MOMENTO NO NOS AFECTA
 	}
-
+	return 0;
 }
 
 

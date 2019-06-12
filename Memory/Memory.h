@@ -20,11 +20,12 @@ t_config *config;
 
 void iniciar_logger();
 void *listen_client();
+void process_query_from_client(int);
 void start_API();
 segment* search_segment(char*);
 page* search_page(segment*,int);
 char* selectM(char*,int);	   // (nombreTabla,key)
-void insertM(char*,int,char*); // (nombreTabla,key,value)
+int insertM(char*,int,char*); // (nombreTabla,key,value)
 segment* segment_init(t_log*);
 void createM(char*,/*consistencia,*/int,int);
 void load_config();
