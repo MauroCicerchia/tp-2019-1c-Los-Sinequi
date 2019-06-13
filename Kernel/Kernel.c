@@ -17,6 +17,8 @@ int main(int argc, char **argv) {
 
 	display_memories();
 
+	output_describe("T1", CONS_EC, 3, 3000);
+
 	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
 	pthread_detach(threadNewReady);
 	for(int i = 0; i < MP; i++) {
@@ -326,7 +328,7 @@ t_memory *get_memory_for_table(t_table *t) {
 
 t_table *get_table(char *id) {
 	bool table_has_name(void *t) {
-		return strcmp(((t_table*)t)->name, id);
+		return strcmp(((t_table*)t)->name, id) == 0;
 	}
 	return (t_table*) list_find(tables, table_has_name);
 }

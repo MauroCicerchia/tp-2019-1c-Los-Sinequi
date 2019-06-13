@@ -133,6 +133,8 @@ char *recv_str(int socket) {
 	int size;
 	char *value;
 	recv(socket, &size, sizeof(size), 0);
+	if(size == 0)
+		return NULL;
 	value = (char*)malloc(size);
 	recv(socket, value, size, 0);
 	return value;

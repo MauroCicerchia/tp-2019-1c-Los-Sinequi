@@ -10,3 +10,12 @@ e_cons_type getConsistencyType(char *query) {
 			return CONS_EC;
 	return CONS_ERROR;
 }
+
+char *getConsistencyStr(e_cons_type cType) {
+	switch(cType) {
+		case CONS_SC: return "SC";
+		case CONS_SHC: return "SHC";
+		case CONS_EC: return "EC";
+		default: return "";
+	}
+}

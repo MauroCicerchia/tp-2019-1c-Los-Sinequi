@@ -41,6 +41,7 @@ void qSelect(char** args, t_log *logger) {
 		txt_write_in_file(output, " ::\n	");
 		txt_write_in_file(output, value);
 		txt_write_in_file(output, "\n");
+		txt_close_file(output);
 
 	} else {
 //		notificar error
@@ -149,6 +150,7 @@ void qDescribe(char** args, t_log *logger) {
 			int part = recv_int(memSocket);
 			int compTime = recv_int(memSocket);
 			update_table(table, consType, part, compTime);
+			output_describe(table, consType, part, compTime);
 			log_info(logger, " >> Metadata de tabla actualizada.");
 		} else {
 			log_error(logger, " >> Error al realizar describe en memoria.");
@@ -168,6 +170,7 @@ void qDescribe(char** args, t_log *logger) {
 				int part = recv_int(memSocket);
 				int compTime = recv_int(memSocket);
 				update_table(name, consType, part, compTime);
+				output_describe(name, consType, part, compTime);
 			}
 			log_info(logger, " >> Metadata de todas las tablas actualizada.");
 		} else {
@@ -210,4 +213,24 @@ void qDrop(char** args, t_log *logger) {
 	}
 	close(memSocket);
 	return;
+}
+
+void output_describe(char *name, e_cons_type cType, int part, int compTime) {
+	char buffer[20];
+	FILE * output = txt_open_for_append("../output.txt");
+	txt_write_in_file(output, "DESCRIBE ");
+	txt_write_in_file(output, name);
+	txt_write_in_file(output, " ::\n	");
+	txt_write_in_file(output, "C: ");
+	txt_write_in_file(output, getConsistencyStr(cType));
+	txt_write_in_file(output, " - ");
+	txt_write_in_file(output, "P: ");
+	sprintf(buffer, "%d", part);
+	txt_write_in_file(output, buffer);
+	txt_write_in_file(output, " - ");
+	txt_write_in_file(output, "CT: ");
+	sprintf(buffer, "%d", compTime);
+	txt_write_in_file(output, buffer);
+	txt_write_in_file(output, "\n");
+	txt_close_file(output);
 }
