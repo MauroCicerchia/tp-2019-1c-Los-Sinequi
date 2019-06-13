@@ -3,16 +3,18 @@
 #include<string.h>
 #include<commons/collections/list.h>
 #include<stdbool.h>
+#include<stdint.h>
 
 typedef struct{
 	int timestamp;
-	int key;
+	uint16_t key;
 	char* value;
 }pageData;
 
 typedef struct{
 	int page_num; //key;
-	pageData* page_data;//void* frame;
+	pageData* page_data;
+	int frame_num;
 	int isModified;
 }page;
 

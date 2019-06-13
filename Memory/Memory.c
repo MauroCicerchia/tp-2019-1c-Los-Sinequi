@@ -2,6 +2,7 @@
 int server;
 
 int main(int argc, char **argv) {
+
 	load_config();
 
 	segmentList = list_create();
@@ -9,6 +10,7 @@ int main(int argc, char **argv) {
 	iniciar_logger();
 
 	THEGREATMALLOC();
+
 	pthread_t threadClient;
 
 	pthread_create(&threadClient, NULL, listen_client, NULL);
@@ -24,29 +26,36 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
-void THEGREATMALLOC(){
-	int memSize = config_get_int_value(config, "TAM_MEM");
-	int frameSize = 0;
+int get_frame_size(){
 
+	int frameSize=0;
 	frameSize += sizeof(uint16_t); //key
 	frameSize += sizeof(int); //timestamp
 	//Preguntar tamanio del value a luzquito
 	frameSize += get_value_size();
+	return frameSize;
+}
 
-	main_memory = malloc(memSize); //EL GRAN MALLOC
+void create_bitmap(int memSize){
 
+	int frameSize = get_frame_size();
 	int bitNumbers = memSize/frameSize;
-	printf("%d \n",frameSize);
+	char* bitParameter = (char*)malloc(sizeof(char)*(bitNumbers/8 + 1));
 
-	char* bitParameter = (char*)malloc(sizeof(char)*(bitNumbers/8) + 1);
 	for(int i = 0; i<=(bitNumbers/8); i++){
 		bitParameter[i] = '0';
 	}
-	bitParameter[(bitNumbers/8)+1] = '/0';
 
-	printf("%s",bitParameter);
+	bitParameter[(bitNumbers/8)+1] = '\0';
+	bitmap = bitarray_create(bitParameter,strlen(bitParameter));
+}
 
-	bitmap = bitarray_create(bitParameter,memSize);
+void THEGREATMALLOC(){
+	int memSize = config_get_int_value(config, "TAM_MEM");
+
+	main_memory = malloc(memSize); //EL GRAN MALLOC
+
+	create_bitmap(memSize);
 
 	log_info(logger,"Memoria principal alocada");
 }
@@ -251,11 +260,46 @@ e_query processQuery(char *query, t_log *logger) {
 	return queryType;
 }
 
-page* search_page(segment* aSegment,int aKey){
+/*page* search_page(segment* aSegment,int aKey){
 	bool isKey(void* aPage){
 			return ((page*) aPage)->page_data->key == aKey;
 		}
 		return list_find(aSegment->page_list,isKey);
+}*/
+
+page* search_page(segment* aSegment,uint16_t aKey){
+	bool isKey(void* aPage){
+			return get_key_from_memory(((page*) aPage)->frame_num) == aKey;
+		}
+		return list_find(aSegment->page_list,isKey);
+}
+
+uint16_t get_key_from_memory(int frame_num){
+
+	return *((uint16_t*) (main_memory + frame_num * get_frame_size()));
+}
+
+int get_timestamp_from_memory(int frame_num){
+
+	return *((int*) (main_memory + frame_num * get_frame_size() + sizeof(uint16_t)));
+}
+
+char* get_value_from_memory(int frame_num){
+
+	return string_duplicate((char*) (main_memory + frame_num * get_frame_size() + sizeof(uint16_t) + sizeof(int)));
+}
+
+void insert_in_frame(uint16_t key, int timestamp, char* value, int frame_num){
+
+	void* base = main_memory + frame_num * get_frame_size();
+	memcpy(base, &key, sizeof(uint16_t));
+	base += sizeof(uint16_t);
+	memcpy(base, &timestamp, sizeof(int));
+	base += sizeof(int);
+	memcpy(base, value, get_value_size());
+
+	bitarray_set_bit(bitmap,frame_num);
+
 }
 
 segment* search_segment(char* segmentID){

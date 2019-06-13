@@ -32,7 +32,12 @@ void *listen_client();
 void process_query_from_client(int);
 void start_API();
 segment* search_segment(char*);
-page* search_page(segment*,int);
+page* search_page(segment*,uint16_t);
+int get_frame_size();
+void create_bitmap();
+uint16_t get_key_from_memory(int);
+int get_timestamp_from_memory(int);
+char* get_value_from_memory(int);
 
 char* selectM(char*,int);	   // (nombreTabla,key)
 int insertM(char*,int,char*); // (nombreTabla,key,value)
