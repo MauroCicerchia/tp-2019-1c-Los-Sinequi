@@ -8,8 +8,13 @@ int main(int argc, char **argv) {
 	segmentList = list_create();
 
 	iniciar_logger();
-
 	THEGREATMALLOC();
+
+	/*insertM("T1",1,"agus");
+	printf("Insert hecho");
+	printf("%s",selectM("T1",1));
+	printf("Select hecho");
+	*/
 
 	pthread_t threadClient;
 
@@ -38,8 +43,7 @@ int get_frame_size(){
 
 void create_bitmap(int memSize){
 
-	int frameSize = get_frame_size();
-	int bitNumbers = memSize/frameSize;
+	int bitNumbers = total_frames(memSize);
 	char* bitParameter = (char*)malloc(sizeof(char)*(bitNumbers/8 + 1));
 
 	for(int i = 0; i<=(bitNumbers/8); i++){
@@ -48,6 +52,13 @@ void create_bitmap(int memSize){
 
 	bitParameter[(bitNumbers/8)+1] = '\0';
 	bitmap = bitarray_create(bitParameter,strlen(bitParameter));
+	printf("%d",bitNumbers);
+}
+
+int total_frames(int memSize){
+	int frameSize = get_frame_size();
+	int bitNumbers = memSize/frameSize;
+	return bitNumbers;
 }
 
 void THEGREATMALLOC(){
@@ -289,6 +300,7 @@ char* get_value_from_memory(int frame_num){
 	return string_duplicate((char*) (main_memory + frame_num * get_frame_size() + sizeof(uint16_t) + sizeof(int)));
 }
 
+
 void insert_in_frame(uint16_t key, int timestamp, char* value, int frame_num){
 
 	void* base = main_memory + frame_num * get_frame_size();
@@ -302,6 +314,15 @@ void insert_in_frame(uint16_t key, int timestamp, char* value, int frame_num){
 
 }
 
+void modify_in_frame(char* value, int frame_num){
+	void* base = main_memory + frame_num * get_frame_size() + sizeof(uint16_t);
+	int timestamp = get_timestamp();
+	memcpy(base, &timestamp, sizeof(int));
+	base += sizeof(int);
+	memcpy(base, value, get_value_size());
+
+}
+
 segment* search_segment(char* segmentID){
 	bool isId(void* aSegment){
 		return strcasecmp(((segment*) aSegment)->segment_id,segmentID)==0;
@@ -309,13 +330,43 @@ segment* search_segment(char* segmentID){
 	return list_find(segmentList,isId);
 }
 
-segment* segment_init(t_log* logger){
+int memory_full(){
+	return list_all_satisfy(segmentList,segment_full);
+}
 
+segment* segment_init(){
 	segment* memorySegment= segment_create();
 	memorySegment->page_list = list_create();
 	list_add(segmentList,memorySegment);
 	log_info(logger,"Nuevo segmento añadido a la tabla.");
 	return memorySegment;
+}
+
+int find_free_frame(){
+	int i=0;
+	while(bitarray_test_bit(bitmap,i) != 0){
+		i++;
+	}
+	return i;
+}
+
+int frame_available_in_mem(){
+	int memSize = config_get_int_value(config, "TAM_MEM");
+	int bitNumbers = total_frames(memSize);
+	int i=0;
+	for(i=0;i<bitNumbers;i++){
+		if(bitarray_test_bit(bitmap,i) == 0){
+			return 1;
+		}
+	}
+	return 0;
+}
+
+void load_page_to_segment(int key, segment* segmentFound, char* value) {
+	int frame_num = find_free_frame();
+	segment_add_page(segmentFound, frame_num);
+	insert_in_frame(key, get_timestamp(), value, frame_num);
+	log_info(logger, "Se agrego la pagina con el nuevo valor a segmento y memoria.");
 }
 
 int insertM(char* segmentID, int key, char* value){
@@ -327,20 +378,18 @@ int insertM(char* segmentID, int key, char* value){
 		page* pageFound = search_page(segmentFound,key);
 		if(pageFound != NULL){
 			log_info(logger,"Se encontro la pagina con el key buscado, modificando el valor.");
-			strcpy(pageFound->page_data->value,value);
-			pageFound->page_data->timestamp= get_timestamp();
+			modify_in_frame(value,pageFound->frame_num);
 			pageFound->isModified=1;
 			return 0;
 		}
 		else{
-			log_info(logger,"No se encontro la pagina con el key buscado, chequeando si hay paginas disponibles.");
-			if(segment_Pages_Available(segmentFound)){
-				segment_add_page(segmentFound,key,value);
-				log_info(logger,"Se agrego la pagina con el nuevo valor.");
+			log_info(logger,"No se encontro la pagina con el key buscado, chequeando si hay marcos disponibles.");
+			if(frame_available_in_mem()){
+				load_page_to_segment(key, segmentFound, value);
 				return 0;
 			}
-			else{
-				if(segment_Full(segmentFound)){
+			else{ //NO HAY MAS MARCOS DISPONIBLES
+				if(memory_full()){
 					return 2;
 				}
 				else{
@@ -351,16 +400,25 @@ int insertM(char* segmentID, int key, char* value){
 		}
 	}
 	else{
-		log_info(logger,"No se encontro la tabla buscada, creando nuevo segmento.");
-		segment* newSegment = segment_init(logger);
-		newSegment->segment_id = segmentID;
-		segment_add_page(newSegment,key,value);
-		log_info(logger,"Se agrego la pagina con el nuevo valor.");
+		if(frame_available_in_mem()){
 
-		//ACA HABRIA QUE CONSIDERAR QUE UN SEGMENTO NO PUEDA TENER PAGINAS POR MEMORIA PRINCIPAL LLENA,
-		//POR EL MOMENTO NO NOS AFECTA
+			log_info(logger,"No se encontro la tabla buscada, creando nuevo segmento.");
+			segment* newSegment = segment_init();
+			newSegment->segment_id = segmentID;
+			load_page_to_segment(key, newSegment, value);
+			return 0;
+		}
+		else{ //NO HAY MAS MARCOS DISPONIBLES
+			if(memory_full()){
+				return 2;
+			}
+			else{
+				//ejecutarReemplazo
+				return 0;
+			}
+		}
+		return 0;
 	}
-	return 0;
 }
 
 
@@ -376,7 +434,7 @@ char* selectM(char* segmentID, int key){
 		page* pageFound = search_page(segmentFound,key);
 		if(pageFound != NULL){
 			log_info(logger,"Se encontro la pagina con el key buscado, retornando el valor.");
-			return pageFound->page_data->value;
+			return get_value_from_memory(pageFound->frame_num);
 		}else{
 			log_info(logger,"No se encontro la pagina con el key buscado, consultando a FS.");
 			return NULL;

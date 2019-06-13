@@ -11,16 +11,15 @@ bool segment_Pages_Available(segment* segmentFound){
 
 }
 
-bool segment_Full(segment* segmentFound){
+bool segment_full(void* segmentFound){
 		bool isModified(void* aPage){
 			return ((page*) aPage)->isModified;
 		}
-		return list_all_satisfy(segmentFound->page_list,isModified);
+		return list_all_satisfy(((segment*)segmentFound)->page_list,isModified);
 	}
 
-void segment_add_page(segment* segment, int key, char* value){
-	page* segmentPage = create_load_page(list_size(segment->page_list),
-			create_load_pageData(get_timestamp(),key,value),1);
+void segment_add_page(segment* segment,int frame_num){
+	page* segmentPage = create_load_page(list_size(segment->page_list),frame_num);
 	list_add(segment->page_list,segmentPage);
 }
 

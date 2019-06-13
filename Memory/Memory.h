@@ -27,7 +27,7 @@ t_config *config;
 
 void load_config();
 void iniciar_logger();
-segment* segment_init(t_log*);
+segment* segment_init();
 void *listen_client();
 void process_query_from_client(int);
 void start_API();
@@ -38,6 +38,10 @@ void create_bitmap();
 uint16_t get_key_from_memory(int);
 int get_timestamp_from_memory(int);
 char* get_value_from_memory(int);
+void insert_in_frame(uint16_t,int,char*,int);
+void modify_in_frame(char*,int);
+int find_free_frame();
+int get_timestamp();
 
 char* selectM(char*,int);	   // (nombreTabla,key)
 int insertM(char*,int,char*); // (nombreTabla,key,value)
