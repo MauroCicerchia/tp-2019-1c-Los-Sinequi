@@ -13,12 +13,12 @@ void qSelect(char** args, t_log *logger) {
 	add_to_package(p, (void*)&key, sizeof(key));
 
 //	obtener memoria segun criterio
-	t_table *t; //= get_table(table); TODO get_table()
-		if(t == NULL) {
-			log_error(logger, " >> Error al realizar describe (No existe la tabla).");
-			return;
-		}
-		t_memory *mem = get_memory_for_table(t); //TODO get_memory_for_table(t);
+	t_table *t = get_table(table);
+	if(t == NULL) {
+		log_error(logger, " >> Error al realizar describe (No existe la tabla).");
+		return;
+	}
+	t_memory *mem = get_memory_for_table(t);
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
@@ -64,7 +64,7 @@ void qInsert(char** args, t_log *logger) {
 	add_to_package(p, (void*)value, sizeof(char) * (strlen(value) + 1));
 
 //	obtener memoria segun criterio
-	t_table *t; //= get_table(table);
+	t_table *t = get_table(table);
 	if(t == NULL) {
 		log_error(logger, " >> Error al realizar describe (No existe la tabla).");
 		return;
@@ -115,7 +115,7 @@ void qCreate(char** args, t_log *logger) {
 	e_response_code r = recv_res_code(memSocket);
 
 	if(r == RESPONSE_SUCCESS) {
-//		TODO agregar tabla en kernel
+		add_table(table_create(table, consType, part, compTime));
 	} else {
 		log_error(logger, " >> Error al realizar create en memoria.");
 	}
@@ -145,7 +145,11 @@ void qDescribe(char** args, t_log *logger) {
 		e_response_code r = recv_res_code(memSocket);
 
 		if(r == RESPONSE_SUCCESS) {
-//			TODO Actualizar Tabla
+			e_cons_type consType = recv_cons_type(memSocket);
+			int part = recv_int(memSocket);
+			int compTime = recv_int(memSocket);
+			update_table(table, consType, part, compTime);
+			log_info(logger, " >> Metadata de tabla actualizada.");
 		} else {
 			log_error(logger, " >> Error al realizar describe en memoria.");
 		}
@@ -157,7 +161,15 @@ void qDescribe(char** args, t_log *logger) {
 		e_response_code r = recv_res_code(memSocket);
 
 		if(r == RESPONSE_SUCCESS) {
-//			TODO Actualizar Tablas
+			int q = recv_int(memSocket);
+			for(int i = 0; i < q; i++) {
+				char *name = recv_str(memSocket);
+				e_cons_type consType = recv_cons_type(memSocket);
+				int part = recv_int(memSocket);
+				int compTime = recv_int(memSocket);
+				update_table(name, consType, part, compTime);
+			}
+			log_info(logger, " >> Metadata de todas las tablas actualizada.");
 		} else {
 			log_error(logger, " >> Error al realizar describe en memoria.");
 		}
@@ -176,7 +188,7 @@ void qDrop(char** args, t_log *logger) {
 	add_to_package(p, (void*)table, sizeof(char) * strlen(table) + 1);
 
 //	obtener memoria segun criterio
-	t_table *t; //= get_table(table);
+	t_table *t = get_table(table);
 	if(t == NULL) {
 		log_error(logger, " >> Error al realizar describe (No existe la tabla).");
 		return;
@@ -192,7 +204,7 @@ void qDrop(char** args, t_log *logger) {
 	e_response_code r = recv_res_code(memSocket);
 
 	if(r == RESPONSE_SUCCESS) {
-
+		drop_table(table);
 	} else {
 		log_error(logger, " >> Error al realizar drop en memoria.");
 	}

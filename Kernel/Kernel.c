@@ -26,9 +26,6 @@ int main(int argc, char **argv) {
 
 	start_API(logger);
 
-//	printf("new:%d\n", queue_size(new));
-//	printf("ready:%d\n", queue_size(ready));
-
 	kill_kernel();
 
 	exit(0);
@@ -165,13 +162,6 @@ int read_lql_file(char *path) {
 
 	while(fgets(buffer, sizeof(buffer), lql)) {
 		char **args = parseQuery(buffer);
-//		if(args == NULL) {
-//			list_destroy_and_destroy_elements(fileQuerys, query_destroy);
-//			fclose(lql);
-//			printf("El archivo no es valido.\n");
-//			return 0;
-//		}
-
 		e_query queryType = getQueryType(args[0]);
 		t_query *currentQuery = query_create(queryType, args);
 		list_add(fileQuerys, (void*)currentQuery);
@@ -327,6 +317,43 @@ t_memory *get_memory_of_cons_type(e_cons_type consType) {
 		return memory_is_cons_type((t_memory*) mem, consType);
 	}
 	return (t_memory*) list_find(memories, isConsTypeMem);
+}
+
+t_memory *get_memory_for_table(t_table *t) {
+	//TODO resolver obtener memoria segun criterio
+	return get_memory_of_cons_type(t->consType);
+}
+
+t_table *get_table(char *id) {
+	bool table_has_name(void *t) {
+		return strcmp(((t_table*)t)->name, id);
+	}
+	return (t_table*) list_find(tables, table_has_name);
+}
+
+void add_table(t_table *t) {
+	list_add(tables, t);
+}
+
+void update_table(char* table, e_cons_type consType, int part, int compTime) {
+	t_table* t = get_table(table);
+	if(t == NULL) {
+		t = table_create(table, consType, part, compTime);
+	} else {
+		t->consType = consType;
+		t->partitions = part;
+		t->compTime = compTime;
+	}
+}
+
+void drop_table(char *id) {
+	t_table* t = get_table(id);
+	if(t == NULL) {
+		bool table_has_name(void *t) {
+			return strcmp(((t_table*)t)->name, id);
+		}
+		list_remove_and_destroy_by_condition(tables, table_has_name, table_destroy);
+	}
 }
 
 char *get_memory_ip() {
