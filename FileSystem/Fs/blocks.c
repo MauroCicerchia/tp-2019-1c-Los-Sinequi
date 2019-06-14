@@ -80,7 +80,7 @@ t_list *insertsToList(char *inserts)
 void startPartition(char *url, int blockNumber)
 {
 	char *toSave = string_new();
-	int newBlock = ba_getNewBlock();
+//	int newBlock = ba_getNewBlock();
 
 	string_append(&toSave,"SIZE=");
 	//agregar size
@@ -92,6 +92,7 @@ void startPartition(char *url, int blockNumber)
 	FILE *f = txt_open_for_append(url);
 	txt_write_in_file(f,toSave);
 	txt_close_file(f);
+	free(toSave);
 }
 
 //toma el array de bloques del ,archivo pasado por url, asociado a BLOCKS=
@@ -111,9 +112,62 @@ int getSizeOfBlocks(){
 //tb_getBlockInserts(block) revisar si es necesaria y donde
 
 
-//guarda la data en el archivo de la url
-void b_saveData(char *url,char *data){
+typedef struct{
+	char * table; //nombre de table
+	int freeBlock; //el ultimo bloque, osea el que tiene espacio
+	int freeSize; //espacio en bytes del ultimo bloque libre
+}tableInfo;
 
+//guarda la data en el archivo de la url
+void b_saveData(char *url,char *data){   //"HOLACOMOESTASTODOBIEN"  //HOLA
+
+	//en el ultimo bloque no hay espacio para guardar toda la info
+	if(!freeSizeOfLastBlock(url) >= strlen(data)){
+		int blocksNeeded;
+		if( ((strlen(data)-freeSizeOfLastBlock(url)) % getSizeOfBlocks()) == 0 ){
+			//si entra justo le doy el tam justo
+			blocksNeeded = (strlen(data)-freeSizeOfLastBlock(url)) / getSizeOfBlocks();
+		}else{
+			//si no entra justo le doy un bloque demas
+			blocksNeeded = (strlen(data)-freeSizeOfLastBlock(url)) / getSizeOfBlocks() + 1;
+		}
+		for(int i =0; i < blocksNeeded+1; i++){ //le asigno todos los bloques que necesita
+			b_addNewBlock(url);
+		}
+	}
+
+	int block = b_get_lastBlock(url);
+	char *blocksDirectory = fs_getBlocksUrl();
+	if(b_full(block)){
+		b_addNewBlock(url);
+		block = b_get_lastBlock(url);
+	}
+	int freeSizeB = b_freeSize(block);
+	int insertedData = 0;
+	int flag = 0; //corte del while
+	char *blockUrl;
+	while(flag){
+		if(freeSizeB > strlen(data)){
+			char *toInsert = string_substring(data, insertedData, strlen(data)-1);
+			flag = 0;
+		}else{
+			char *toInsert = string_substring(data, insertedData, freeSizeB);
+			insertedData = freeSizeB;
+
+		}
+
+
+	}
 }
 
+//devuelve el ultimo bloque, osea el que tiene espacio probablemente
+int b_get_lastBlock(char *url)
 
+//dice si no queda lugar en el bloque
+bool b_full(int block)
+
+//al archivo le agrego un nuevo bloque a la lista de bloques
+void b_addNewBlock(char *url);
+
+//cuantos bytes le quedan al bloque par asignar
+int b_freeSize(int block)

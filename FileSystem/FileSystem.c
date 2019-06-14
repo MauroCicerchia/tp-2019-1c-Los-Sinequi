@@ -27,8 +27,8 @@ int main(int argc, char **argv)
 	pthread_create(&tListenCfg,NULL,threadConfigModify,NULL);
 	pthread_detach(tListenCfg);
 
-	pthread_create(&tDump,NULL,threadDump,NULL);
-	pthread_detach(tDump);
+//	pthread_create(&tDump,NULL,threadDump,NULL);
+//	pthread_detach(tDump);
 
 	start_Api();
 
