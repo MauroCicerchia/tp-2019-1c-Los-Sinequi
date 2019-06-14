@@ -104,6 +104,15 @@ char *getListOfBlocks(char *partUrl)
 	return blocks;
 }
 
+
+//pisa el valor de BLOCKS por el de listBlocks
+void b_modifyBlocks(char *partUrl, char *listBlocks){
+	t_config *partition = config_create(partUrl);
+	config_set_value(partition,"BLOCKS",listBlocks);
+	config_destroy(partition);
+
+}
+
 int getSizeOfBlocks(){
 	return config_get_int_value(lfsMetadata,"BLOCK_SIZE");
 }
@@ -234,7 +243,7 @@ int b_get_lastBlock(char *url){
 int b_get_firstFreeBlock(url){
 	char **blocksArray = string_get_string_as_array(getListOfBlocks(url));
 	for(int i = 0; i < sizeofArray(blocksArray); i++){
-		if(!b_full(string_itoa(blocksArray[i]))) return string_itoa(blocksArray[i]);
+		if(!b_full(strtol(blocksArray[i],NULL,10))) return string_itoa(blocksArray[i]);
 	}
 	return -1;
 }
@@ -242,23 +251,38 @@ int b_get_firstFreeBlock(url){
 
 //dice si no queda lugar en el bloque
 bool b_full(int block){
-	int blockSize = getSizeOfBlocks();
-
+	return b_freeSize(block) == 0;
 }
 
 //al archivo le agrego un nuevo bloque a la lista de bloques
 void b_addNewBlock(char *url){
 	int newBlock = ba_getNewBlock();
-
+	char **listBlocks = string_get_string_as_array(getListOfBlocks(url));
+	listBlocks[sizeofArray(listBlocks)] = string_itoa(newBlock);
+	b_modifyBlocks(url,listBlocks);
 }
 
 //cuantos bytes le quedan al bloque par asignar
-int b_freeSize(int block)
+int b_freeSize(int block){
+	char *url = fs_getBlocksUrl();
+	string_append(&url,string_itoa(block));
+	string_append(&url,".bin");
+	FILE f = fopen(url,"r");
+	fseek(f,0,SEEK_END);
+	int actualSize = ftell(f);
+	return (getSizeOfBlocks() - actualSize);
+}
 
 //agarrar el ultimo del bloque y fijarse cuando espacio le queda
-char *freeSizeOfLastBlock(url)
+int freeSizeOfLastBlock(url){
+	return b_freeSize(b_get_lastBlock(url));
+}
 
+//void b_modifyBlocks(char *partUrl, char *listBlocks)
 
 //guarda en la url del bloque lo que se le pasa por parametro
 //esta funcion no deberia romper nunca por overflow de tamano de bloque porquese cheuquea antes de usarla
-b_saveIntoBlock(blockUrl,data);
+void b_saveIntoBlock(blockUrl,data){
+	FILE f = txt_open_for_append(blockUrl);
+	txt_write_in_file(f, data);
+}
