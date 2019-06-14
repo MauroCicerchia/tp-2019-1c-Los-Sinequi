@@ -21,14 +21,16 @@ t_list *insertsToList(char *inserts);
 void startPartition(char *url, int blockNumber);
 char *getListOfBlocks(char *partUrl);
 int getSizeOfBlocks();
+void b_modifyBlocks(char *partUrl, char *listBlocks);
 
 void b_saveData(char *url,char *data);
 
 int freeSizeOfTheFirstNotFullBlock(char *url);
 int b_get_lastBlock(char *url);
-int b_get_firstFreeBlock(url);
+int b_get_firstFreeBlock(char *url);
 bool b_full(int block);
+void b_addNewBlock(char *url);
 int b_freeSize(int block);
-int freeSizeOfLastBlock(url);
-void b_saveIntoBlock(blockUrl,data);
+int b_freeSizeOfLastBlock(char *url);
+void b_saveIntoBlock(char *blockUrl,char *data);
 #endif

@@ -129,7 +129,7 @@ int getSizeOfBlocks(){
 
 //guarda la data en el archivo de la url
 void b_saveData(char *url,char *data){   //"HOLACOMOESTASTODOBIEN"  //HOLA COMOESTASTO DOBIEN
-	const char *blocksDirectory = fs_getBlocksUrl();
+ 	char *blocksDirectory = fs_getBlocksUrl();
 	char *blockUrl;
 	int sizeOfSemiCompleteBlock = b_freeSizeOfLastBlock(url);
 //	if(b_full(block)){
@@ -165,34 +165,17 @@ void b_saveData(char *url,char *data){   //"HOLACOMOESTASTODOBIEN"  //HOLA COMOE
 	//aca llega solo si no entro en el "else" de arriba
 	int flag = 1;
 	int lastPosInserted = 0;
-	while(flag){
-		string_substring(data,lastPosInserted, freeSizeOfTheFirstNotFullBlock(url));
-	}
-
-
-	int block = b_get_lastBlock(url);
-
-
-	int freeSizeB = b_freeSize(block);
-	int insertedData = 0;
-//	int flag = 0; //corte del while
-	char *blockUrl = string_new();
-	string_append(&blockUrl, blocksDirectory);
-	string_append(&blockUrl, string_itoa(b_get_lastBlock(url)));
-	string_append(&blockUrl, ".bin");
-	b_saveIntoBlock(blockUrl,data);
-
 
 	//lleno el bloque que estaba semicompleto
-	char *toInsert = string_substring(data, insertedData, sizeOfSemiCompleteBlock);
+	char *toInsert = string_substring(data, lastPosInserted, sizeOfSemiCompleteBlock);
 	b_saveIntoBlock(blockUrl, toInsert);
 	free(toInsert); free(blockUrl);
-	insertedData = sizeOfSemiCompleteBlock;
+	lastPosInserted = sizeOfSemiCompleteBlock;
 
-	while(){
+	while(flag){
 		toInsert = string_new();
-		if( (strlen(data)-insertedData) > getSizeOfBlocks() ){ //si lo que queda no entra en un bloque
-			toInsert = string_substring(data, insertedData,getSizeOfBlocks());
+		if( (strlen(data)-lastPosInserted) > getSizeOfBlocks() ){ //si lo que queda no entra en un bloque
+			toInsert = string_substring(data, lastPosInserted, getSizeOfBlocks());
 
 			blockUrl = string_new();
 			string_append(&blockUrl, blocksDirectory);
@@ -201,12 +184,12 @@ void b_saveData(char *url,char *data){   //"HOLACOMOESTASTODOBIEN"  //HOLA COMOE
 
 			b_saveIntoBlock(blockUrl,toInsert);
 
-			insertedData += getSizeOfBlocks();
+			lastPosInserted += getSizeOfBlocks();
 
 			free(toInsert); free(blockUrl);
 		}
 		else{
-			toInsert = string_substring_from(data, insertedData);
+			toInsert = string_substring_from(data, lastPosInserted);
 
 			blockUrl = string_new();
 			string_append(&blockUrl, blocksDirectory);
@@ -220,6 +203,26 @@ void b_saveData(char *url,char *data){   //"HOLACOMOESTASTODOBIEN"  //HOLA COMOE
 		}//else
 
 	}//while
+
+
+//REVISAR SI SIRVE
+
+	//	while(flag){
+//		string_substring(data,lastPosInserted, freeSizeOfTheFirstNotFullBlock(url));
+//	}
+
+
+//	int block = b_get_lastBlock(url);
+//
+//
+//	int freeSizeB = b_freeSize(block);
+//	int insertedData = 0;
+////	int flag = 0; //corte del while
+//	char *blockUrl = string_new();
+//	string_append(&blockUrl, blocksDirectory);
+//	string_append(&blockUrl, string_itoa(b_get_lastBlock(url)));
+//	string_append(&blockUrl, ".bin");
+//	b_saveIntoBlock(blockUrl,data)
 }
 
 
@@ -233,17 +236,17 @@ int freeSizeOfTheFirstNotFullBlock(char *url){
 int b_get_lastBlock(char *url){
 	char **blocksArray = string_get_string_as_array(getListOfBlocks(url));
 	int last = sizeofArray(blocksArray) - 1;
-	return blocksArray[last];
+	return strtol(blocksArray[last],NULL,10);
 }
 
 
 //no deberia salir del for, osea tiene que tener siempre asignado un bloque libre al menos
 //-1 si sale del for, pero nodeberia pasar
 //te devuelve el primer bloque libre de la tabla
-int b_get_firstFreeBlock(url){
+int b_get_firstFreeBlock(char *url){
 	char **blocksArray = string_get_string_as_array(getListOfBlocks(url));
 	for(int i = 0; i < sizeofArray(blocksArray); i++){
-		if(!b_full(strtol(blocksArray[i],NULL,10))) return string_itoa(blocksArray[i]);
+		if(!b_full(strtol(blocksArray[i],NULL,10))) return strtol(blocksArray[i],NULL,10);
 	}
 	return -1;
 }
@@ -259,22 +262,33 @@ void b_addNewBlock(char *url){
 	int newBlock = ba_getNewBlock();
 	char **listBlocks = string_get_string_as_array(getListOfBlocks(url));
 	listBlocks[sizeofArray(listBlocks)] = string_itoa(newBlock);
-	b_modifyBlocks(url,listBlocks);
+	char *stringArray = string_new();
+	string_append(&stringArray, "[");
+
+	void arrayfier(char *string){
+		string_append(&stringArray,string);
+	}
+
+	string_iterate_lines(listBlocks, arrayfier);
+	string_append(&stringArray, "]");
+	b_modifyBlocks(url,stringArray);
 }
+
+
 
 //cuantos bytes le quedan al bloque par asignar
 int b_freeSize(int block){
 	char *url = fs_getBlocksUrl();
 	string_append(&url,string_itoa(block));
 	string_append(&url,".bin");
-	FILE f = fopen(url,"r");
+	FILE *f = fopen(url,"r");
 	fseek(f,0,SEEK_END);
 	int actualSize = ftell(f);
 	return (getSizeOfBlocks() - actualSize);
 }
 
 //agarrar el ultimo del bloque y fijarse cuando espacio le queda
-int freeSizeOfLastBlock(url){
+int b_freeSizeOfLastBlock(char *url){
 	return b_freeSize(b_get_lastBlock(url));
 }
 
@@ -282,7 +296,7 @@ int freeSizeOfLastBlock(url){
 
 //guarda en la url del bloque lo que se le pasa por parametro
 //esta funcion no deberia romper nunca por overflow de tamano de bloque porquese cheuquea antes de usarla
-void b_saveIntoBlock(blockUrl,data){
-	FILE f = txt_open_for_append(blockUrl);
+void b_saveIntoBlock(char *blockUrl,char *data){
+	FILE *f = txt_open_for_append(blockUrl);
 	txt_write_in_file(f, data);
 }
