@@ -23,4 +23,12 @@ char *getListOfBlocks(char *partUrl);
 int getSizeOfBlocks();
 
 void b_saveData(char *url,char *data);
+
+int freeSizeOfTheFirstNotFullBlock(char *url);
+int b_get_lastBlock(char *url);
+int b_get_firstFreeBlock(url);
+bool b_full(int block);
+int b_freeSize(int block);
+int freeSizeOfLastBlock(url);
+void b_saveIntoBlock(blockUrl,data);
 #endif
