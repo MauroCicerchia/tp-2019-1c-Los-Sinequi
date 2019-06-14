@@ -121,7 +121,7 @@ void loadMetadata(char *table,char *consistency,int parts,int ctime){
 void fs_toDump(char *table,char *toDump){
 	char *tableUrl = makeTableUrl(table);
 	string_append(&tableUrl,table);
-	string_append(&tableUrl,tmpNo);
+	string_append(&tableUrl,string_itoa(tmpNo));
 	string_append(&tableUrl,".tmp");
 
 	FILE *file = txt_open_for_append(tableUrl);
@@ -277,5 +277,30 @@ t_list *fs_getListOfInserts(char* table,int key){
 	free(partUrl); free(tableMetadataUrl); free(tableUrl);
 
 	return partList;
+}
+
+//si no hay ninguno retorna NULL
+//busca en la url de la tabla todos los .tmp y devuelve el "nombre.tmp"
+char **getAllTmps(char *tableUrl)
+{
+	char **allTmpsNames = (char**) malloc(sizeof(char)*3 *tmpNo);
+	int index = 0;
+	char *tmpUrl;
+	char *aux;
+	for(int i = 0;i < tmpNo+1; i++){ //que recorra todas las posibilidades de tmps
+		tmpUrl = string_new();
+		string_append(&aux,string_itoa(i));
+		string_append(&aux,".tmp");
+		string_append(&tmpUrl, tableUrl);
+		string_append(&tmpUrl,aux);
+		if(access(tmpUrl,F_OK) != -1){ //si existe
+			allTmpsNames[index] = string_duplicate(aux);
+
+		}
+		index++;
+	}
+
+	if(sizeofArray(allTmpsNames) == 0) return NULL; //chequear si al hacer el malloc de arriba puede volver null
+	return allTmpsNames;
 }
 

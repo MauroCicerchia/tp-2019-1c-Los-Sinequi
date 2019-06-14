@@ -1,3 +1,7 @@
+/* FS_H */
+#ifndef FS_H
+#define FS_H
+
 #include<stdlib.h>
 #include<string.h>
 #include<stdio.h>
@@ -10,20 +14,17 @@
 #include<commons/txt.h>
 #include<commons/config.h>
 
+
 #include<sys/types.h>
 #include<sys/stat.h>
 
 #include"blocks.h"
-
+#include"../Lissandra/memtable/memtable.h"
 
 extern char* absoluto;
 extern t_log *logger;
 extern t_config *FsMetadataCfg;
 extern int tmpNo;
-
-/* FS_H */
-#ifndef FS_H
-#define FS_H
 
 typedef struct{
 	char *consistency;
@@ -51,6 +52,8 @@ char *getPartitions(t_config*);
 char *fs_getBitmapUrl();
 char *fs_getlfsMetadataUrl();
 char* fs_getBlocksUrl();
+
+char **getAllTmps(char *);
 
 void fs_toDump(char*,char*); //nombre de tabla y el string a dumpear
 

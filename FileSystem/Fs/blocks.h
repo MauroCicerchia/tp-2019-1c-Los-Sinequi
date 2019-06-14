@@ -20,7 +20,6 @@ t_list *insertsToList(char *inserts);
 void startPartition(char *url, int blockNumber);
 char *getListOfBlocks(char *partUrl);
 int getSizeOfBlocks();
-char **getAllTmps(char *tableUrl);
 
 void b_saveData(char *url,char *data);
 #endif

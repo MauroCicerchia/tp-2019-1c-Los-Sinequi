@@ -34,6 +34,5 @@ void mt_clean();
 void mt_cleanPivot(t_list *);
 void tableDestroyer(void*);
 void insertDestroyer(void*);
-t_list *mt_getListofInserts(char *);
-
+t_list *mt_getListofInserts(char *table);
 #endif

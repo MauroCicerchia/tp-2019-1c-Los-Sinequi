@@ -4,9 +4,8 @@
 //le asigna a cada partion de la tabla un size y un bloque vacio
 void b_loadPartitionsFiles(char *tableUrl,int parts)
 {
-	int blockNumber;
 	for(int i = 0; i < parts; i++){
-		string_append(&tableUrl,i);
+		string_append(&tableUrl,string_itoa(i));
 		string_append(&tableUrl,".bin");
 
 		b_assignSizeAndBlock(tableUrl);
@@ -77,13 +76,6 @@ t_list *insertsToList(char *inserts)
 }
 
 
-//devuelve un boque libre y lo marca como usado en el bitarray
-int ba_getNewBlock()
-{
-
-}
-
-
 //abre la particion de la url y le carga un bloque inicial y el size
 void startPartition(char *url, int blockNumber)
 {
@@ -116,23 +108,12 @@ int getSizeOfBlocks(){
 }
 
 
-tb_getBlockInserts(block)
-{
-
-}
-
-//
-char **getAllTmps(char *tableUrl)
-{
-
-}
+//tb_getBlockInserts(block) revisar si es necesaria y donde
 
 
-
+//guarda la data en el archivo de la url
 void b_saveData(char *url,char *data){
 
 }
-//void b_loadPartitionsFiles(int parts);   //le asigna el size y un bloque a cada bloque de particion
-//void b_assignSizeAndBlock(tableUrl) ;  //le asigna un bloque y el size a esa url
-// t_list *b_getListOfInserts(url); //trae todas los inserts de esa url, que es la particion.bin
+
 

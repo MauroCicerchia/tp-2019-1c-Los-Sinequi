@@ -14,6 +14,9 @@ t_config *config;
 t_config *metadataCfg;
 t_config *lfsMetadata;
 
+t_bitarray *bitarray;
+int lastBlockAssigned;
+
 sem_t MUTEX_MEMTABLE, MUTEX_RETARDTIME, MUTEX_DUMPTIME;
 /*GLOBALES*/
 
@@ -39,6 +42,7 @@ void init_FileSystem()
 	memtable = list_create();
 
 	tmpNo = 0;
+	lastBlockAssigned = 0;
 
 	absoluto = string_new();
 
