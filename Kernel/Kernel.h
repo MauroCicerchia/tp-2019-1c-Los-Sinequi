@@ -38,7 +38,7 @@ void request_memory_pool(int);
 void display_memories();
 void add_memory_to_cons_type(int, e_cons_type);
 t_memory *get_memory_of_cons_type(e_cons_type);
-t_memory *get_memory_for_table(t_table*);
+t_memory *get_memory_for_query(t_table*, uint16_t);
 t_table *get_table(char*);
 void add_table(t_table*);
 void update_table(char*, e_cons_type, int, int);

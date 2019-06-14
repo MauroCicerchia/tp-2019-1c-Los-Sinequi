@@ -18,7 +18,7 @@ void qSelect(char** args, t_log *logger) {
 		log_error(logger, " >> Error al realizar describe (No existe la tabla).");
 		return;
 	}
-	t_memory *mem = get_memory_for_table(t);
+	t_memory *mem = get_memory_for_query(t, key);
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
@@ -30,19 +30,7 @@ void qSelect(char** args, t_log *logger) {
 	if(r == RESPONSE_SUCCESS) {
 		char *value = recv_str(memSocket);
 
-		FILE * output = txt_open_for_append("../output.txt");
-		txt_write_in_file(output, "SELECT ");
-		string_trim(&args[1]);
-		string_trim(&args[2]);
-		string_trim(&value);
-		txt_write_in_file(output, args[1]);
-		txt_write_in_file(output, " ");
-		txt_write_in_file(output, args[2]);
-		txt_write_in_file(output, " ::\n	");
-		txt_write_in_file(output, value);
-		txt_write_in_file(output, "\n");
-		txt_close_file(output);
-
+		output_select(args, value);
 	} else {
 //		notificar error
 		log_error(logger, " >> Error al realizar select en memoria.");
@@ -70,7 +58,7 @@ void qInsert(char** args, t_log *logger) {
 		log_error(logger, " >> Error al realizar describe (No existe la tabla).");
 		return;
 	}
-	t_memory *mem = get_memory_for_table(t);
+	t_memory *mem = get_memory_for_query(t, key);
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
@@ -105,7 +93,7 @@ void qCreate(char** args, t_log *logger) {
 	add_to_package(p, (void*)&compTime, sizeof(compTime));
 
 //	obtener memoria segun criterio
-	t_memory *mem = get_memory_of_cons_type(CONS_SC);
+	t_memory *mem = get_memory_of_cons_type(CONS_SC); //TODO Get any memory
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
@@ -130,7 +118,7 @@ void qDescribe(char** args, t_log *logger) {
 	char *table = args[1];
 
 //	obtener memoria segun criterio
-	t_memory *mem = get_memory_of_cons_type(CONS_SC);
+	t_memory *mem = get_memory_of_cons_type(CONS_SC); //TODO Get any memory
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
@@ -196,7 +184,8 @@ void qDrop(char** args, t_log *logger) {
 		log_error(logger, " >> Error al realizar describe (No existe la tabla).");
 		return;
 	}
-	t_memory *mem = get_memory_for_table(t);
+
+	t_memory *mem = get_memory_of_cons_type(CONS_SC); //TODO Get any memory
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
@@ -213,6 +202,21 @@ void qDrop(char** args, t_log *logger) {
 	}
 	close(memSocket);
 	return;
+}
+
+void output_select(char** args, char* value) {
+	FILE* output = txt_open_for_append("../output.txt");
+	txt_write_in_file(output, "SELECT ");
+	string_trim(&args[1]);
+	string_trim(&args[2]);
+	string_trim(&value);
+	txt_write_in_file(output, args[1]);
+	txt_write_in_file(output, " ");
+	txt_write_in_file(output, args[2]);
+	txt_write_in_file(output, " ::\n	");
+	txt_write_in_file(output, value);
+	txt_write_in_file(output, "\n");
+	txt_close_file(output);
 }
 
 void output_describe(char *name, e_cons_type cType, int part, int compTime) {

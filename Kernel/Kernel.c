@@ -7,7 +7,7 @@ t_list *memories, *tables;
 t_config *config;
 t_queue *new, *ready;
 t_process *exec[MP];
-sem_t MUTEX_NEW, MUTEX_READY, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY, FREE_PROC[MP];
+sem_t MUTEX_NEW, MUTEX_READY, MUTEX_MEMORIES, MUTEX_TABLES, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY, FREE_PROC[MP];
 t_log *logger;
 pthread_t threadNewReady, threadsExec[MP];
 
@@ -44,6 +44,8 @@ void init_kernel() {
 	tables = list_create();
 	sem_init(&MUTEX_NEW, 0, 1);
 	sem_init(&MUTEX_READY, 0, 1);
+	sem_init(&MUTEX_MEMORIES, 0, 1);
+	sem_init(&MUTEX_TABLES, 0, 1);
 	sem_init(&PROC_PEND_NEW, 0, 0);
 	sem_init(&PROC_PEND_READY, 0, 0);
 	sem_init(&MAX_PROC_READY, 0, get_multiprogramming_degree());
@@ -291,7 +293,9 @@ void request_memory_pool(int memSocket) {
 	t_memory *mem = memory_create(get_memory_ip(), get_memory_port());
 	mem->mid = 1;
 	memory_add_cons_type(mem, CONS_SC);
+	sem_wait(&MUTEX_MEMORIES);
 	list_add(memories, (void*) mem);
+	sem_post(&MUTEX_MEMORIES);
 }
 
 void display_memories() {
@@ -301,7 +305,9 @@ void display_memories() {
 		printf("%d	%s	%s\n", ((t_memory*)memory)->mid, ((t_memory*)memory)->ip, ((t_memory*)memory)->port);
 	}
 
+	sem_wait(&MUTEX_MEMORIES);
 	list_iterate(memories, display_memory);
+	sem_post(&MUTEX_MEMORIES);
 
 }
 
@@ -309,7 +315,9 @@ void add_memory_to_cons_type(int memid, e_cons_type consType) {
 	bool findMemByID(void *mem) {
 		return ((t_memory*) mem)->mid == memid;
 	}
+	sem_wait(&MUTEX_MEMORIES);
 	t_memory *selectedMem = list_find(memories, findMemByID);
+	sem_post(&MUTEX_MEMORIES);
 	if(selectedMem != NULL)
 		memory_add_cons_type(selectedMem, consType);
 }
@@ -321,9 +329,15 @@ t_memory *get_memory_of_cons_type(e_cons_type consType) {
 	return (t_memory*) list_find(memories, isConsTypeMem);
 }
 
-t_memory *get_memory_for_table(t_table *t) {
+t_memory *get_memory_for_query(t_table *t, uint16_t key) {
 	//TODO resolver obtener memoria segun criterio
-	return get_memory_of_cons_type(t->consType);
+	t_memory *m = NULL;
+	switch(t->consType) {
+		case CONS_SC: /*m = get_sc_memory_for_table(t);*/ break;
+		case CONS_SHC: /*m = get_shc_memory_for_table(t, key);*/ break;
+		case CONS_EC: /*m = get_ec_memory();*/ break;
+	}
+	return m;
 }
 
 t_table *get_table(char *id) {
@@ -334,7 +348,9 @@ t_table *get_table(char *id) {
 }
 
 void add_table(t_table *t) {
+	sem_wait(&MUTEX_TABLES);
 	list_add(tables, t);
+	sem_post(&MUTEX_TABLES);
 }
 
 void update_table(char* table, e_cons_type consType, int part, int compTime) {
@@ -354,7 +370,9 @@ void drop_table(char *id) {
 		bool table_has_name(void *t) {
 			return strcmp(((t_table*)t)->name, id);
 		}
+		sem_wait(&MUTEX_TABLES);
 		list_remove_and_destroy_by_condition(tables, table_has_name, table_destroy);
+		sem_post(&MUTEX_TABLES);
 	}
 }
 
