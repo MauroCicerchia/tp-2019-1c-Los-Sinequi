@@ -371,55 +371,44 @@ void load_page_to_segment(int key, segment* segmentFound, char* value) {
 
 int insertM(char* segmentID, int key, char* value){
 
-	segment* segmentFound = search_segment(segmentID);
-
-	if(segmentFound != NULL){
-		log_info(logger,"Se encontro la tabla buscada.");
-		page* pageFound = search_page(segmentFound,key);
-		if(pageFound != NULL){
-			log_info(logger,"Se encontro la pagina con el key buscado, modificando el valor.");
-			modify_in_frame(value,pageFound->frame_num);
-			pageFound->isModified=1;
-			return 0;
-		}
-		else{
-			log_info(logger,"No se encontro la pagina con el key buscado, chequeando si hay marcos disponibles.");
-			if(frame_available_in_mem()){
-				load_page_to_segment(key, segmentFound, value);
+	if (frame_available_in_mem()){
+		segment* segmentFound = search_segment(segmentID);
+		if(segmentFound != NULL){
+			log_info(logger,"Se encontro la tabla buscada.");
+			page* pageFound = search_page(segmentFound,key);
+			if(pageFound != NULL){
+				log_info(logger,"Se encontro la pagina con el key buscado, modificando el valor.");
+				modify_in_frame(value,pageFound->frame_num);
+				pageFound->isModified=1;
 				return 0;
 			}
-			else{ //NO HAY MAS MARCOS DISPONIBLES
-				if(memory_full()){
-					return 2;
-				}
-				else{
-					//ejecutarReemplazo
-					return 0;
-				}
+			else{
+				log_info(logger,"No se encontro la pagina con el key buscado,creando pagina.");
+				load_page_to_segment(key, segmentFound, value);
+				return 0 ;
 			}
 		}
-	}
-	else{
-		if(frame_available_in_mem()){
-
+		else{
 			log_info(logger,"No se encontro la tabla buscada, creando nuevo segmento.");
 			segment* newSegment = segment_init();
 			newSegment->segment_id = segmentID;
 			load_page_to_segment(key, newSegment, value);
 			return 0;
-		}
-		else{ //NO HAY MAS MARCOS DISPONIBLES
-			if(memory_full()){
-				return 2;
 			}
-			else{
-				//ejecutarReemplazo
-				return 0;
-			}
-		}
-		return 0;
 	}
+	else{
+		if(memory_full()){
+			return 2;
+		}else{
+			//ejecutarReemplazo
+			return 0;
+		}
+	}
+return 0;
+
 }
+
+
 
 
 char* selectM(char* segmentID, int key){
