@@ -10,12 +10,6 @@ int main(int argc, char **argv) {
 	iniciar_logger();
 	THEGREATMALLOC();
 
-	/*insertM("T1",1,"agus");
-	printf("Insert hecho");
-	printf("%s",selectM("T1",1));
-	printf("Select hecho");
-	*/
-
 	pthread_t threadClient;
 
 	pthread_create(&threadClient, NULL, listen_client, NULL);
@@ -27,6 +21,7 @@ int main(int argc, char **argv) {
 	config_destroy(config);
 	log_destroy(logger);
 	free(main_memory);
+	bitarray_destroy(bitmap);
 
 	return 0;
 }
@@ -52,7 +47,7 @@ void create_bitmap(int memSize){
 
 	bitParameter[(bitNumbers/8)+1] = '\0';
 	bitmap = bitarray_create(bitParameter,strlen(bitParameter));
-	printf("%d",bitNumbers);
+	//printf("%d",bitNumbers);
 }
 
 int total_frames(int memSize){
@@ -74,6 +69,7 @@ void THEGREATMALLOC(){
 void iniciar_logger()
 {
 	logger = log_create("../Memory.log", "Memory", 0, LOG_LEVEL_INFO);
+	log_info(logger,"--INICIANDO MEMORIA--");
 }
 
 void *listen_client() {
@@ -207,18 +203,21 @@ e_query processQuery(char *query, t_log *logger) {
 	switch(queryType) {
 
 		case QUERY_SELECT:
+
+			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
+			log_info(logger,log_msg);
+
 //			sendMessage(server,query);
 			printf("%s",selectM(args[1], atoi(args[2])));
 //			queryToFileSystem(*query);
-			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
 
 			break;
 
 		case QUERY_INSERT:
-			insertResult = insertM(args[1], atoi(args[2]), args[3]);
-
 			sprintf(log_msg, "Recibi un INSERT %s %s %s", args[1], args[2], args[3]);
 			log_info(logger,log_msg);
+
+			insertResult = insertM(args[1], atoi(args[2]), args[3]);
 
 			if(insertResult == 1){
 				log_error(logger,"No se puedo insertar un valor");
@@ -248,9 +247,10 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_DROP:
 
-			//drop(args[1]);
-
 			sprintf(log_msg, "Recibi un DROP %s", args[1]);
+			log_info(logger,log_msg);
+
+			dropM(args[1]);
 
 			break;
 
@@ -267,7 +267,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 	}
 
-	log_info(logger, log_msg);
+	//log_info(logger, log_msg);
 	return queryType;
 }
 
@@ -428,7 +428,6 @@ char* selectM(char* segmentID, int key){
 
 	segment* segmentFound = search_segment(segmentID);
 
-
 	if(segmentFound != NULL){
 		log_info(logger,"Se encontro la tabla buscada.");
 		page* pageFound = search_page(segmentFound,key);
@@ -463,7 +462,37 @@ t_list *describeM(){
 }*/
 
 int dropM(char* segment_id){
+
+	segment* segmentFound = search_segment(segment_id);
+
+	if(segmentFound != NULL){
+		delete_segment_from_mem(segmentFound);
+//		segment_destroy(segmentFound);
+		printf("%d",list_size(segmentList));
+		remove_delete_segment(segmentFound);
+		printf("%d",list_size(segmentList));
+		log_info(logger,"Se elimino el segmento y se libero la memoria");
+		//Avisar FS
+	}else{
+		log_info(logger,"No se encontro la tabla a borrar.");
+		return -1;
+	}
+
 	return 0;
+}
+
+void delete_segment_from_mem(segment* aSegment){
+	void make_frame_available(void* aPage){
+		bitarray_clean_bit(bitmap,((page*) aPage)->frame_num);
+	}
+	list_iterate(aSegment->page_list, make_frame_available);
+}
+
+void remove_delete_segment(segment* aSegment){
+	bool isSegment(void* anotherSegment){
+		return strcasecmp(((segment*)anotherSegment)->segment_id,aSegment->segment_id) == 0;
+	}
+	list_remove_and_destroy_by_condition(segmentList,isSegment,segment_destroy);
 }
 
 int get_value_size(){

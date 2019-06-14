@@ -42,6 +42,8 @@ void insert_in_frame(uint16_t,int,char*,int);
 void modify_in_frame(char*,int);
 int find_free_frame();
 int get_timestamp();
+void delete_segment_from_mem(segment*);
+void remove_delete_segment(segment*);
 
 char* selectM(char*,int);	   // (nombreTabla,key)
 int insertM(char*,int,char*); // (nombreTabla,key,value)
