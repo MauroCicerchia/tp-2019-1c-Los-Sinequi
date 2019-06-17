@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
 
 	display_memories();
 
-	t_table *t1 = table_create("T1", CONS_SC, 1, 1000);
+	t_table *t1 = table_create("T1", CONS_SHC, 1, 1000);
 	add_table(t1);
 
 	pthread_t threadNewReady, threadsExec[MP];
@@ -115,6 +115,10 @@ e_query processQuery(char *query) {
 		case QUERY_ADD:
 			add_memory_to_cons_type(atoi(args[2]), getConsistencyType(args[4]));
 			sprintf(log_msg, " >> Recibi un ADD MEMORY %s TO %s", args[2], args[4]);
+			if(getConsistencyType(args[4]) == CONS_SHC) {
+				update_shc();
+				display_memories();
+			}
 			break;
 
 		case QUERY_RUN:
@@ -287,6 +291,7 @@ void request_memory_pool(int memSocket) {
 	t_memory *mem = memory_create(memoryNumber, get_memory_ip(), get_memory_port());
 	memoryNumber++;
 	memory_add_cons_type(mem, CONS_SC);
+//	memory_add_cons_type(mem, CONS_SHC);
 	memory_add_cons_type(mem, CONS_EC);
 	sem_wait(&MUTEX_MEMORIES);
 	list_add(memories, (void*) mem);
@@ -358,6 +363,11 @@ t_list *get_shc_memories() {
 	return shc_mem;
 }
 
+t_memory *get_shc_memory_for_table(t_table *t, uint16_t key) {
+	t_list *shc_mem = get_shc_memories();
+	return (t_memory*)list_get(shc_mem, key % list_size(shc_mem));
+}
+
 t_list *get_ec_memories() {
 	bool memory_is_ec(void *mem) {
 		return memory_is_cons_type((t_memory*)mem, CONS_EC);
@@ -375,15 +385,41 @@ t_memory *get_ec_memory() {
 }
 
 t_memory *get_memory_for_query(t_table *t, uint16_t key) {
-	//TODO resolver obtener memoria segun criterio
 	t_memory *m = NULL;
 	switch(t->consType) {
 		case CONS_SC: m = get_sc_memory_for_table(t); break;
-		case CONS_SHC: /*m = get_shc_memory_for_table(t, key);*/ break;
+		case CONS_SHC: m = get_shc_memory_for_table(t, key); break;
 		case CONS_EC: m = get_ec_memory(); break;
 		default: break;
 	}
 	return m;
+}
+
+t_memory *get_any_memory() {
+	sem_wait(&MUTEX_MEMORIES);
+	t_memory *m = list_get(memories, random() % list_size(memories));
+	sem_post(&MUTEX_MEMORIES);
+	return m;
+}
+
+void update_shc() {
+	bool isSHC(void *t) {
+		return ((t_table*)t)->consType == CONS_SHC;
+	}
+	void updateMemories(void *t) {
+		add_memories_to_table((t_table*)t);
+	}
+	void journalMem(void *m) {
+//		qJournal((t_memory*)m, logger); TODO implementar journal en memoria
+	}
+	sem_wait(&MUTEX_TABLES);
+	t_list *shcTables = list_filter(tables, isSHC);
+	list_iterate(shcTables, updateMemories);
+	sem_post(&MUTEX_TABLES);
+	sem_wait(&MUTEX_MEMORIES);
+	t_list *shc_mem = get_shc_memories();
+	list_iterate(shc_mem, journalMem);
+	sem_post(&MUTEX_MEMORIES);
 }
 
 t_table *get_table(char *id) {

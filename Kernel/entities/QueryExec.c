@@ -204,6 +204,25 @@ void qDrop(char** args, t_log *logger) {
 	return;
 }
 
+void qJournal(t_memory *mem, t_log *logger) {
+	int memSocket = connect_to_memory(mem->ip, mem->port);
+
+	send_req_code(memSocket, REQUEST_JOURNAL);
+
+	e_response_code r = recv_res_code(memSocket);
+
+	char msg[50];
+	if(r == RESPONSE_SUCCESS) {
+		sprintf(msg, " >> Journal enviado a memoria %d.", mem->mid);
+		log_info(logger, msg);
+	} else {
+		sprintf(msg, " >> Error al realizar journal en memoria %d.", mem->mid);
+		log_error(logger, msg);
+	}
+	close(memSocket);
+	return;
+}
+
 void output_select(char** args, char* value) {
 	FILE* output = txt_open_for_append("../output.txt");
 	txt_write_in_file(output, "SELECT ");
