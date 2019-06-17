@@ -1,6 +1,6 @@
 #include"Kernel.h"
 
-int server, nroProcesos = 0, MP;
+int server, processNumber = 0, memoryNumber = 0, MP;
 t_list *memories, *tables;
 t_config *config;
 t_queue *new, *ready;
@@ -13,7 +13,8 @@ int main(int argc, char **argv) {
 
 	display_memories();
 
-//	output_describe("T1", CONS_EC, 3, 3000);
+	t_table *t1 = table_create("T1", CONS_SC, 1, 1000);
+	add_table(t1);
 
 	pthread_t threadNewReady, threadsExec[MP];
 
@@ -136,8 +137,8 @@ e_query processQuery(char *query) {
 		t_query *newQuery = query_create(queryType, args);
 		t_list *queryList = list_create();
 		list_add(queryList, (void*)newQuery);
-		t_process *newProcess = process_create(nroProcesos, queryList);
-		nroProcesos++;
+		t_process *newProcess = process_create(processNumber, queryList);
+		processNumber++;
 
 		add_process_to_new(newProcess);
 	}
@@ -163,8 +164,8 @@ int read_lql_file(char *path) {
 		list_add(fileQuerys, (void*)currentQuery);
 	}
 
-	t_process *newProcess = process_create(nroProcesos, fileQuerys);
-	nroProcesos++;
+	t_process *newProcess = process_create(processNumber, fileQuerys);
+	processNumber++;
 	add_process_to_new(newProcess);
 
 	fclose(lql);
@@ -256,8 +257,8 @@ void *processor_execute(void *p) {
 
 void execute_query(t_query *query) {
 	switch(query->queryType) {
-		case QUERY_SELECT: /*qSelect(query->args, logger);*/ log_info(logger, " >> Ejecute un SELECT %s %s", query->args[1], query->args[2]); break;
-		case QUERY_INSERT: /*qInsert(query->args, logger);*/ log_info(logger, " >> Ejecute un INSERT %s %s \"%s\"", query->args[1], query->args[2], query->args[3]); break;
+		case QUERY_SELECT: qSelect(query->args, logger); log_info(logger, " >> Ejecute un SELECT %s %s", query->args[1], query->args[2]); break;
+		case QUERY_INSERT: qInsert(query->args, logger); log_info(logger, " >> Ejecute un INSERT %s %s \"%s\"", query->args[1], query->args[2], query->args[3]); break;
 		case QUERY_CREATE: /*qCreate(query->args, logger);*/ log_info(logger, " >> Ejecute un CREATE %s %s %s %s", query->args[1], query->args[2], query->args[3], query->args[4]); break;
 		case QUERY_DESCRIBE: /*qDescribe(query->args, logger);*/ log_info(logger, " >> Ejecute un DESCRIBE %s", query->args[1]); break;
 		case QUERY_DROP: /*qDrop(query->args, logger);*/ log_info(logger, " >> Ejecute un DROP %s", query->args[1]); break;
@@ -282,19 +283,22 @@ void request_memory_pool(int memSocket) {
 //	recibir RESPONSE_SUCCESS cant_memorias sizeip ip size port port n veces
 
 	//Mock
-	t_memory *mem = memory_create(get_memory_ip(), get_memory_port());
-	mem->mid = 1;
+	for(int i = 0; i<5; i++) {
+	t_memory *mem = memory_create(memoryNumber, get_memory_ip(), get_memory_port());
+	memoryNumber++;
 	memory_add_cons_type(mem, CONS_SC);
+	memory_add_cons_type(mem, CONS_EC);
 	sem_wait(&MUTEX_MEMORIES);
 	list_add(memories, (void*) mem);
 	sem_post(&MUTEX_MEMORIES);
+	}
 }
 
 void display_memories() {
-	printf("MID	IP		PORT	CONS\n");
+	printf("MID	IP		PORT	SC-SHC-EC\n");
 
 	void display_memory(void *memory) {
-		printf("%d	%s	%s\n", ((t_memory*)memory)->mid, ((t_memory*)memory)->ip, ((t_memory*)memory)->port);
+		printf("%d	%s	%s	%d-%d-%d\n", ((t_memory*)memory)->mid, ((t_memory*)memory)->ip, ((t_memory*)memory)->port, ((t_memory*)memory)->consTypes[0], ((t_memory*)memory)->consTypes[1], ((t_memory*)memory)->consTypes[2]);
 	}
 
 	sem_wait(&MUTEX_MEMORIES);
@@ -321,13 +325,63 @@ t_memory *get_memory_of_cons_type(e_cons_type consType) {
 	return (t_memory*) list_find(memories, isConsTypeMem);
 }
 
+t_list *get_sc_memories() {
+	bool memory_is_sc(void *mem) {
+		return memory_is_cons_type((t_memory*)mem, CONS_SC);
+	}
+	sem_wait(&MUTEX_MEMORIES);
+	t_list *sc_mem = list_filter(memories, memory_is_sc);
+	sem_post(&MUTEX_MEMORIES);
+	return sc_mem;
+}
+
+t_memory *get_sc_memory_for_table(t_table* t) {
+	t_list *sc_mem = get_sc_memories();
+	bool memByID(void *mem) {
+		return ((t_memory*)mem)->mid == (int)list_get(t->memories, 0);
+	}
+	return (t_memory*)list_find(sc_mem, memByID);
+}
+
+t_memory *get_random_sc_memory() {
+	t_list *sc_mem = get_sc_memories();
+	return (t_memory*)list_get(sc_mem, random() % list_size(sc_mem));
+}
+
+t_list *get_shc_memories() {
+	bool memory_is_shc(void *mem) {
+		return memory_is_cons_type((t_memory*)mem, CONS_SHC);
+	}
+	sem_wait(&MUTEX_MEMORIES);
+	t_list *shc_mem = list_filter(memories, memory_is_shc);
+	sem_post(&MUTEX_MEMORIES);
+	return shc_mem;
+}
+
+t_list *get_ec_memories() {
+	bool memory_is_ec(void *mem) {
+		return memory_is_cons_type((t_memory*)mem, CONS_EC);
+	}
+	sem_wait(&MUTEX_MEMORIES);
+	t_list *ec_mem = list_filter(memories, memory_is_ec);
+	sem_post(&MUTEX_MEMORIES);
+	return ec_mem;
+}
+
+t_memory *get_ec_memory() {
+	t_list *ec_mem = get_ec_memories();
+	int index = random() % list_size(ec_mem);
+	return (t_memory*)list_get(ec_mem, index);
+}
+
 t_memory *get_memory_for_query(t_table *t, uint16_t key) {
 	//TODO resolver obtener memoria segun criterio
 	t_memory *m = NULL;
 	switch(t->consType) {
-		case CONS_SC: /*m = get_sc_memory_for_table(t);*/ break;
+		case CONS_SC: m = get_sc_memory_for_table(t); break;
 		case CONS_SHC: /*m = get_shc_memory_for_table(t, key);*/ break;
-		case CONS_EC: /*m = get_ec_memory();*/ break;
+		case CONS_EC: m = get_ec_memory(); break;
+		default: break;
 	}
 	return m;
 }
@@ -365,6 +419,24 @@ void drop_table(char *id) {
 		sem_wait(&MUTEX_TABLES);
 		list_remove_and_destroy_by_condition(tables, table_has_name, table_destroy);
 		sem_post(&MUTEX_TABLES);
+	}
+}
+
+void add_memories_to_table(t_table *t) {
+	void addMemoryToTable(void *mem) {
+		table_add_memory_by_id(t, ((t_memory*)mem)->mid);
+	}
+	switch(t->consType) {
+		case CONS_SC:
+			if(list_size(get_sc_memories()) > 0) {
+				table_add_memory_by_id(t, get_random_sc_memory()->mid);
+			}
+			break;
+		case CONS_SHC:
+			list_iterate(get_shc_memories(), addMemoryToTable);
+			break;
+		default:
+			break;
 	}
 }
 

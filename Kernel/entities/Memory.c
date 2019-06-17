@@ -1,7 +1,8 @@
 #include "Memory.h"
 
-t_memory *memory_create(char *ip, char *port) {
+t_memory *memory_create(int mid, char *ip, char *port) {
 	t_memory *memory = (t_memory*) malloc(sizeof(t_memory));
+	memory->mid = mid;
 	memory->ip = ip;
 	memory->port = port;
 	memory->consTypes[0] = 0;
