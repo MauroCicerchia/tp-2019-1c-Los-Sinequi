@@ -15,7 +15,7 @@ void qSelect(char** args, t_log *logger) {
 //	obtener memoria segun criterio
 	t_table *t = get_table(table);
 	if(t == NULL) {
-		log_error(logger, " >> Error al realizar describe (No existe la tabla).");
+		log_error(logger, " >> Error al realizar select (No existe la tabla).");
 		return;
 	}
 	t_memory *mem = get_memory_for_query(t, key);
@@ -55,7 +55,7 @@ void qInsert(char** args, t_log *logger) {
 //	obtener memoria segun criterio
 	t_table *t = get_table(table);
 	if(t == NULL) {
-		log_error(logger, " >> Error al realizar describe (No existe la tabla).");
+		log_error(logger, " >> Error al realizar insert (No existe la tabla).");
 		return;
 	}
 	t_memory *mem = get_memory_for_query(t, key);
@@ -181,7 +181,7 @@ void qDrop(char** args, t_log *logger) {
 //	obtener memoria segun criterio
 	t_table *t = get_table(table);
 	if(t == NULL) {
-		log_error(logger, " >> Error al realizar describe (No existe la tabla).");
+		log_error(logger, " >> Error al realizar drop (No existe la tabla).");
 		return;
 	}
 

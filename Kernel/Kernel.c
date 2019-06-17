@@ -1,15 +1,11 @@
 #include"Kernel.h"
 
-#define MP 1
-
-int server, nroProcesos = 0;
+int server, nroProcesos = 0, MP;
 t_list *memories, *tables;
 t_config *config;
 t_queue *new, *ready;
-t_process *exec[MP];
-sem_t MUTEX_NEW, MUTEX_READY, MUTEX_MEMORIES, MUTEX_TABLES, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY, FREE_PROC[MP];
+sem_t MUTEX_NEW, MUTEX_READY, MUTEX_MEMORIES, MUTEX_TABLES, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY;
 t_log *logger;
-pthread_t threadNewReady, threadsExec[MP];
 
 int main(int argc, char **argv) {
 
@@ -17,7 +13,9 @@ int main(int argc, char **argv) {
 
 	display_memories();
 
-	output_describe("T1", CONS_EC, 3, 3000);
+//	output_describe("T1", CONS_EC, 3, 3000);
+
+	pthread_t threadNewReady, threadsExec[MP];
 
 	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
 	pthread_detach(threadNewReady);
@@ -36,7 +34,8 @@ int main(int argc, char **argv) {
 void init_kernel() {
 	load_logger();
 	log_info(logger, "Iniciando Kernel");
-	load_config();
+
+	MP = get_multiprogramming_degree();
 
 	new = queue_create();
 	ready = queue_create();
@@ -49,16 +48,12 @@ void init_kernel() {
 	sem_init(&PROC_PEND_NEW, 0, 0);
 	sem_init(&PROC_PEND_READY, 0, 0);
 	sem_init(&MAX_PROC_READY, 0, get_multiprogramming_degree());
-	for(int i = 0; i < MP; i++) {
-		sem_init(&FREE_PROC[i], 0, 1);
-	}
 	init_memory();
 }
 
 void kill_kernel() {
 	log_info(logger, "Terminando Kernel");
 	log_info(logger, "------------------------------------------------------------");
-	config_destroy(config);
 	log_destroy(logger);
 //	pthread_cancel(threadNewReady);
 //	for(int i = 0; i < MP; i++) {
@@ -72,9 +67,6 @@ void kill_kernel() {
 	sem_destroy(&PROC_PEND_NEW);
 	sem_destroy(&PROC_PEND_READY);
 	sem_destroy(&MAX_PROC_READY);
-	for(int i = 0; i < MP; i++) {
-		sem_destroy(&FREE_PROC[i]);
-	}
 }
 
 e_query processQuery(char *query) {
@@ -211,64 +203,64 @@ void add_process_to_ready(t_process *process) {
 	sem_post(&PROC_PEND_READY);
 }
 
-void ready_to_exec(int processor) {
+t_process *ready_to_exec(int processor) {
 	if(processor >= MP)
-		return;
-	sem_wait(&FREE_PROC[processor]);
+		return NULL;
 	sem_wait(&PROC_PEND_READY);
 	sem_wait(&MUTEX_READY);
-	void *p = queue_pop(ready);
+	t_process *p = (t_process *)queue_pop(ready);
 	sem_post(&MUTEX_READY);
-	exec[processor] = (t_process*)p;
 	char msg[50];
-	sprintf(msg, " >> Proceso %d ejecutando en procesador %d", exec[processor]->pid, processor);
+	sprintf(msg, " >> Proceso %d ejecutando en procesador %d", p->pid, processor);
 	log_info(logger, msg);
+	return p;
 }
 
 void *processor_execute(void *p) {
-	char msg[50];
 	int processor = (int)p;
 	if(processor >= MP)
 		return NULL;
+	char msg[50];
+	t_process *exec;
 	while(true) {
-		ready_to_exec(processor);
+		exec = ready_to_exec(processor);
 
 		for(int i = 0; i < get_quantum(); i++) {
-			if(process_finished(exec[processor]))
+			if(process_finished(exec))
 				break;
-			t_query *nextQuery = process_next_query(exec[processor]);
+			t_query *nextQuery = process_next_query(exec);
 
 			if(getQueryType(nextQuery->args[0]) == QUERY_ERROR || validateQuerySyntax(nextQuery->args, nextQuery->queryType) == 0) {
-				sprintf(msg, " >> Error al ejecutar el proceso %d en la linea %d", exec[processor]->pid, exec[processor]->pc);
+				sprintf(msg, " >> Error al ejecutar el proceso %d en la linea %d", exec->pid, exec->pc);
 				log_error(logger, msg);
-				exec[processor]->pc = process_length(exec[processor]);
+				exec->pc = process_length(exec);
 				break;
 			} else {
 				execute_query(nextQuery);
+//				printf("Sleeping %dms\n", get_execution_delay());
 				sleep(get_execution_delay() / 1000);
 			}
 		}
 
-		if(process_finished(exec[processor])) {
-			sprintf(msg, " >> Terminando proceso %d", exec[processor]->pid);
+		if(process_finished(exec)) {
+			sprintf(msg, " >> Terminando proceso %d", exec->pid);
 			log_info(logger, msg);
-			process_destroy(exec[processor]);
+			process_destroy(exec);
 			sem_post(&MAX_PROC_READY);
 		} else {
-			add_process_to_ready(exec[processor]);
+			add_process_to_ready(exec);
 		}
-		sem_post(&FREE_PROC[processor]);
 	}
 	return NULL;
 }
 
 void execute_query(t_query *query) {
 	switch(query->queryType) {
-		case QUERY_SELECT: qSelect(query->args, logger); log_info(logger, " >> Ejecute un SELECT %s %s", query->args[1], query->args[2]); break;
-		case QUERY_INSERT: qInsert(query->args, logger); log_info(logger, " >> Ejecute un INSERT %s %s \"%s\"", query->args[1], query->args[2], query->args[3]); break;
-		case QUERY_CREATE: qCreate(query->args, logger); log_info(logger, " >> Ejecute un CREATE %s %s %s %s", query->args[1], query->args[2], query->args[3], query->args[4]); break;
-		case QUERY_DESCRIBE: qDescribe(query->args, logger); log_info(logger, " >> Ejecute un DESCRIBE %s", query->args[1]); break;
-		case QUERY_DROP: qDrop(query->args, logger); log_info(logger, " >> Ejecute un DROP %s", query->args[1]); break;
+		case QUERY_SELECT: /*qSelect(query->args, logger);*/ log_info(logger, " >> Ejecute un SELECT %s %s", query->args[1], query->args[2]); break;
+		case QUERY_INSERT: /*qInsert(query->args, logger);*/ log_info(logger, " >> Ejecute un INSERT %s %s \"%s\"", query->args[1], query->args[2], query->args[3]); break;
+		case QUERY_CREATE: /*qCreate(query->args, logger);*/ log_info(logger, " >> Ejecute un CREATE %s %s %s %s", query->args[1], query->args[2], query->args[3], query->args[4]); break;
+		case QUERY_DESCRIBE: /*qDescribe(query->args, logger);*/ log_info(logger, " >> Ejecute un DESCRIBE %s", query->args[1]); break;
+		case QUERY_DROP: /*qDrop(query->args, logger);*/ log_info(logger, " >> Ejecute un DROP %s", query->args[1]); break;
 		default: break;
 	}
 }
@@ -377,27 +369,45 @@ void drop_table(char *id) {
 }
 
 char *get_memory_ip() {
-	return config_get_string_value(config, "MEM_IP");
+	load_config();
+	char *ip = strdup(config_get_string_value(config, "MEM_IP"));
+	config_destroy(config);
+	return ip;
 }
 
 char *get_memory_port() {
-	return config_get_string_value(config, "MEM_PORT");
+	load_config();
+	char *port = strdup(config_get_string_value(config, "MEM_PORT"));
+	config_destroy(config);
+	return port;
 }
 
 int get_quantum() {
-	return config_get_int_value(config, "QUANTUM");
+	load_config();
+	int q = config_get_int_value(config, "QUANTUM");
+	config_destroy(config);
+	return q;
 }
 
 int get_multiprogramming_degree() {
-	return config_get_int_value(config, "MULT_DEGREE");
+	load_config();
+	int md = config_get_int_value(config, "MULT_DEGREE");
+	config_destroy(config);
+	return md;
 }
 
 int get_metadata_refresh_rate() {
-	return config_get_int_value(config, "MD_REFRESH_RATE");
+	load_config();
+	int mdr = config_get_int_value(config, "MD_REFRESH_RATE");
+	config_destroy(config);
+	return mdr;
 }
 
 int get_execution_delay() {
-	return config_get_int_value(config, "EXEC_DELAY");
+	load_config();
+	int ed = config_get_int_value(config, "EXEC_DELAY");
+	config_destroy(config);
+	return ed;
 }
 
 void load_logger()

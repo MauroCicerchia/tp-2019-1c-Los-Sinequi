@@ -28,7 +28,7 @@ int read_lql_file(char*);
 void add_process_to_new(t_process*);
 void *new_to_ready();
 void add_process_to_ready(t_process*);
-void ready_to_exec(int);
+t_process *ready_to_exec(int);
 void *processor_execute(void*);
 void execute_query(t_query*);
 void setConfigParameter(char*);
