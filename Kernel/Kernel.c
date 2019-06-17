@@ -7,13 +7,15 @@ t_queue *new, *ready;
 sem_t MUTEX_NEW, MUTEX_READY, MUTEX_MEMORIES, MUTEX_TABLES, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY;
 t_log *logger;
 
+// TODO Validar que haya memoria antes de realizar query
+
 int main(int argc, char **argv) {
 
 	init_kernel();
 
 	display_memories();
 
-	t_table *t1 = table_create("T1", CONS_SHC, 1, 1000);
+	t_table *t1 = table_create("T1", CONS_SC, 1, 1000);
 	add_table(t1);
 
 	pthread_t threadNewReady, threadsExec[MP];
@@ -287,16 +289,14 @@ void request_memory_pool(int memSocket) {
 //	recibir RESPONSE_SUCCESS cant_memorias sizeip ip size port port n veces
 
 	//Mock
-	for(int i = 0; i<5; i++) {
 	t_memory *mem = memory_create(memoryNumber, get_memory_ip(), get_memory_port());
 	memoryNumber++;
 	memory_add_cons_type(mem, CONS_SC);
 //	memory_add_cons_type(mem, CONS_SHC);
-	memory_add_cons_type(mem, CONS_EC);
+//	memory_add_cons_type(mem, CONS_EC);
 	sem_wait(&MUTEX_MEMORIES);
 	list_add(memories, (void*) mem);
 	sem_post(&MUTEX_MEMORIES);
-	}
 }
 
 void display_memories() {

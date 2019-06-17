@@ -5,7 +5,7 @@ void qSelect(char** args, t_log *logger) {
 //	Convertir args en tipo valido
 	e_query queryType = getQueryType(args[0]);
 	char *table = args[1];
-	int key = strtol(args[2], NULL, 10);
+	uint16_t key = strtol(args[2], NULL, 10);
 
 //	Paquetizar
 	t_package *p = create_package(queryType);
@@ -22,6 +22,11 @@ void qSelect(char** args, t_log *logger) {
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
+
+	char msg[50];
+	sprintf(msg, " >> Enviando select a memoria %d.", mem->mid);
+	log_info(logger, msg);
+
 	send_req_code(memSocket, REQUEST_QUERY);
 	send_package(p, memSocket);
 
@@ -43,7 +48,7 @@ void qInsert(char** args, t_log *logger) {
 //	Convertir args en tipo valido
 	e_query queryType = getQueryType(args[0]);
 	char *table = args[1];
-	int key = strtol(args[2], NULL, 10);
+	uint16_t key = strtol(args[2], NULL, 10);
 	char *value = args[3];
 
 //	Paquetizar
@@ -62,6 +67,10 @@ void qInsert(char** args, t_log *logger) {
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
+
+	char msg[50];
+	sprintf(msg, " >> Enviando insert a memoria %d.", mem->mid);
+	log_info(logger, msg);
 
 	send_req_code(memSocket, REQUEST_QUERY);
 	send_package(p, memSocket);
@@ -93,7 +102,7 @@ void qCreate(char** args, t_log *logger) {
 	add_to_package(p, (void*)&compTime, sizeof(compTime));
 
 //	obtener memoria segun criterio
-	t_memory *mem = get_memory_of_cons_type(CONS_SC); //TODO Get any memory
+	t_memory *mem = get_any_memory();
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
@@ -118,7 +127,7 @@ void qDescribe(char** args, t_log *logger) {
 	char *table = args[1];
 
 //	obtener memoria segun criterio
-	t_memory *mem = get_memory_of_cons_type(CONS_SC); //TODO Get any memory
+	t_memory *mem = get_any_memory();
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
@@ -185,7 +194,7 @@ void qDrop(char** args, t_log *logger) {
 		return;
 	}
 
-	t_memory *mem = get_memory_of_cons_type(CONS_SC); //TODO Get any memory
+	t_memory *mem = get_any_memory(); //TODO Get any memory
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);

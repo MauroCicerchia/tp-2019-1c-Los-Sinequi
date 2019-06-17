@@ -46,6 +46,7 @@ t_memory *get_shc_memory_for_table(t_table*, uint16_t);
 t_list *get_ec_memories();
 t_memory *get_ec_memory();
 t_memory *get_memory_for_query(t_table*, uint16_t);
+t_memory *get_any_memory();
 void update_shc();
 t_table *get_table(char*);
 void add_table(t_table*);
