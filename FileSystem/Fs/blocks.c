@@ -161,17 +161,24 @@ void b_saveData(char *url,char *data){   //"HOLACOMOESTASTODOBIEN"  //HOLA COMOE
 		string_append(&blockUrl, string_itoa(b_get_lastBlock(url)));
 		string_append(&blockUrl, ".bin");
 		b_saveIntoBlock(blockUrl,data);
-		free(blockUrl); free(blocksDirectory);
+		free(blockUrl);
+		free(blocksDirectory);
 		return;
 	}
 	//aca llega solo si no entro en el "else" de arriba
 	int flag = 1;
 	int lastPosInserted = 0;
 
+	blockUrl = string_new();
+	string_append(&blockUrl, blocksDirectory);
+	string_append(&blockUrl, string_itoa(b_get_firstFreeBlock(url)));
+	string_append(&blockUrl, ".bin");
+
 	//lleno el bloque que estaba semicompleto
 	char *toInsert = string_substring(data, lastPosInserted, sizeOfSemiCompleteBlock);
 	b_saveIntoBlock(blockUrl, toInsert);
 	free(toInsert);
+	free(blockUrl);
 //	free(blockUrl);
 	lastPosInserted = sizeOfSemiCompleteBlock;
 
@@ -191,7 +198,7 @@ void b_saveData(char *url,char *data){   //"HOLACOMOESTASTODOBIEN"  //HOLA COMOE
 
 			free(toInsert); free(blockUrl);
 		}
-		else{
+		else{// si lo que queda entra en un bloque
 			toInsert = string_substring_from(data, lastPosInserted);
 
 			blockUrl = string_new();
@@ -251,7 +258,8 @@ int b_get_lastBlock(char *url){
 int b_get_firstFreeBlock(char *url){
 	char **blocksArray = string_get_string_as_array(getListOfBlocks(url));
 	for(int i = 0; i < sizeofArray(blocksArray); i++){
-		if(!b_full(strtol(blocksArray[i],NULL,10))) return strtol(blocksArray[i],NULL,10);
+		if(!b_full(strtol(blocksArray[i],NULL,10)))
+			return strtol(blocksArray[i],NULL,10);
 	}
 	return -1;
 }
@@ -319,4 +327,6 @@ int b_freeSizeOfLastBlock(char *url){
 void b_saveIntoBlock(char *blockUrl,char *data){
 	FILE *f = txt_open_for_append(blockUrl);
 	txt_write_in_file(f, data);
+	txt_close_file(f);
+
 }
