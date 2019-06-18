@@ -32,7 +32,7 @@ void b_assignSizeAndBlock(char *partUrl)
 t_list *b_getListOfInserts(char *partUrl)
 {
 	FILE *f;
-	long fSize;
+	int fSize;
 	t_list *listOfInserts;
 
 	char** blocks = string_get_string_as_array(getListOfBlocks(partUrl));// ["1","43","550"]
@@ -42,27 +42,30 @@ t_list *b_getListOfInserts(char *partUrl)
 	char *blockUrl; // url de cada block particular
 	char *url = fs_getBlocksUrl(); //url absoluta de donde estan los bloques "mnt/blocks"
 	char *pivot;
+	struct stat st;
 	for(int i = 0; i<size; i++)
 	{
-		pivot = (char*)malloc(getSizeOfBlocks(partUrl));
-
 		blockUrl = string_new();
 		string_append(&blockUrl,url);
 		string_append(&blockUrl,blocks[i]);
 		string_append(&blockUrl,".bin");
 
-		struct stat st;
+
 		stat(blockUrl,&st);
 		fSize = st.st_size;
 
+		pivot = malloc(fSize);
+
 		//if size !=0
 		f = fopen(blockUrl,"r");
-		fread(pivot,1,fSize,f);
+		fread(pivot,fSize,1,f);
 		fclose(f);
+		pivot[fSize] = '\0';
 
 		string_append(&inserts,pivot);
 
-		free(pivot); free(blockUrl);
+		free(pivot);
+		free(blockUrl);
 	}
 
 	listOfInserts = insertsToList(inserts); //parsea el char *inserts por \n y los mete en la lista

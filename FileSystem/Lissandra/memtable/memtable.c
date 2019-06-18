@@ -75,6 +75,7 @@ void insertDestroyer(void *insert){
 t_list *mt_getListofInserts(char *table){
 	t_list *toReturn = list_create();
 	list_add_all(toReturn,mt_getTableToInsert(table));
+	//REVISAR PORQUE PUEDE HACERSE FREE DE LA MEMTABLE Y ROMPER
 	return toReturn;
 }
 

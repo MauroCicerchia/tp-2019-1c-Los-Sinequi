@@ -265,7 +265,7 @@ t_list *fs_getListOfInserts(char* table,int key){
 		tmpUrl = string_new();
 		string_append(&tmpUrl,tableUrl);
 		string_append(&tmpUrl,tmps[i]);
-		list_add(tmpsList,b_getListOfInserts(tmpUrl));
+		list_add_all(tmpsList,b_getListOfInserts(tmpUrl));
 		free(tmpUrl);
 		i++;
 	}
@@ -273,8 +273,8 @@ t_list *fs_getListOfInserts(char* table,int key){
 	t_list *mtList = mt_getListofInserts(table); //toma todos los inserts de la memtable referidos a la tabla
 
 	//juntas todas las listas en una para retornar esa
-	list_add_all(partList,mtList);
-	list_add_all(partList,tmpsList);
+	if(list_size(mtList) != 0) list_add_all(partList,mtList);
+	if(list_size(tmpsList) != 0) list_add_all(partList,tmpsList);
 
 	list_destroy_and_destroy_elements(tmpsList,free);
 	list_destroy_and_destroy_elements(mtList,free);
@@ -289,7 +289,7 @@ t_list *fs_getListOfInserts(char* table,int key){
 //busca en la url de la tabla todos los .tmp y devuelve el "nombre.tmp"
 char **getAllTmps(char *tableUrl)
 {
-	char **allTmpsNames;
+	char **allTmpsNames = (char**)malloc(sizeof(char)*3 *(tmpNo+1));
 	char *tmpUrl;
 	char *aux;
 	for(int i = 0;i < tmpNo+1; i++){ //que recorra todas las posibilidades de tmps
@@ -301,13 +301,13 @@ char **getAllTmps(char *tableUrl)
 		string_append(&tmpUrl,aux);
 		if(access(tmpUrl,F_OK) != -1){ //si existe
 			allTmpsNames[i] = string_duplicate(aux);
-		}
+		}else allTmpsNames[i] = NULL;
 		free(aux);
 		free(tmpUrl);
 	}
 
-	allTmpsNames[tmpNo] = NULL;
-	if(sizeofArray(allTmpsNames) == 0) return NULL;
+	allTmpsNames[tmpNo+1] = NULL;
+	if(allTmpsNames[0] == NULL) return NULL;
 	return allTmpsNames;
 }
 
