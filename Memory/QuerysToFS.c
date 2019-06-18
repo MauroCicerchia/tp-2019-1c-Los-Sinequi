@@ -1,11 +1,24 @@
 #include"QuerysToFS.h"
 
 
-void send_frame_to_FS(int frame_num, int socket){
+//void send_frame_to_FS(int frame_num, int socket){
+//
+//	t_package* p = create_package(QUERY_INSERT);
+//
+//}
 
-	t_package* p = create_package(QUERY_INSERT);
+/*
+ * INSERT -> FS responde succes/error
+ * SELECT -> FS responde (succes + resultado)/error
+ * CREATE -> FS responde succes/error
+ * DESCRIBE-> FS responde (succes + cantidad de tablas )/error
+ * 			while(cant_tablas)(succes + send_table() )
+ *
+ * DROP -> FS responde succes/error
+ *
+ */
 
-}
+
 
 char* send_select_to_FS(char* segmentID, int key, t_config* config,t_log* logger){
 
