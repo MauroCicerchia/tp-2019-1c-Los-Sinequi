@@ -12,6 +12,7 @@
 #include<sharedLib/packaging.h>
 #include<sharedLib/consistency.h>
 #include<commons/bitarray.h>
+#include<semaphore.h>
 #include"Segment.h"
 #include<time.h>
 #include"QuerysToFS.h"
@@ -25,7 +26,10 @@ t_list* segmentList;
 e_query processQuery(char *, t_log*);
 t_log *logger;
 t_config *config;
+sem_t MUTEX_MEM;
 
+void memory_init();
+void kill_memory();
 void load_config();
 void iniciar_logger();
 segment* segment_init();
@@ -48,7 +52,7 @@ void remove_delete_segment(segment*);
 
 char* selectM(char*,int);	   // (nombreTabla,key)
 int insertM(char*,int,char*); // (nombreTabla,key,value)
-int createM(char*,e_cons_type,int,int);
+int createM(char*,char*,int,int);
 int dropM(char*);
 
 

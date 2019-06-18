@@ -2,13 +2,7 @@
 int server;
 
 int main(int argc, char **argv) {
-
-	load_config();
-
-	segmentList = list_create();
-
-	iniciar_logger();
-	THEGREATMALLOC();
+	memory_init();
 
 	pthread_t threadClient;
 
@@ -17,14 +11,31 @@ int main(int argc, char **argv) {
 
 	start_API(logger);
 
+	kill_memory();
+	return 0;
+}
+
+void memory_init(){
+		load_config();
+
+		segmentList = list_create();
+
+		iniciar_logger();
+
+		sem_init(&MUTEX_MEM,0,1);
+		THEGREATMALLOC();
+}
+
+void kill_memory(){
 	list_destroy_and_destroy_elements(segmentList,segment_destroy);
 	config_destroy(config);
 	log_destroy(logger);
 	free(main_memory);
 	bitarray_destroy(bitmap);
+	sem_destroy(&MUTEX_MEM);
 
-	return 0;
 }
+
 
 int get_frame_size(){
 
@@ -286,17 +297,14 @@ page* search_page(segment* aSegment,uint16_t aKey){
 }
 
 uint16_t get_key_from_memory(int frame_num){
-
 	return *((uint16_t*) (main_memory + frame_num * get_frame_size()));
 }
 
 int get_timestamp_from_memory(int frame_num){
-
 	return *((int*) (main_memory + frame_num * get_frame_size() + sizeof(uint16_t)));
 }
 
 char* get_value_from_memory(int frame_num){
-
 	return string_duplicate((char*) (main_memory + frame_num * get_frame_size() + sizeof(uint16_t) + sizeof(int)));
 }
 
@@ -378,7 +386,9 @@ int insertM(char* segmentID, int key, char* value){
 			page* pageFound = search_page(segmentFound,key);
 			if(pageFound != NULL){
 				log_info(logger,"Se encontro la pagina con el key buscado, modificando el valor.");
+				sem_wait(&MUTEX_MEM);
 				modify_in_frame(value,pageFound->frame_num);
+				sem_post(&MUTEX_MEM);
 				pageFound->isModified=1;
 				return 0;
 			}
@@ -392,7 +402,9 @@ int insertM(char* segmentID, int key, char* value){
 			log_info(logger,"No se encontro la tabla buscada, creando nuevo segmento.");
 			segment* newSegment = segment_init();
 			newSegment->segment_id = segmentID;
+			sem_wait(&MUTEX_MEM);
 			load_page_to_segment(key, newSegment, value);
+			sem_post(&MUTEX_MEM);
 			return 0;
 			}
 	}
@@ -400,6 +412,7 @@ int insertM(char* segmentID, int key, char* value){
 		if(memory_full()){
 			return 2;
 		}else{
+			//No hay frame available y la mem no esta full
 			//ejecutarReemplazo
 			return 0;
 		}
@@ -425,20 +438,57 @@ char* selectM(char* segmentID, int key){
 			return get_value_from_memory(pageFound->frame_num);
 		}else{
 			log_info(logger,"No se encontro la pagina con el key buscado, consultando a FS.");
-			return NULL;
-			//value = send_select_to_FS(segmentID,key,config,logger);
-			//if(hayLugar)agregar_pagina(segmentID,key,value)
-			//return value
+			char* value = send_select_to_FS(segmentID,key,config,logger);
+			if(value!=NULL){
+				if(frame_available_in_mem()){
+					sem_wait(&MUTEX_MEM);
+					load_page_to_segment(key, segmentFound, value);
+					sem_post(&MUTEX_MEM);
+				}else{
+					if(memory_full()){
+						//Ejecutar Journal
+					}else{
+						//No hay frame available y la mem no esta full
+						//Ejecutar Reemplazo
+					}
+				}
+				return value;
+			}else{
+				log_error(logger,"No existe la pagina ingresada en FS");
+				return NULL;
+			}
 		}
 	}
 	else{
-		log_error(logger,"No existe la tabla ingresada");
+		log_error(logger,"No existe la tabla ingresada en memoria");
+		char* value = send_select_to_FS(segmentID,key,config,logger);
+		if(value!=NULL){
+			if(frame_available_in_mem()){
+				segment* newSegment = segment_init();
+				newSegment->segment_id = segmentID;
+				sem_wait(&MUTEX_MEM);
+				load_page_to_segment(key, newSegment, value);
+				sem_post(&MUTEX_MEM);
+			}else{
+				if(memory_full()){
+					//Ejecutar Journal
+
+				}else{
+					//No hay frame available y la mem no esta full
+					//Ejecutar Reemplazo
+
+				}
+			}
+			return value;
+		}else{
+			log_error(logger,"No existe la tabla o la pagina ingresada en FS");
+		}
 	}
 
 	return NULL;
 }
 
-int createM(char* segmentID,e_cons_type consistency ,int partition_num, int compaction_time){
+int createM(char* segmentID,char* consistency ,int partition_num, int compaction_time){
 	/*ENVIAR AL FS OPERACION PARA CREAR TABLA*/
 	return 0;
 }
@@ -455,11 +505,10 @@ int dropM(char* segment_id){
 	segment* segmentFound = search_segment(segment_id);
 
 	if(segmentFound != NULL){
+		sem_wait(&MUTEX_MEM);
 		delete_segment_from_mem(segmentFound);
-//		segment_destroy(segmentFound);
-		printf("%d",list_size(segmentList));
 		remove_delete_segment(segmentFound);
-		printf("%d",list_size(segmentList));
+		sem_post(&MUTEX_MEM);
 		log_info(logger,"Se elimino el segmento y se libero la memoria");
 		//Avisar FS
 	}else{
