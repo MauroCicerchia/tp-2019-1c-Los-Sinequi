@@ -136,7 +136,6 @@ void processQuery(char *query)
 					free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
 					free(tableInfo);
 					free(cons);
-		//				config_destroy(metadataCfg);
 				}
 			}
 			log_info(logger, "Fin DESCRIBE");

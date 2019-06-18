@@ -69,7 +69,7 @@ t_list *b_getListOfInserts(char *partUrl)
 	}
 
 	listOfInserts = insertsToList(inserts); //parsea el char *inserts por \n y los mete en la lista
-	free(inserts); free(url);
+	free(inserts); free(url); free(blocks);
 	return listOfInserts;
 }
 
@@ -113,7 +113,7 @@ char *getListOfBlocks(char *partUrl)
 	char *pivot = config_get_string_value(partition,"BLOCKS");
 	char *blocks = string_duplicate(pivot);
 	config_destroy(partition);
-//	free(pivot);
+	free(pivot);
 	return blocks;
 }
 
@@ -128,7 +128,7 @@ void b_modifyBlocks(char *partUrl, char *listBlocks){
 }
 
 int getSizeOfBlocks(){
-	return config_get_int_value(lfsMetadata,"BLOCK_SIZE");
+	return metadataSizeBlocks;
 }
 
 
@@ -219,26 +219,7 @@ void b_saveData(char *url,char *data){   //"HOLACOMOESTASTODOBIEN"  //HOLA COMOE
 		}//else
 
 	}//while
-
-
-//REVISAR SI SIRVE
-
-	//	while(flag){
-//		string_substring(data,lastPosInserted, freeSizeOfTheFirstNotFullBlock(url));
-//	}
-
-
-//	int block = b_get_lastBlock(url);
-//
-//
-//	int freeSizeB = b_freeSize(block);
-//	int insertedData = 0;
-////	int flag = 0; //corte del while
-//	char *blockUrl = string_new();
-//	string_append(&blockUrl, blocksDirectory);
-//	string_append(&blockUrl, string_itoa(b_get_lastBlock(url)));
-//	string_append(&blockUrl, ".bin");
-//	b_saveIntoBlock(blockUrl,data)
+free(blocksDirectory);
 }
 
 
@@ -253,7 +234,9 @@ int b_get_lastBlock(char *url){
 	char **blocksArray = string_get_string_as_array(getListOfBlocks(url));
 	int last = sizeofArray(blocksArray) - 1;
 	char *lastBlock = string_duplicate(blocksArray[last]);
-	int x =strtol(lastBlock,NULL,10);
+	int x = strtol(lastBlock,NULL,10);
+	free(lastBlock);
+	free(blocksArray);
 	return x;
 }
 
@@ -293,15 +276,11 @@ void b_addNewBlock(char *url){
 		if(listBlocks[i + 1] != NULL) string_append(&stringArray,",");
 		i++;
 	}
-//	void _arrayfier(char *string){
-//		string_append(&stringArray,string);
-//		string_append(&stringArray,",");
-//	}
-//
-//	string_iterate_lines(listBlocks, _arrayfier);
+
 	string_append(&stringArray, "]");
-//	string_append(&stringArray, NULL);
 	b_modifyBlocks(url,stringArray);
+	free(listBlocks);
+	free(stringArray);
 }
 
 
@@ -314,6 +293,7 @@ int b_freeSize(int block){
 	struct stat st;
 	stat(url,&st);
 	int actualSize = st.st_size;
+	free(url);
 	return (getSizeOfBlocks() - actualSize);
 }
 

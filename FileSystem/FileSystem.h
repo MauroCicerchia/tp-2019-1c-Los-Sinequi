@@ -18,8 +18,11 @@ void kill_FileSystem();
 void iniciar_logger(t_log **logger);
 int get_dump_time();
 int get_retard_time();
+int get_size_of_blocks(t_config *metadata);
+int get_blocks_cuantityy(t_config *metadata);
 char *get_fs_route();
 void *threadConfigModify();
 void *threadDump();
 void load_config();
+t_config *load_lfsMetadata();
 

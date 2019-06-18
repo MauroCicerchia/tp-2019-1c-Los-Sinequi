@@ -10,7 +10,8 @@
 #include<sharedLib/console.h>
 #include"bitarray.h"
 
-extern t_config *lfsMetadata;
+extern int metadataBlocks;
+extern int metadataSizeBlocks;
 
 #ifndef BLOCKS_H
 #define BLOCKS_H

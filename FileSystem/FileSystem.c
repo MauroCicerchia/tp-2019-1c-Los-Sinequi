@@ -13,10 +13,15 @@ pthread_t tApi,tDump,tListenCfg;
 
 t_config *config;
 t_config *metadataCfg;
-t_config *lfsMetadata;
+
+int metadataBlocks;
+int metadataSizeBlocks;
 
 
 t_bitarray *bitarray;
+int bitarrayfd;
+char *bitarrayContent;
+
 int lastBlockAssigned;
 
 sem_t MUTEX_MEMTABLE, MUTEX_RETARDTIME, MUTEX_DUMPTIME;
@@ -56,18 +61,19 @@ void init_FileSystem()
 	wd = inotify_add_watch(fd,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/Config",IN_MODIFY);
 
 	load_config();
-
 	dumpTime = get_dump_time();
 	retardTime = get_retard_time();
-	absoluto = string_new();
-	char *x = get_fs_route();
-	string_append(&absoluto,x);
-	free(x);
-//	config_destroy(config);
+	absoluto = string_duplicate(get_fs_route());
+	config_destroy(config);
 
-	ba_load_lfsMetadata();
-//	if(!ba_exists())
-		ba_create();
+	t_config *metadata = load_lfsMetadata();
+	metadataBlocks = get_blocks_cuantityy(metadata);
+	metadataSizeBlocks = get_size_of_blocks(metadata);
+	config_destroy(metadata);
+
+
+	ba_create();
+	ba_bitarrayDestroy();
 
 //	ba_loadBitarray();
 
@@ -98,7 +104,7 @@ void kill_FileSystem()
 
 	log_info(logger, "Fin FileSystem");
 	log_info(logger, "----------------------------------------");
-//	config_destroy(lfsMetadata);
+
 	log_destroy(logger);
 }
 
@@ -168,3 +174,21 @@ int get_retard_time(){
 char *get_fs_route(){
 	return config_get_string_value(config,"PUNTO_MONTAJE");
 }
+int get_blocks_cuantityy(t_config *metadata)
+{
+	return config_get_int_value(metadata,"BLOCKS");
+}
+int get_size_of_blocks(t_config *metadata){
+	return config_get_int_value(metadata,"BLOCK_SIZE");
+}
+t_config *load_lfsMetadata()
+{
+	char *url = fs_getlfsMetadataUrl();
+	t_config *metadata = config_create(url);
+		if(metadata == NULL){
+			log_error(logger,"No se pudo abrir el archivo de Metadata del FS");
+			return NULL;
+		}
+		return metadata;
+}
+

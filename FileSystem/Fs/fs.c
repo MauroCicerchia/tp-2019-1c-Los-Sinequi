@@ -323,10 +323,12 @@ char **fs_getAllTables(){
 	string_append(&url,"Tables/");
 
 	d = opendir(url);
-	while(dir = readdir(d) != NULL){
-		allTables[i] = string_duplicate(dir->d_name);
-		i++;
-	}
+//	dir = readdir(d)
+//	while(dir = readdir(d) != NULL){
+//		allTables[i] = string_duplicate(dir->d_name);
+//		i++;
+//
+//	}
 	closedir(d);
 	allTables[i] = NULL;
 	return allTables;

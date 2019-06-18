@@ -15,7 +15,6 @@
 #include"../describe/describe.h"
 #include<sys/time.h>
 
-
 extern t_log *logger;
 extern t_config *config;
 extern t_config *metadataCfg;
