@@ -41,6 +41,9 @@ void qSelect(char** args, t_log *logger) {
 		log_error(logger, " >> Error al realizar select en memoria.");
 	}
 	close(memSocket);
+
+	mem->totalOperations++;
+
 	return;
 }
 
@@ -83,6 +86,9 @@ void qInsert(char** args, t_log *logger) {
 		log_error(logger, " >> Error al realizar insert en memoria.");
 	}
 	close(memSocket);
+
+	mem->totalOperations++;
+
 	return;
 }
 
@@ -194,7 +200,7 @@ void qDrop(char** args, t_log *logger) {
 		return;
 	}
 
-	t_memory *mem = get_any_memory(); //TODO Get any memory
+	t_memory *mem = get_any_memory();
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);

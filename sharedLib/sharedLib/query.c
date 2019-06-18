@@ -38,7 +38,7 @@ e_query getQueryType(char *query) {
 }
 
 e_query queryError() {
-	printf("La consulta no es valida.\n");
+	printf("La consulta no es valida. ");
 	return QUERY_ERROR;
 }
 

@@ -10,6 +10,7 @@ typedef struct {
 	char *ip;
 	char *port;
 	int consTypes[3];
+	int totalOperations;
 } t_memory;
 
 t_memory *memory_create(int, char*, char*);

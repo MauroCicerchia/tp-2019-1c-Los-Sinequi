@@ -1,10 +1,11 @@
 #include"Kernel.h"
 
-int server, processNumber = 0, memoryNumber = 0, MP;
+int server, processNumber = 0, memoryNumber = 0, MP, reads = 0, writes = 0, totalOperations = 0;
+float readsTime = 0.0f, writesTime = 0.0f;
 t_list *memories, *tables;
 t_config *config;
 t_queue *new, *ready;
-sem_t MUTEX_NEW, MUTEX_READY, MUTEX_MEMORIES, MUTEX_TABLES, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY;
+sem_t MUTEX_NEW, MUTEX_READY, MUTEX_MEMORIES, MUTEX_TABLES, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY, MUTEX_READS, MUTEX_WRITES, MUTEX_TOTALOPS;
 t_log *logger;
 
 // TODO Validar que haya memoria antes de realizar query
@@ -15,17 +16,21 @@ int main(int argc, char **argv) {
 
 	display_memories();
 
-	t_table *t1 = table_create("T1", CONS_SC, 1, 1000);
+	t_table *t1 = table_create("T1", CONS_EC, 1, 1000);
 	add_table(t1);
 
-	pthread_t threadNewReady, threadsExec[MP];
+	pthread_t threadNewReady, threadsExec[MP], threadMetrics;
 
 	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
+	pthread_detach(threadNewReady);
+	pthread_create(&threadMetrics, NULL, print_metrics, NULL);
 	pthread_detach(threadNewReady);
 	for(int i = 0; i < MP; i++) {
 		pthread_create(&threadsExec[i], NULL, processor_execute, (void*)i);
 		pthread_detach(threadsExec[i]);
 	}
+
+	sleep(1);
 
 	start_API(logger);
 
@@ -35,6 +40,9 @@ int main(int argc, char **argv) {
 }
 
 void init_kernel() {
+	system("clear");
+	printf("<LFS Kernel>\n\n");
+	srandom((int)time(NULL));
 	load_logger();
 	log_info(logger, "Iniciando Kernel");
 
@@ -51,6 +59,9 @@ void init_kernel() {
 	sem_init(&PROC_PEND_NEW, 0, 0);
 	sem_init(&PROC_PEND_READY, 0, 0);
 	sem_init(&MAX_PROC_READY, 0, get_multiprogramming_degree());
+	sem_init(&MUTEX_READS, 0, 1);
+	sem_init(&MUTEX_WRITES, 0, 1);
+	sem_init(&MUTEX_TOTALOPS, 0, 1);
 	init_memory();
 }
 
@@ -136,6 +147,8 @@ e_query processQuery(char *query) {
 		default:
 			return queryError(logger);
 	}
+
+	printf("\33[2K");
 
 	log_info(logger, log_msg);
 
@@ -225,6 +238,7 @@ t_process *ready_to_exec(int processor) {
 
 void *processor_execute(void *p) {
 	int processor = (int)p;
+	time_t startTime, endTime;
 	if(processor >= MP)
 		return NULL;
 	char msg[50];
@@ -243,9 +257,13 @@ void *processor_execute(void *p) {
 				exec->pc = process_length(exec);
 				break;
 			} else {
+				time(&startTime);
 				execute_query(nextQuery);
-//				printf("Sleeping %dms\n", get_execution_delay());
 				sleep(get_execution_delay() / 1000);
+				time(&endTime);
+
+				if(nextQuery->queryType == QUERY_SELECT) metrics_new_select(startTime, endTime);
+				if(nextQuery->queryType == QUERY_INSERT) metrics_new_insert(startTime, endTime);
 			}
 		}
 
@@ -263,11 +281,26 @@ void *processor_execute(void *p) {
 
 void execute_query(t_query *query) {
 	switch(query->queryType) {
-		case QUERY_SELECT: qSelect(query->args, logger); log_info(logger, " >> Ejecute un SELECT %s %s", query->args[1], query->args[2]); break;
-		case QUERY_INSERT: qInsert(query->args, logger); log_info(logger, " >> Ejecute un INSERT %s %s \"%s\"", query->args[1], query->args[2], query->args[3]); break;
-		case QUERY_CREATE: /*qCreate(query->args, logger);*/ log_info(logger, " >> Ejecute un CREATE %s %s %s %s", query->args[1], query->args[2], query->args[3], query->args[4]); break;
-		case QUERY_DESCRIBE: /*qDescribe(query->args, logger);*/ log_info(logger, " >> Ejecute un DESCRIBE %s", query->args[1]); break;
-		case QUERY_DROP: /*qDrop(query->args, logger);*/ log_info(logger, " >> Ejecute un DROP %s", query->args[1]); break;
+		case QUERY_SELECT:
+			log_info(logger, " >> Ejecutando un SELECT %s %s", query->args[1], query->args[2]);
+			qSelect(query->args, logger);
+			break;
+		case QUERY_INSERT:
+			log_info(logger, " >> Ejecutando un INSERT %s %s \"%s\"", query->args[1], query->args[2], query->args[3]);
+			qInsert(query->args, logger);
+			break;
+		case QUERY_CREATE:
+			log_info(logger, " >> Ejecutando un CREATE %s %s %s %s", query->args[1], query->args[2], query->args[3], query->args[4]);
+			/*qCreate(query->args, logger);*/
+			break;
+		case QUERY_DESCRIBE:
+			log_info(logger, " >> Ejecutando un DESCRIBE %s", query->args[1]);
+			/*qDescribe(query->args, logger);*/
+			break;
+		case QUERY_DROP:
+			log_info(logger, " >> Ejecutando un DROP %s", query->args[1]);
+			/*qDrop(query->args, logger);*/
+			break;
 		default: break;
 	}
 }
@@ -289,14 +322,16 @@ void request_memory_pool(int memSocket) {
 //	recibir RESPONSE_SUCCESS cant_memorias sizeip ip size port port n veces
 
 	//Mock
+	for(int i = 0; i < 5; i++) {
 	t_memory *mem = memory_create(memoryNumber, get_memory_ip(), get_memory_port());
 	memoryNumber++;
 	memory_add_cons_type(mem, CONS_SC);
 //	memory_add_cons_type(mem, CONS_SHC);
-//	memory_add_cons_type(mem, CONS_EC);
+	memory_add_cons_type(mem, CONS_EC);
 	sem_wait(&MUTEX_MEMORIES);
 	list_add(memories, (void*) mem);
 	sem_post(&MUTEX_MEMORIES);
+	}
 }
 
 void display_memories() {
@@ -474,6 +509,72 @@ void add_memories_to_table(t_table *t) {
 		default:
 			break;
 	}
+}
+
+void *print_metrics() {
+	void print_m_load(void *mem) {
+		t_memory *m = (t_memory*)mem;
+		int mLoad = (m->totalOperations * 100) / totalOperations;
+		printf("%d : %d%% ", m->mid, mLoad);
+	}
+
+	float readLatency = 0.0f, writeLatency = 0.0f;
+
+	printf("\nR : RL/30s = 0 : 0.00s\nW : WL/30s = 0 : 0.00s\nML = \n\n");
+
+	while(true) {
+		sleep(30);
+		sem_wait(&MUTEX_READS);
+		sem_wait(&MUTEX_WRITES);
+		if(reads != 0) {
+			readLatency = readsTime/reads;
+		} else {
+			readLatency = 0.0f;
+		}
+		if(writes != 0) {
+			writeLatency = writesTime/writes;
+		} else {
+			writeLatency = 0.0f;
+		}
+		printf("%c7", 27);
+		printf("\033[A\033[A\033[A\033[A");
+		printf("\33[2K\rR : RL/30s = %d : %.2fs\n\33[2KW : WL/30s = %d : %.2fs\n\33[2KML = ", reads, readLatency, writes, writeLatency);
+		if(totalOperations != 0) {
+			sem_wait(&MUTEX_MEMORIES);
+			list_iterate(memories, print_m_load);
+			sem_post(&MUTEX_MEMORIES);
+		}
+		printf("%c8", 27);
+		reads = 0;
+		readsTime = 0.0f;
+		writes = 0;
+		writesTime = 0.0f;
+		sem_post(&MUTEX_READS);
+		sem_post(&MUTEX_WRITES);
+
+	}
+
+	return NULL;
+}
+
+void metrics_new_select(int start, int end) {
+	sem_wait(&MUTEX_READS);
+	reads++;
+	readsTime += (float)difftime(end, start);
+	sem_post(&MUTEX_READS);
+	sem_wait(&MUTEX_TOTALOPS);
+	totalOperations++;
+	sem_post(&MUTEX_TOTALOPS);
+}
+
+void metrics_new_insert(int start, int end) {
+	sem_wait(&MUTEX_WRITES);
+	writes++;
+	writesTime += (float)difftime(end, start);
+	sem_post(&MUTEX_WRITES);
+	sem_wait(&MUTEX_TOTALOPS);
+	totalOperations++;
+	sem_post(&MUTEX_TOTALOPS);
 }
 
 char *get_memory_ip() {

@@ -8,6 +8,7 @@ t_memory *memory_create(int mid, char *ip, char *port) {
 	memory->consTypes[0] = 0;
 	memory->consTypes[1] = 0;
 	memory->consTypes[2] = 0;
+	memory->totalOperations = 0;
 	return memory;
 }
 
