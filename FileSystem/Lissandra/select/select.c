@@ -1,7 +1,8 @@
 #include"select.h"
 
+//evaluar el caso de si no se hizo ningun insert
 char *qselect(char *table, char* strKey){
-	uint16_t key = atoi(strKey);
+	uint16_t key = strtol(strKey,NULL,10);
 	t_list *list = list_create();
 
 	if (!fs_tableExists(table)){
@@ -9,18 +10,11 @@ char *qselect(char *table, char* strKey){
 		return NULL;
 	}
 
-	char *url = makeTableUrl(table);
-	string_append(&url,table);
-	string_append(&url, ".bin");
-	if(access(url,F_OK) == -1){
-		log_error(logger,"No se hizo ningun insert sobre la tabla");
-		return NULL;
-	}
 
 	list = fs_getListOfInserts(table,key);
 
 	if(list_size(list) == 0){
-		log_error(logger, "No hay nada en la tabla");
+		log_error(logger, "NO se hizo ningun insert");
 		return NULL;
 	}
 	log_info(logger, "  Guardo en una lista toda la info de la tabla");

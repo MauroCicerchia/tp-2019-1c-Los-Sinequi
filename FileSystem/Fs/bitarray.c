@@ -35,7 +35,7 @@ void ba_create()
 
 //	bitarray_destroy(bitarray);
 
-	fs_createBlocks(blocks);
+//	fs_createBlocks(blocks);
 }
 
 

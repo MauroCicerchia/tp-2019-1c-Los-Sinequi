@@ -49,11 +49,14 @@ t_list *b_getListOfInserts(char *partUrl)
 		blockUrl = string_new();
 		string_append(&blockUrl,url);
 		string_append(&blockUrl,blocks[i]);
+		string_append(&blockUrl,".bin");
 
+		struct stat st;
+		stat(blockUrl,&st);
+		fSize = st.st_size;
+
+		//if size !=0
 		f = fopen(blockUrl,"r");
-		fseek(f,0,SEEK_END);
-		fSize = ftell(f);
-		fseek(f,0,SEEK_SET);
 		fread(pivot,1,fSize,f);
 		fclose(f);
 
@@ -179,7 +182,7 @@ void b_saveData(char *url,char *data){   //"HOLACOMOESTASTODOBIEN"  //HOLA COMOE
 	b_saveIntoBlock(blockUrl, toInsert);
 	free(toInsert);
 	free(blockUrl);
-//	free(blockUrl);
+
 	lastPosInserted = sizeOfSemiCompleteBlock;
 
 	while(flag){
@@ -307,9 +310,6 @@ int b_freeSize(int block){
 	string_append(&url,".bin");
 	struct stat st;
 	stat(url,&st);
-//	FILE *f = fopen(url,"r");
-//	fseek(f,0,SEEK_END); //ACA ROMPE
-//	int actualSize = ftell(f);
 	int actualSize = st.st_size;
 	return (getSizeOfBlocks() - actualSize);
 }

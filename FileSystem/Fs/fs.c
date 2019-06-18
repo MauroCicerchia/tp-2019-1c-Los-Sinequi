@@ -250,6 +250,7 @@ t_list *fs_getListOfInserts(char* table,int key){
 
 	config_destroy(tableMetadataCfg);
 
+	partUrl = string_new();
 	string_append(&partUrl,tableUrl);
 	string_append(&partUrl,partition);
 	string_append(&partUrl, ".bin");
@@ -258,13 +259,15 @@ t_list *fs_getListOfInserts(char* table,int key){
 
 	char **tmps = getAllTmps(tableUrl);
 	t_list *tmpsList = list_create();
-	for (int i = 0; i < sizeofArray(tmps); i++)
-	{
+
+	int i = 0;
+	while(tmps[i] != NULL){
 		tmpUrl = string_new();
 		string_append(&tmpUrl,tableUrl);
 		string_append(&tmpUrl,tmps[i]);
 		list_add(tmpsList,b_getListOfInserts(tmpUrl));
 		free(tmpUrl);
+		i++;
 	}
 
 	t_list *mtList = mt_getListofInserts(table); //toma todos los inserts de la memtable referidos a la tabla
@@ -275,7 +278,9 @@ t_list *fs_getListOfInserts(char* table,int key){
 
 	list_destroy_and_destroy_elements(tmpsList,free);
 	list_destroy_and_destroy_elements(mtList,free);
-	free(partUrl); free(tableMetadataUrl); free(tableUrl);
+	free(partUrl);
+	free(tableMetadataUrl);
+	free(tableUrl);
 
 	return partList;
 }
@@ -284,24 +289,25 @@ t_list *fs_getListOfInserts(char* table,int key){
 //busca en la url de la tabla todos los .tmp y devuelve el "nombre.tmp"
 char **getAllTmps(char *tableUrl)
 {
-	char **allTmpsNames = (char**) malloc(sizeof(char)*3 *tmpNo);
-	int index = 0;
+	char **allTmpsNames;
 	char *tmpUrl;
 	char *aux;
 	for(int i = 0;i < tmpNo+1; i++){ //que recorra todas las posibilidades de tmps
 		tmpUrl = string_new();
+		aux = string_new();
 		string_append(&aux,string_itoa(i));
 		string_append(&aux,".tmp");
 		string_append(&tmpUrl, tableUrl);
 		string_append(&tmpUrl,aux);
 		if(access(tmpUrl,F_OK) != -1){ //si existe
-			allTmpsNames[index] = string_duplicate(aux);
-
+			allTmpsNames[i] = string_duplicate(aux);
 		}
-		index++;
+		free(aux);
+		free(tmpUrl);
 	}
 
-	if(sizeofArray(allTmpsNames) == 0) return NULL; //chequear si al hacer el malloc de arriba puede volver null
+	allTmpsNames[tmpNo] = NULL;
+	if(sizeofArray(allTmpsNames) == 0) return NULL;
 	return allTmpsNames;
 }
 
