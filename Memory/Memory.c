@@ -105,7 +105,7 @@ void process_query_from_client(int client) {
 
 	char *table, *value;
 	int key, part, compTime, size;
-	e_cons_type consType;
+	char *consType;
 
 	switch(opCode) {
 		case QUERY_SELECT:
@@ -133,7 +133,7 @@ void process_query_from_client(int client) {
 			break;
 		case QUERY_CREATE:
 			table = recv_str(client);
-			consType = getConsistencyType(recv_str(client));
+			consType = recv_str(client);
 			part = recv_int(client);
 			compTime = recv_int(client);
 //			int status = createM(table, consType, part, compTime);
@@ -231,7 +231,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_CREATE:
 
-			//create(args[1], args[2], args[3], args[4]);
+			//createM(args[1], args[2], args[3], args[4]);
 
 			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
 
@@ -239,7 +239,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_DESCRIBE:
 
-			//describe(args[1]);
+			//describeM(args[1]);
 
 			sprintf(log_msg, "Recibi un DESCRIBE %s", args[1]);
 
@@ -426,7 +426,7 @@ char* selectM(char* segmentID, int key){
 		}else{
 			log_info(logger,"No se encontro la pagina con el key buscado, consultando a FS.");
 			return NULL;
-			//value = fileSystem.solicitarValor(key);
+			//value = send_select_to_FS(segmentID,key,config,logger);
 			//if(hayLugar)agregar_pagina(segmentID,key,value)
 			//return value
 		}
@@ -498,3 +498,5 @@ void load_config() {
 		exit(-1);
 	}
 }
+
+

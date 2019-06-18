@@ -14,6 +14,7 @@
 #include<commons/bitarray.h>
 #include"Segment.h"
 #include<time.h>
+#include"QuerysToFS.h"
 
 void* main_memory;
 t_bitarray* bitmap;
@@ -49,6 +50,8 @@ char* selectM(char*,int);	   // (nombreTabla,key)
 int insertM(char*,int,char*); // (nombreTabla,key,value)
 int createM(char*,e_cons_type,int,int);
 int dropM(char*);
+
+
 
 /*table_t *describeM(char*);
 t_list *describeM();*/
