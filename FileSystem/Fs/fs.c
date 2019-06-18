@@ -311,3 +311,23 @@ char **getAllTmps(char *tableUrl)
 	return allTmpsNames;
 }
 
+char **fs_getAllTables(){
+	char **allTables;
+	int i = 0;
+
+	DIR *d;
+	struct  dirent *dir;
+
+	char *url = string_new();
+	string_append(&url, absoluto);
+	string_append(&url,"Tables/");
+
+	d = opendir(url);
+	while(dir = readdir(d) != NULL){
+		allTables[i] = string_duplicate(dir->d_name);
+		i++;
+	}
+	closedir(d);
+	allTables[i] = NULL;
+	return allTables;
+}

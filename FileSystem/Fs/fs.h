@@ -7,6 +7,7 @@
 #include<stdio.h>
 #include<unistd.h>
 #include<stddef.h>
+#include<dirent.h>
 
 #include<commons/string.h>
 #include<commons/log.h>
@@ -62,5 +63,7 @@ metadata *fs_getTableMetadata(char*);
 t_list *fs_getListOfInserts(char*,int);
 
 void fs_createBlocks(int);
+
+char **fs_getAllTables();
 
 #endif /* FS_H */

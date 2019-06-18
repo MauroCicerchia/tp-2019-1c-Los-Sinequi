@@ -23,6 +23,7 @@ void processQuery(char *query)
 	char log_msg[100];
 	char *selectReturnValue = string_new();
 	char **args = parseQuery(query);
+	char **tables;
 
 	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
 
@@ -93,26 +94,51 @@ void processQuery(char *query)
 
 			delayer();
 
-			metadata *tableInfo = qdescribe(args[1]);
+			if(args[1] == NULL){
+				tables = fs_getAllTables();
+				for(int i = 0; i < sizeofArray(tables); i++){
+					metadata *tableInfo = qdescribe(tables[i]);
 
-			if(tableInfo != NULL){
-				log_info(logger, ">>>");
-				char *cons = string_new(); strcpy(cons,tableInfo->consistency);
-				char *parts = tableInfo->partitions; char *ctime = tableInfo->ctime;
-				sprintf(log_msg,"Consistencia: %s",cons);
-				log_info(logger,log_msg);
-				sprintf(log_msg,"Particiones: %s",parts);
-				log_info(logger,log_msg);
-				sprintf(log_msg,"Tiempo de compactacion: %s",ctime);
-				log_info(logger,log_msg);
-				log_info(logger, ">>>");
+					if(tableInfo != NULL){
+						log_info(logger, ">>>");
+						log_info(logger,"TABLA:");
+						log_info(logger,tables[i]);
+						char *cons = string_new(); strcpy(cons,tableInfo->consistency);
+						char *parts = tableInfo->partitions; char *ctime = tableInfo->ctime;
+						sprintf(log_msg,"Consistencia: %s",cons);
+						log_info(logger,log_msg);
+						sprintf(log_msg,"Particiones: %s",parts);
+						log_info(logger,log_msg);
+						sprintf(log_msg,"Tiempo de compactacion: %s",ctime);
+						log_info(logger,log_msg);
+						log_info(logger, ">>>");
 
-				free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
-				free(tableInfo);
-				free(cons);
-//				config_destroy(metadataCfg);
+						free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
+						free(tableInfo);
+						free(cons);
+					}
+				}
+			}else{
+				metadata *tableInfo = qdescribe(args[1]);
+
+				if(tableInfo != NULL){
+					log_info(logger, ">>>");
+					char *cons = string_new(); strcpy(cons,tableInfo->consistency);
+					char *parts = tableInfo->partitions; char *ctime = tableInfo->ctime;
+					sprintf(log_msg,"Consistencia: %s",cons);
+					log_info(logger,log_msg);
+					sprintf(log_msg,"Particiones: %s",parts);
+					log_info(logger,log_msg);
+					sprintf(log_msg,"Tiempo de compactacion: %s",ctime);
+					log_info(logger,log_msg);
+					log_info(logger, ">>>");
+
+					free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
+					free(tableInfo);
+					free(cons);
+		//				config_destroy(metadataCfg);
+				}
 			}
-
 			log_info(logger, "Fin DESCRIBE");
 			log_info(logger, "----------------------------------------");
 
