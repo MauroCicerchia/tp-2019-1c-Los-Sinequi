@@ -1,10 +1,23 @@
 #include"bitarray.h"
 
+void ba_loadBitarray(){
+	int f = open(fs_getBitmapUrl(), O_RDWR);
+	struct stat dunno;
+	fstat(f,&dunno);
+	bitarray = (t_bitarray*) mmap(NULL,dunno.st_size, PROT_WRITE, MAP_SHARED, f, 0);
+}
+
+//GUARDARLO EN MEMORIA
+void ba_bitarrayDestroy(){
+	msync((void*)bitarray,bitarray->size, MS_SYNC);
+
+}
+
+
 void ba_create()
 {
-
 	int blocks = get_blocks_cuantity();
-//	t_bitarray *bitarray;
+
 	if(blocks == 0) log_error(logger,"No puede haber 0 bloques");//no puede haber 0 bloques
 
 	if(blocks%8 == 0){
@@ -20,8 +33,11 @@ void ba_create()
 	txt_write_in_file(f,(char*)bitarray);
 	fclose(f);
 
+//	bitarray_destroy(bitarray);
+
 	fs_createBlocks(blocks);
 }
+
 
 int ba_exists(){
 	char *url = fs_getBitmapUrl();
@@ -52,7 +68,7 @@ int ba_getNewBlock()
 {
 	int blocks = get_blocks_cuantity();
 	int aux = lastBlockAssigned;
-	while(blocks){//maximo loop = cantidad de blocks del fs
+	while(blocks){//maximo loop = cantidad de blocks del fs  //esto esta mal porque tiene que volver al ppio
 		if(!bitarray_test_bit(bitarray,aux)){
 			bitarray_set_bit(bitarray,aux);
 			lastBlockAssigned = aux;

@@ -13,6 +13,7 @@ int fs_tableExists(char* table){
 	}
 }
 
+
 int fs_create(char *table,char *consistency,int parts,int ctime){
 	log_info(logger, "  Chequeo coherencia de particiones");
 	if(parts == 0){
@@ -118,9 +119,9 @@ void loadMetadata(char *table,char *consistency,int parts,int ctime){
 	free(url);
 }
 
+
 void fs_toDump(char *table,char *toDump){
 	char *tableUrl = makeTableUrl(table);
-	string_append(&tableUrl,table);
 	string_append(&tableUrl,string_itoa(tmpNo));
 	string_append(&tableUrl,".tmp");
 
@@ -155,7 +156,7 @@ metadata *fs_getTableMetadata(char *table)
 
 	log_info(logger,"  Guardo la metadata");
 
-//	config_destroy(metadataCfg);
+	config_destroy(tableMetadataCfg);
 
 	free(url);
 

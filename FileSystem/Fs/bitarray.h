@@ -2,6 +2,9 @@
 #include<string.h>
 #include<stdio.h>
 #include<unistd.h>
+#include"fcntl.h"
+#include"sys/mman.h"
+#include"sys/types.h"
 #include"commons/bitarray.h"
 #include"commons/config.h"
 #include"commons/txt.h"
@@ -23,4 +26,6 @@ int get_blocks_cuantity();
 void *ba_load_lfsMetadata();
 int ba_getNewBlock();
 void ba_freeBlock(int block);
+void ba_loadBitarray();
+void ba_bitarrayDestroy();
 #endif

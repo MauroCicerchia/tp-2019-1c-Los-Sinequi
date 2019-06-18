@@ -13,5 +13,6 @@ void qinsert(char *table, char* key, char *value, char* timeStamp){
 	}
 
 	else log_error(logger, "La tabla sobre la que se quiere hacer el insert no existe");
+	dump();
 }
 

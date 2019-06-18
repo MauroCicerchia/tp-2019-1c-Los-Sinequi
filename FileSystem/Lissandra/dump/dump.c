@@ -28,6 +28,7 @@ void dump(){ //averiguar por semaforos
 	else{
 		log_warning(logger,"No hay nada que dumpear");
 	}
+//	tmpNo++;
 }
 
 char *toLFSmode(char *timestamp,char *key,char *value){

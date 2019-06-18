@@ -3,7 +3,7 @@
 #include<stdio.h>
 #include<unistd.h>
 #include<string.h>
-
+#include"sys/stat.h"
 #include<commons/config.h>
 #include<commons/string.h>
 #include<commons/collections/list.h>
@@ -18,7 +18,7 @@ void b_loadPartitionsFiles(char *tableUrl, int parts);   //le asigna el size y u
 void b_assignSizeAndBlock(char *partUrl) ;  //le asigna un bloque y el size a esa url
 t_list *b_getListOfInserts(char *partUrl); //trae todas los inserts de esa url, que es la particion.bin o el .tmp
 t_list *insertsToList(char *inserts);
-void startPartition(char *url, int blockNumber);
+void startPartition(char *url, int blockNumber,int size);
 char *getListOfBlocks(char *partUrl);
 int getSizeOfBlocks();
 void b_modifyBlocks(char *partUrl, char *listBlocks);

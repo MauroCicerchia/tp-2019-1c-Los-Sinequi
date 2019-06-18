@@ -4,12 +4,18 @@
 //le asigna a cada partion de la tabla un size y un bloque vacio
 void b_loadPartitionsFiles(char *tableUrl,int parts)
 {
+	char *url;
 	for(int i = 0; i < parts; i++){
-		string_append(&tableUrl,string_itoa(i));
-		string_append(&tableUrl,".bin");
+		url = string_new();
+		string_append(&url,tableUrl);
+		string_append(&url,string_itoa(i));
+		string_append(&url,".bin");
 
-		b_assignSizeAndBlock(tableUrl);
+		b_assignSizeAndBlock(url);
+
+		free(url);
 	}
+	free(tableUrl);
 }
 
 
@@ -18,7 +24,7 @@ void b_assignSizeAndBlock(char *partUrl)
 {
 	int blockNumber = ba_getNewBlock();
 
-	startPartition(partUrl,blockNumber);
+	startPartition(partUrl,blockNumber,getSizeOfBlocks());
 }
 
 
@@ -77,13 +83,12 @@ t_list *insertsToList(char *inserts)
 
 
 //abre la particion de la url y le carga un bloque inicial y el size
-void startPartition(char *url, int blockNumber)
+void startPartition(char *url, int blockNumber, int size)
 {
 	char *toSave = string_new();
-//	int newBlock = ba_getNewBlock();
 
 	string_append(&toSave,"SIZE=");
-	//agregar size
+	string_append(&toSave,string_itoa(size));
 	string_append(&toSave,"\n");
 	string_append(&toSave,"BLOCKS=[");
 	string_append(&toSave,string_itoa(blockNumber));
@@ -99,8 +104,10 @@ void startPartition(char *url, int blockNumber)
 char *getListOfBlocks(char *partUrl)
 {
 	t_config *partition = config_create(partUrl);
-	char *blocks = config_get_string_value(partition,"BLOCKS");
+	char *pivot = config_get_string_value(partition,"BLOCKS");
+	char *blocks = string_duplicate(pivot);
 	config_destroy(partition);
+//	free(pivot);
 	return blocks;
 }
 
@@ -109,6 +116,7 @@ char *getListOfBlocks(char *partUrl)
 void b_modifyBlocks(char *partUrl, char *listBlocks){
 	t_config *partition = config_create(partUrl);
 	config_set_value(partition,"BLOCKS",listBlocks);
+	config_save(partition);
 	config_destroy(partition);
 
 }
@@ -121,12 +129,6 @@ int getSizeOfBlocks(){
 //tb_getBlockInserts(block) revisar si es necesaria y donde
 
 
-//typedef struct{
-//	char * table; //nombre de table
-//	int freeBlock; //el ultimo bloque, osea el que tiene espacio
-//	int freeSize; //espacio en bytes del ultimo bloque libre
-//}tableInfo;
-
 //guarda la data en el archivo de la url
 void b_saveData(char *url,char *data){   //"HOLACOMOESTASTODOBIEN"  //HOLA COMOESTASTO DOBIEN
  	char *blocksDirectory = fs_getBlocksUrl();
@@ -138,7 +140,7 @@ void b_saveData(char *url,char *data){   //"HOLACOMOESTASTODOBIEN"  //HOLA COMOE
 //	}
 
 	//en el ultimo bloque no hay espacio para guardar toda la info
-	if(! sizeOfSemiCompleteBlock >= strlen(data)){
+	if(! (sizeOfSemiCompleteBlock >= strlen(data))){
 		int blocksNeeded;
 		if( ((strlen(data)-sizeOfSemiCompleteBlock) % getSizeOfBlocks()) == 0 ){
 			//si entra justo le doy el tam justo
@@ -149,7 +151,7 @@ void b_saveData(char *url,char *data){   //"HOLACOMOESTASTODOBIEN"  //HOLA COMOE
 		}
 
 		//le asigno todos los bloques que necesita
-		for(int i =0; i < blocksNeeded+1; i++){b_addNewBlock(url);}
+		for(int i =0; i < blocksNeeded; i++){b_addNewBlock(url);}
 
 	}
 	//en el ultimo bloque hay espacio suficiente para guardar la info completa
@@ -169,7 +171,8 @@ void b_saveData(char *url,char *data){   //"HOLACOMOESTASTODOBIEN"  //HOLA COMOE
 	//lleno el bloque que estaba semicompleto
 	char *toInsert = string_substring(data, lastPosInserted, sizeOfSemiCompleteBlock);
 	b_saveIntoBlock(blockUrl, toInsert);
-	free(toInsert); free(blockUrl);
+	free(toInsert);
+//	free(blockUrl);
 	lastPosInserted = sizeOfSemiCompleteBlock;
 
 	while(flag){
@@ -236,7 +239,9 @@ int freeSizeOfTheFirstNotFullBlock(char *url){
 int b_get_lastBlock(char *url){
 	char **blocksArray = string_get_string_as_array(getListOfBlocks(url));
 	int last = sizeofArray(blocksArray) - 1;
-	return strtol(blocksArray[last],NULL,10);
+	char *lastBlock = string_duplicate(blocksArray[last]);
+	int x =strtol(lastBlock,NULL,10);
+	return x;
 }
 
 
@@ -257,20 +262,31 @@ bool b_full(int block){
 	return b_freeSize(block) == 0;
 }
 
+
 //al archivo le agrego un nuevo bloque a la lista de bloques
 void b_addNewBlock(char *url){
 	int newBlock = ba_getNewBlock();
 	char **listBlocks = string_get_string_as_array(getListOfBlocks(url));
-	listBlocks[sizeofArray(listBlocks)] = string_itoa(newBlock);
+	int size = sizeofArray(listBlocks);
+	listBlocks[size] = string_itoa(newBlock);
+	listBlocks[size + 1] = NULL;
 	char *stringArray = string_new();
+
 	string_append(&stringArray, "[");
-
-	void arrayfier(char *string){
-		string_append(&stringArray,string);
+	int i = 0;
+	while(listBlocks[i] != NULL){
+		string_append(&stringArray,listBlocks[i]);
+		if(listBlocks[i + 1] != NULL) string_append(&stringArray,",");
+		i++;
 	}
-
-	string_iterate_lines(listBlocks, arrayfier);
+//	void _arrayfier(char *string){
+//		string_append(&stringArray,string);
+//		string_append(&stringArray,",");
+//	}
+//
+//	string_iterate_lines(listBlocks, _arrayfier);
 	string_append(&stringArray, "]");
+//	string_append(&stringArray, NULL);
 	b_modifyBlocks(url,stringArray);
 }
 
@@ -281,18 +297,22 @@ int b_freeSize(int block){
 	char *url = fs_getBlocksUrl();
 	string_append(&url,string_itoa(block));
 	string_append(&url,".bin");
-	FILE *f = fopen(url,"r");
-	fseek(f,0,SEEK_END);
-	int actualSize = ftell(f);
+	struct stat st;
+	stat(url,&st);
+//	FILE *f = fopen(url,"r");
+//	fseek(f,0,SEEK_END); //ACA ROMPE
+//	int actualSize = ftell(f);
+	int actualSize = st.st_size;
 	return (getSizeOfBlocks() - actualSize);
 }
 
+
 //agarrar el ultimo del bloque y fijarse cuando espacio le queda
 int b_freeSizeOfLastBlock(char *url){
-	return b_freeSize(b_get_lastBlock(url));
+	int lb = b_get_lastBlock(url);
+	return b_freeSize(lb);
 }
 
-//void b_modifyBlocks(char *partUrl, char *listBlocks)
 
 //guarda en la url del bloque lo que se le pasa por parametro
 //esta funcion no deberia romper nunca por overflow de tamano de bloque porquese cheuquea antes de usarla

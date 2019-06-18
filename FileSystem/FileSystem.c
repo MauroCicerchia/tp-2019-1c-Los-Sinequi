@@ -1,4 +1,5 @@
 #include "FileSystem.h"
+
 /*GLOBALES*/
 t_list *memtable;
 
@@ -14,6 +15,7 @@ t_config *config;
 t_config *metadataCfg;
 t_config *lfsMetadata;
 
+
 t_bitarray *bitarray;
 int lastBlockAssigned;
 
@@ -22,6 +24,7 @@ sem_t MUTEX_MEMTABLE, MUTEX_RETARDTIME, MUTEX_DUMPTIME;
 
 int main(int argc, char **argv)
 {
+
 	init_FileSystem();
 
 	pthread_create(&tListenCfg,NULL,threadConfigModify,NULL);
@@ -63,7 +66,10 @@ void init_FileSystem()
 //	config_destroy(config);
 
 	ba_load_lfsMetadata();
-	if(!ba_exists())ba_create();
+//	if(!ba_exists())
+		ba_create();
+
+//	ba_loadBitarray();
 
 	sem_init(&MUTEX_MEMTABLE,1,1);
 	sem_init(&MUTEX_DUMPTIME,1,1);
@@ -83,6 +89,8 @@ void kill_FileSystem()
 	log_info(logger, "----------------------------------------");
 
 	list_destroy(memtable);
+
+	ba_bitarrayDestroy();
 
 	sem_destroy(&MUTEX_MEMTABLE);
 	sem_destroy(&MUTEX_DUMPTIME);
