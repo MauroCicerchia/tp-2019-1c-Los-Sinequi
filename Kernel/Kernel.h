@@ -55,6 +55,7 @@ void update_table(char*, e_cons_type, int, int);
 void drop_table(char*);
 void add_memories_to_table(t_table*);
 void *print_metrics();
+void printf_metrics();
 void metrics_new_select(int, int);
 void metrics_new_insert(int, int);
 char *get_memory_ip();

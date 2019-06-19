@@ -142,6 +142,9 @@ e_query processQuery(char *query) {
 
 		case QUERY_METRICS:
 			sprintf(log_msg, " >> Recibi un METRICS");
+			printf("\033[A");
+			printf_metrics();
+			printf("\n");
 			break;
 
 		default:
@@ -512,39 +515,13 @@ void add_memories_to_table(t_table *t) {
 }
 
 void *print_metrics() {
-	void print_m_load(void *mem) {
-		t_memory *m = (t_memory*)mem;
-		int mLoad = (m->totalOperations * 100) / totalOperations;
-		printf("%d : %d%% ", m->mid, mLoad);
-	}
-
-	float readLatency = 0.0f, writeLatency = 0.0f;
-
 	printf("\nR : RL/30s = 0 : 0.00s\nW : WL/30s = 0 : 0.00s\nML = \n\n");
 
 	while(true) {
 		sleep(30);
 		sem_wait(&MUTEX_READS);
 		sem_wait(&MUTEX_WRITES);
-		if(reads != 0) {
-			readLatency = readsTime/reads;
-		} else {
-			readLatency = 0.0f;
-		}
-		if(writes != 0) {
-			writeLatency = writesTime/writes;
-		} else {
-			writeLatency = 0.0f;
-		}
-		printf("%c7", 27);
-		printf("\033[A\033[A\033[A\033[A");
-		printf("\33[2K\rR : RL/30s = %d : %.2fs\n\33[2KW : WL/30s = %d : %.2fs\n\33[2KML = ", reads, readLatency, writes, writeLatency);
-		if(totalOperations != 0) {
-			sem_wait(&MUTEX_MEMORIES);
-			list_iterate(memories, print_m_load);
-			sem_post(&MUTEX_MEMORIES);
-		}
-		printf("%c8", 27);
+		printf_metrics();
 		reads = 0;
 		readsTime = 0.0f;
 		writes = 0;
@@ -555,6 +532,36 @@ void *print_metrics() {
 	}
 
 	return NULL;
+}
+
+void printf_metrics() {
+	void print_m_load(void *mem) {
+		t_memory *m = (t_memory*)mem;
+		int mLoad = (m->totalOperations * 100) / totalOperations;
+		printf("%d : %d%% ", m->mid, mLoad);
+	}
+
+	float readLatency = 0.0f, writeLatency = 0.0f;
+
+	if(reads != 0) {
+		readLatency = readsTime/reads;
+	} else {
+		readLatency = 0.0f;
+	}
+	if(writes != 0) {
+		writeLatency = writesTime/writes;
+	} else {
+		writeLatency = 0.0f;
+	}
+	printf("%c7", 27);
+	printf("\033[A\033[A\033[A\033[A");
+	printf("\33[2K\rR : RL/30s = %d : %.2fs\n\33[2KW : WL/30s = %d : %.2fs\n\33[2KML = ", reads, readLatency, writes, writeLatency);
+	if(totalOperations != 0) {
+		sem_wait(&MUTEX_MEMORIES);
+		list_iterate(memories, print_m_load);
+		sem_post(&MUTEX_MEMORIES);
+	}
+	printf("%c8", 27);
 }
 
 void metrics_new_select(int start, int end) {
