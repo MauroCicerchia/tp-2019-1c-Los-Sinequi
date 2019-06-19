@@ -95,10 +95,8 @@ void process_query_from_client(int client) {
 			send_res_code(client, RESPONSE_SUCCESS);
 			break;
 		case QUERY_DESCRIBE:
-			size = recv_int(client);
-			if(size != 0) {
-				table = (char*)malloc(size);
-				recv(client, table, size, 0);
+			table = recv_str(client);
+			if(table != NULL) {
 //				table_t *t = describeM(table);
 //				if(t != NULL) {
 					send_res_code(client, RESPONSE_SUCCESS);

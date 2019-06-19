@@ -10,9 +10,10 @@ typedef struct {
 	char *ip;
 	char *port;
 	int consTypes[3];
+	int totalOperations;
 } t_memory;
 
-t_memory *memory_create(char*, char*);
+t_memory *memory_create(int, char*, char*);
 void memory_destroy(void*);
 void memory_add_cons_type(t_memory*, e_cons_type);
 void memory_remove_cons_type(t_memory*, e_cons_type);
