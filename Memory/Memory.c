@@ -37,6 +37,19 @@ void kill_memory(){
 
 }
 
+void iniciar_logger()
+{
+	logger = log_create("../Memory.log", "Memory", 0, LOG_LEVEL_INFO);
+	log_info(logger,"--INICIANDO MEMORIA--");
+}
+
+void load_config() {
+	config = config_create("../.config");
+	if(config == NULL) {
+		log_error(logger, " >> No se pudo abrir el archivo de configuracion");
+		exit(-1);
+	}
+}
 
 int get_frame_size(){
 
@@ -50,7 +63,7 @@ int get_frame_size(){
 
 void create_bitmap(int memSize){
 
-	int bitNumbers = total_frames(memSize);
+	int bitNumbers = total_frames();
 	char* bitParameter = (char*)malloc(sizeof(char)*(bitNumbers/8 + 1));
 
 	for(int i = 0; i<=(bitNumbers/8); i++){
@@ -62,7 +75,8 @@ void create_bitmap(int memSize){
 	//printf("%d",bitNumbers);
 }
 
-int total_frames(int memSize){
+int total_frames(){
+	int memSize = config_get_int_value(config, "TAM_MEM");
 	int frameSize = get_frame_size();
 	int bitNumbers = memSize/frameSize;
 	return bitNumbers;
@@ -78,11 +92,6 @@ void THEGREATMALLOC(){
 	log_info(logger,"Memoria principal alocada");
 }
 
-void iniciar_logger()
-{
-	logger = log_create("../Memory.log", "Memory", 0, LOG_LEVEL_INFO);
-	log_info(logger,"--INICIANDO MEMORIA--");
-}
 
 void *listen_client() {
 	char *ip = config_get_string_value(config, "IP");
@@ -378,6 +387,27 @@ void load_page_to_segment(int key, segment* segmentFound, char* value) {
 	log_info(logger, "Se agrego la pagina con el nuevo valor a segmento y memoria.");
 }
 
+void journalM(){
+	void journal_segment(void* aSegment){
+		segment* s = (segment*) aSegment;
+		void journal_page(void* aPage){
+			page*p = (page*) aPage;
+			if((p)->isModified){
+				send_insert_to_FS(s->segment_id,get_key_from_memory(p->frame_num),get_value_from_memory(p->frame_num),config,logger);
+				p->isModified = 0;
+			}
+		}
+		list_iterate(s->page_list,journal_page);
+	}
+	list_iterate(segmentList,journal_segment);
+	//vaciar segment list
+	list_clean_and_destroy_elements(segmentList,segment_destroy);
+	//setear el bitmap en 0 de toda la mem
+	for(int i=0;i<total_frames();i++){
+		bitarray_clean_bit(bitmap,i);
+	}
+}
+
 int insertM(char* segmentID, int key, char* value){
 
 	if (frame_available_in_mem()){
@@ -421,9 +451,6 @@ int insertM(char* segmentID, int key, char* value){
 return 0;
 
 }
-
-
-
 
 char* selectM(char* segmentID, int key){
 	//Busca si existe una pagina con esta key
@@ -541,12 +568,5 @@ int get_timestamp(){
 	return (int)time(NULL);
 }
 
-void load_config() {
-	config = config_create("../.config");
-	if(config == NULL) {
-		log_error(logger, " >> No se pudo abrir el archivo de configuracion");
-		exit(-1);
-	}
-}
 
 
