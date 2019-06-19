@@ -19,7 +19,8 @@ typedef struct{
 typedef enum {
 	REQUEST_QUERY,
 	REQUEST_JOURNAL,
-	REQUEST_GOSSIP
+	REQUEST_GOSSIP,
+	REQUEST_VALUESIZE
 }e_request_code;
 
 typedef enum {

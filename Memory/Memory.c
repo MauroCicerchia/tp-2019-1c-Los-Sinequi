@@ -2,6 +2,7 @@
 int server;
 
 int main(int argc, char **argv) {
+
 	memory_init();
 
 	pthread_t threadClient;

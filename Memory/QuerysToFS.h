@@ -12,4 +12,4 @@ void send_describe_to_FS(char*,t_config*,t_log*);
 void send_insert_to_FS(char*,int,char*,t_config*,t_log*);
 void send_drop_to_FS(char*,t_config*,t_log*);
 
-int connect_to_FS(t_config*);
+int connect_to_FS(t_config*,t_log*);
