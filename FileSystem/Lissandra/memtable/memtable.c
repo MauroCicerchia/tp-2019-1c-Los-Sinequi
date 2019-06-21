@@ -19,7 +19,6 @@ bool mt_tableExists(char *table){
 	for(int i=0;i<list_size(memtable);i++){
 		pTable = (Itable*)list_get(memtable,i);
 		if(!strcmp(pTable->table,table)){
-			free(pTable);
 			return true;
 		}
 	}
@@ -41,12 +40,12 @@ t_list *mt_getTableToInsert(char *table){
 //agrega el nuevo insert a la lista de "inserts"
 void mt_addNewInsert(t_list *tableToInsert, char *timestamp, char *key, char *value){
 	Iinsert *pInsert = malloc(sizeof(Iinsert));
-	pInsert->key = string_new();
-	pInsert->timestamp = string_new();
-	pInsert->value = string_new();
-	strcpy(pInsert->key,key);
-	strcpy(pInsert->timestamp,timestamp);
-	strcpy(pInsert->value,value);
+	pInsert->key = string_duplicate(key);
+	pInsert->timestamp = string_duplicate(timestamp);
+	pInsert->value = string_duplicate(value);
+//	strcpy(pInsert->key,key);
+//	strcpy(pInsert->timestamp,timestamp);
+//	strcpy(pInsert->value,value);
 	list_add(tableToInsert,pInsert);
 }
 

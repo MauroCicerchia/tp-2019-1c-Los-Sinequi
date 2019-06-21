@@ -151,11 +151,11 @@ void b_saveData(char *url,char *data){
 //		block = b_get_lastBlock(url);
 //	}
 
-	//en el ultimo bloque no hay espacio para guardar toda la info
+	//en el ultimo bloque -NO- hay espacio para guardar toda la info
 	if(! (sizeOfSemiCompleteBlock >= strlen(data))){
 		int blocksNeeded;
 		if( ((strlen(data)-sizeOfSemiCompleteBlock) % getSizeOfBlocks()) == 0 ){
-			//si entra justo le doy el tam justo
+			//si entra justo le doy los bloques justos
 			blocksNeeded = (strlen(data)-sizeOfSemiCompleteBlock) / getSizeOfBlocks();
 		}else{
 			//si no entra justo le doy un bloque demas
@@ -197,7 +197,7 @@ void b_saveData(char *url,char *data){
 	while(flag){
 		toInsert = string_new();
 		if( (strlen(data)-lastPosInserted) > getSizeOfBlocks() ){ //si lo que queda no entra en un bloque
-			toInsert = string_substring(data, lastPosInserted, getSizeOfBlocks());
+			toInsert = string_substring_from(data, lastPosInserted);
 
 			blockUrl = string_new();
 			string_append(&blockUrl, blocksDirectory);
@@ -218,13 +218,14 @@ void b_saveData(char *url,char *data){
 			string_append(&blockUrl, string_itoa(b_get_firstFreeBlock(url)));
 			string_append(&blockUrl, ".bin");
 
-			b_saveIntoBlock(blockUrl, data);
+			b_saveIntoBlock(blockUrl, toInsert);
 
 			free(blockUrl); free(toInsert);
 			flag = 0; //condicion de corte, porque no queda mas nada que agregar
 		}//else
 
 	}//while
+
 free(blocksDirectory);
 }
 
@@ -266,7 +267,7 @@ bool b_full(int block){
 }
 
 bool b_empty(int block){
-	return b_freeSize(block) == getSizeOfBlocks();
+	return b_realFreeSize(block) == getSizeOfBlocks();
 }
 
 
@@ -294,6 +295,22 @@ void b_addNewBlock(char *url){
 }
 
 
+int b_realFreeSize(int block){
+	char *url = fs_getBlocksUrl();
+		char *strBlock = string_itoa(block);
+		string_append(&url,strBlock);
+		string_append(&url,".bin");
+
+		struct stat st;
+		stat(url,&st);
+
+		int actualSize = st.st_size;
+
+		free(url);
+		free(strBlock);
+		return (getSizeOfBlocks() - actualSize);
+
+}
 
 //cuantos bytes le quedan al bloque par asignar
 int b_freeSize(int block){
@@ -306,6 +323,17 @@ int b_freeSize(int block){
 	stat(url,&st);
 
 	int actualSize = st.st_size;
+
+	if(actualSize == 1){ //me fijo si lo que tiene es "&"
+		FILE *f = fopen(url,"r");
+		char *pivot = malloc(3);
+		fread(pivot,1,1,f);
+		fclose(f);
+		pivot[actualSize] = '\0';
+		if(!strcmp(pivot,"&"))
+			actualSize = 0;
+		free(pivot);
+	}
 
 	free(url);
 	free(strBlock);
@@ -324,7 +352,7 @@ int b_freeSizeOfLastBlock(char *url){
 //esta funcion no deberia romper nunca por overflow de tamano de bloque porquese cheuquea antes de usarla
 void b_saveIntoBlock(char *blockUrl,char *data)
 {
-	char *pivot;
+	char *pivot = malloc(3);
 	struct stat st;
 	FILE *f;
 	stat(blockUrl,&st);

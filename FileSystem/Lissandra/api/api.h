@@ -13,6 +13,8 @@
 #include"../select/select.h"
 #include"../create/create.h"
 #include"../describe/describe.h"
+#include"../drop/drop.h"
+
 #include<sys/time.h>
 
 extern t_log *logger;

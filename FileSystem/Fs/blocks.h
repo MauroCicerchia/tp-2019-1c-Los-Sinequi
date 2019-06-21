@@ -33,6 +33,7 @@ bool b_full(int block);
 bool b_empty(int block);
 void b_addNewBlock(char *url);
 int b_freeSize(int block);
+int b_realFreeSize(int block);
 int b_freeSizeOfLastBlock(char *url);
 void b_saveIntoBlock(char *blockUrl,char *data);
 void b_updateSize(char *tmpUrl);
