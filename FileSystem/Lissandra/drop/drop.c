@@ -33,6 +33,7 @@ void deleteDirectoriesAndFiles(char *table)
 			unlink(file);
 			free(file);
 		}
+		dir = readdir(d);
 	}
 	closedir(d);
 
@@ -88,8 +89,11 @@ t_list *getFiles(char *tableUrl)
 	while(dir != NULL){
 		if( strcmp(dir->d_name,".") &&
 			strcmp(dir->d_name,"..")&&
-			strcmp(dir->d_name,"Metadata.bin"))
-		list_add(toReturn,dir->d_name);
+			strcmp(dir->d_name,"Metadata.bin")){
+				char *toadd = string_duplicate(dir->d_name);
+				list_add(toReturn,toadd);
+		}
+		dir = readdir(d);
 	}
 	closedir(d);
 	return toReturn;
@@ -97,5 +101,5 @@ t_list *getFiles(char *tableUrl)
 
 //saca la tabla de la lista de tablas activas en memoria
 void deleteTableFromMemory(char *table){
-
+	return;
 }

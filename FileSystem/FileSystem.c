@@ -36,8 +36,8 @@ int main(int argc, char **argv)
 	pthread_create(&tListenCfg,NULL,threadConfigModify,NULL);
 	pthread_detach(tListenCfg);
 
-	pthread_create(&tLisentClient,NULL,threadListenToClient,NULL);
-	pthread_detach(tLisentClient);
+//	pthread_create(&tLisentClient,NULL,threadListenToClient,NULL);
+//	pthread_detach(tLisentClient);
 
 //	pthread_create(&tDump,NULL,threadDump,NULL);
 //	pthread_detach(tDump);
@@ -175,11 +175,11 @@ void *threadDump()
 	return NULL;
 }
 
-void *threadListenToClient()
-{
-	listen_client();
-	return NULL;
-}
+//void *threadListenToClient()
+//{
+//	listen_client();
+//	return NULL;
+//}
 
 void iniciar_logger(t_log **logger){
 	*logger = log_create("FileSystem.log", "FileSystem", 1, LOG_LEVEL_INFO);

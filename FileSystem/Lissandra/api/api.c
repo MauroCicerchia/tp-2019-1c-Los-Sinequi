@@ -152,7 +152,7 @@ void processQuery(char *query)
 
 			delayer();
 
-			//drop(args[1]);
+			qdrop(args[1]);
 
 			log_info(logger, "Fin DROP");
 			log_info(logger, "----------------------------------------");
