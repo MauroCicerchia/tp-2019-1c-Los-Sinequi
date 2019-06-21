@@ -32,7 +32,9 @@ int fs_create(char *table,char *consistency,int parts,int ctime)
 	makeFiles(table,parts);
 	log_info(logger, "  Creo los archivos de particion");
 	makeMetadataFile(table);
-	b_loadPartitionsFiles(makeTableUrl(table),parts); //le asigna el size y un bloque a cada bloque de particion
+	char *tableUrl = makeTableUrl(table);
+	b_loadPartitionsFiles(tableUrl,parts); //le asigna el size y un bloque a cada bloque de particion
+	free(tableUrl);
 	log_info(logger, "  Les asigno un bloque inicial a cada particion");
 	loadMetadata(table,consistency,parts,ctime);
 	log_info(logger, "  Creo y cargo el archivo de metadata");
@@ -130,18 +132,20 @@ void loadMetadata(char *table,char *consistency,int parts,int ctime)
 
 void fs_toDump(char *table,char *toDump)
 {
-	char *tableUrl = makeTableUrl(table);
-	string_append(&tableUrl,string_itoa(tmpNo));
-	string_append(&tableUrl,".tmp");
+	char *tmpUrl = makeTableUrl(table);
+	string_append(&tmpUrl,string_itoa(tmpNo));
+	string_append(&tmpUrl,".tmp");
 
-	FILE *file = txt_open_for_append(tableUrl);
+	FILE *file = txt_open_for_append(tmpUrl);
 	fclose(file);
 
-	b_assignSizeAndBlock(tableUrl); //le asigno un bloque y un size
+	b_assignSizeAndBlock(tmpUrl,0); //le asigno un bloque y un size 0
 
-	b_saveData(tableUrl,toDump); //guarda en la url tableUrl el char* que se le pasa
+	b_saveData(tmpUrl,toDump); //guarda en la url tableUrl el char* que se le pasa
 
-	free(tableUrl);
+	b_updateSize(tmpUrl);
+
+	free(tmpUrl);
 }
 
 
@@ -159,9 +163,9 @@ metadata *fs_getTableMetadata(char *table)
 
 	log_info(logger,"  Abro el archivo de metadata");
 
-	tableMetadata->consistency = getConsistency(tableMetadataCfg);
-	tableMetadata->ctime = getCTime(tableMetadataCfg);
-	tableMetadata->partitions = getPartitions(tableMetadataCfg);
+	tableMetadata->consistency = string_duplicate(getConsistency(tableMetadataCfg));
+	tableMetadata->ctime = string_duplicate(getCTime(tableMetadataCfg));
+	tableMetadata->partitions = string_duplicate(getPartitions(tableMetadataCfg));
 
 	log_info(logger,"  Guardo la metadata");
 

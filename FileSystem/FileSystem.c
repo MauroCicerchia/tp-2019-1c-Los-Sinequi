@@ -80,7 +80,8 @@ void init_FileSystem()
 	flagBloquesLibres = 1; //hay bloques libre
 	lastBlockAssigned = 0; //inicio como ultimo bloque asignado el primero
 	printf("%d",tmpNo);
-//	if(!b_blocksCreated()){ //
+
+//	if(!b_blocksCreated()){
 //		b_create();
 //	}
 

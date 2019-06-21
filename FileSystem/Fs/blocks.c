@@ -13,21 +13,20 @@ void b_loadPartitionsFiles(char *tableUrl,int parts)
 		string_append(&url,strPart);
 		string_append(&url,".bin");
 
-		b_assignSizeAndBlock(url);
+		b_assignSizeAndBlock(url,0);
 
 		free(url);
 		free(strPart);
 	}
-	free(tableUrl);
 }
 
 
 //le asigna un bloque y el size a esa url
-void b_assignSizeAndBlock(char *partUrl)
+void b_assignSizeAndBlock(char *partUrl,int size)
 {
 	int blockNumber = ba_getNewBlock();
 
-	startPartition(partUrl,blockNumber,getSizeOfBlocks());
+	startPartition(partUrl,blockNumber,size);
 }
 
 
@@ -142,10 +141,11 @@ int getSizeOfBlocks(){
 
 
 //guarda la data en el archivo de la url
-void b_saveData(char *url,char *data){   //"HOLACOMOESTASTODOBIEN"  //HOLA COMOESTASTO DOBIEN
+void b_saveData(char *url,char *data){
  	char *blocksDirectory = fs_getBlocksUrl();
 	char *blockUrl;
 	int sizeOfSemiCompleteBlock = b_freeSizeOfLastBlock(url);
+
 //	if(b_full(block)){
 //		b_addNewBlock(url);
 //		block = b_get_lastBlock(url);
@@ -322,9 +322,64 @@ int b_freeSizeOfLastBlock(char *url){
 
 //guarda en la url del bloque lo que se le pasa por parametro
 //esta funcion no deberia romper nunca por overflow de tamano de bloque porquese cheuquea antes de usarla
-void b_saveIntoBlock(char *blockUrl,char *data){
-	FILE *f = txt_open_for_append(blockUrl);
-	txt_write_in_file(f, data);
+void b_saveIntoBlock(char *blockUrl,char *data)
+{
+	char *pivot;
+	struct stat st;
+	FILE *f;
+	stat(blockUrl,&st);
+	int fSize = st.st_size;
+
+	if(fSize == 1){
+		f = fopen(blockUrl,"r");
+		fread(pivot,fSize,1,f);
+		fclose(f);
+		pivot[fSize] = '\0';
+		if(!strcmp(pivot,"&")){
+			f = fopen(blockUrl,"w");
+			fclose(f);
+		}
+//		free(pivot);
+	}
+
+	FILE *ff = txt_open_for_append(blockUrl);
+	txt_write_in_file(ff, data);
+	txt_close_file(ff);
+}
+
+//actualiza el tamano
+void b_updateSize(char *url){
+	char *x = getListOfBlocks(url);
+	char **blocks = string_get_string_as_array(x);
+	free(x);
+
+	int tam = (sizeofArray(blocks) - 1) * getSizeOfBlocks(); //no deberia llegarle nunca un array tam 0
+	tam += (getSizeOfBlocks() - b_freeSizeOfLastBlock(url) );
+
+	b_modifySize(url,tam);
+	free(blocks);
+}
+
+void b_modifySize(char *url,int tam){
+	t_config *conf = config_create(url);
+	char *strtam = string_itoa(tam);
+	config_set_value(conf,"SIZE",strtam);
+	config_save(conf);
+	config_destroy(conf);
+	free(strtam);
+}
+
+//le escribe "&" para saber que tiene algo y que esta incializado
+void b_writeBlockAssigned(int block)
+{
+	char *url = fs_getBlocksUrl();
+	char *strBlock = string_itoa(block);
+	string_append(&url,strBlock);
+	string_append(&url,".bin");
+
+	FILE *f = txt_open_for_append(url);
+	txt_write_in_file(f,"&");
 	txt_close_file(f);
 
+	free(strBlock);
 }

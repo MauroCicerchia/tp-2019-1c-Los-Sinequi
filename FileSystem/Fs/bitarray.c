@@ -79,6 +79,7 @@ int ba_getNewBlock()
 		if(!bitarray_test_bit(bitarray,aux)){
 			bitarray_set_bit(bitarray,aux);
 			lastBlockAssigned = aux;
+			b_writeBlockAssigned(aux);
 			msync(bitarray->bitarray, bitarrayfd, MS_SYNC);
 			sem_post(&MUTEX_BITARRAY);
 			return aux;

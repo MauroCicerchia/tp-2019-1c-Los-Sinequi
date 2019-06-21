@@ -16,7 +16,7 @@ extern int metadataSizeBlocks;
 #ifndef BLOCKS_H
 #define BLOCKS_H
 void b_loadPartitionsFiles(char *tableUrl, int parts);   //le asigna el size y un bloque a cada bloque de particion
-void b_assignSizeAndBlock(char *partUrl) ;  //le asigna un bloque y el size a esa url
+void b_assignSizeAndBlock(char *partUrl, int size) ;  //le asigna un bloque y el size a esa url
 t_list *b_getListOfInserts(char *partUrl); //trae todas los inserts de esa url, que es la particion.bin o el .tmp
 t_list *insertsToList(char *inserts);
 void startPartition(char *url, int blockNumber,int size);
@@ -35,4 +35,7 @@ void b_addNewBlock(char *url);
 int b_freeSize(int block);
 int b_freeSizeOfLastBlock(char *url);
 void b_saveIntoBlock(char *blockUrl,char *data);
+void b_updateSize(char *tmpUrl);
+void b_modifySize(char *url,int tam);
+void b_writeBlockAssigned(int block);
 #endif

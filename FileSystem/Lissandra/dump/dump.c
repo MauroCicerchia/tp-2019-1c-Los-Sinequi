@@ -2,7 +2,7 @@
 
 //dumpea todas las tablas de la memtable a los archivos correspondientes
 void dump(){ //averiguar por semaforos
-	char *toDump, *pTimestamp, *pKey, *pValue;
+	char *toDump, *pTimestamp, *pKey, *pValue, *lfs;
 	Itable *pTable; Iinsert *pInsert;
 	int size = list_size(memtable);
 	if(size != 0){
@@ -13,11 +13,14 @@ void dump(){ //averiguar por semaforos
 			pTable = (Itable*)list_get(memtable,i);
 			for(int j=0;j<list_size(pTable->inserts);j++){
 				//recorro todos los inserts de la tabla actual
-				pKey = string_new(); pTimestamp = string_new(); pValue = string_new();
 				pInsert = list_get(pTable->inserts,j);
-				strcpy(pTimestamp,pInsert->timestamp); strcpy(pKey,pInsert->key);strcpy(pValue,pInsert->value);
-				string_append(&toDump, toLFSmode(pTimestamp,pKey,pValue) );
-				free(pKey); free(pTimestamp); free(pValue);
+
+				pTimestamp = string_duplicate(pInsert->timestamp);
+				pKey = string_duplicate(pInsert->key);
+				pValue = string_duplicate(pInsert->value);
+				lfs = toLFSmode(pTimestamp,pKey,pValue);
+				string_append(&toDump, lfs);
+				free(pKey); free(pTimestamp); free(pValue); free(lfs);
 			}
 			fs_toDump(pTable->table,toDump);
 			free(toDump);

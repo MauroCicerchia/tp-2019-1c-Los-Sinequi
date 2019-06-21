@@ -67,7 +67,7 @@ void processQuery(char *query)
 			log_info(logger, "Fin INSERT");
 			log_info(logger, "----------------------------------------");
 
-			free(args[1]); free(args[2]); free(args[3]); free(args[4]);
+//			free(args[1]); free(args[2]); free(args[3]); free(args[4]);
 			break;
 
 		case QUERY_CREATE:
@@ -103,19 +103,20 @@ void processQuery(char *query)
 						log_info(logger, ">>>");
 						log_info(logger,"TABLA:");
 						log_info(logger,list_get(tables,i));
-						char *cons = string_new(); strcpy(cons,tableInfo->consistency);
-						char *parts = tableInfo->partitions; char *ctime = tableInfo->ctime;
-						sprintf(log_msg,"Consistencia: %s",cons);
+//						char *cons = tableInfo->consistency;
+//						char *parts = tableInfo->partitions;
+//						char *ctime = tableInfo->ctime;
+						sprintf(log_msg,"Consistencia: %s",tableInfo->consistency);
 						log_info(logger,log_msg);
-						sprintf(log_msg,"Particiones: %s",parts);
+						sprintf(log_msg,"Particiones: %s",tableInfo->partitions);
 						log_info(logger,log_msg);
-						sprintf(log_msg,"Tiempo de compactacion: %s",ctime);
+						sprintf(log_msg,"Tiempo de compactacion: %s",tableInfo->ctime);
 						log_info(logger,log_msg);
 						log_info(logger, ">>>");
 
 						free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
 						free(tableInfo);
-						free(cons);
+//						free(cons);
 					}
 				}
 			}else{

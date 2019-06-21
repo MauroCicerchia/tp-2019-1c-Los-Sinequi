@@ -3,8 +3,7 @@
 void mt_insert(char *table,char* timestamp, char *key,char *value){
 	if(!mt_tableExists(table)){
 		Itable *newTable = malloc(sizeof(Itable));
-		newTable->table = string_new();
-		strcpy(newTable->table,table);
+		newTable->table = string_duplicate(table);
 		newTable->inserts = list_create();
 		list_add(memtable,newTable);
 	}
