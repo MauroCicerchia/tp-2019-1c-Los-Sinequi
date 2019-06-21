@@ -13,6 +13,8 @@
 #include"Fs/bitarray.h"
 #include"Fs/fs.h"
 
+#include"Lissandra/connection/connection.h"
+
 void init_FileSystem();
 void kill_FileSystem();
 void iniciar_logger(t_log **logger);
@@ -25,6 +27,7 @@ int get_size_of_blocks(t_config *metadata);
 int get_blocks_cuantityy(t_config *metadata);
 char *get_fs_route();
 void *threadConfigModify();
+void *threadListenToClient();
 void *threadDump();
 void load_config();
 t_config *load_lfsMetadata();

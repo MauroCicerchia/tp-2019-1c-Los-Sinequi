@@ -9,7 +9,7 @@ t_log *logger;
 
 int fd,wd,dumpTime,retardTime,tmpNo,valueSize;
 
-pthread_t tApi,tDump,tListenCfg;
+pthread_t tApi,tDump,tListenCfg, tLisentClient;
 
 t_config *config;
 t_config *metadataCfg;
@@ -35,6 +35,9 @@ int main(int argc, char **argv)
 
 	pthread_create(&tListenCfg,NULL,threadConfigModify,NULL);
 	pthread_detach(tListenCfg);
+
+	pthread_create(&tLisentClient,NULL,threadListenToClient,NULL);
+	pthread_detach(tLisentClient);
 
 //	pthread_create(&tDump,NULL,threadDump,NULL);
 //	pthread_detach(tDump);
@@ -121,7 +124,8 @@ void kill_FileSystem()
 	//chau fs :)
 }
 
-void *threadConfigModify(){
+void *threadConfigModify()
+{
 	log_info(logger, "----------------------------------------");
 	log_info(logger, "Inicia monitoreo de cambios en .config");
 	log_info(logger, "----------------------------------------");
@@ -152,7 +156,8 @@ void *threadConfigModify(){
 	return NULL;
 }
 
-void *threadDump(){
+void *threadDump()
+{
 	int dt;
 	while(1){
 		sem_wait(&MUTEX_DUMPTIME);
@@ -169,6 +174,13 @@ void *threadDump(){
 	}
 	return NULL;
 }
+
+void *threadListenToClient()
+{
+	listen_client();
+	return NULL;
+}
+
 void iniciar_logger(t_log **logger){
 	*logger = log_create("FileSystem.log", "FileSystem", 1, LOG_LEVEL_INFO);
 }

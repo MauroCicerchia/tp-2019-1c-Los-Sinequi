@@ -2,3 +2,5 @@
 #include<stdlib.h>
 
 #include"../../Fs/fs.h"
+
+int qdrop(char *table);

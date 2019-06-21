@@ -159,7 +159,10 @@ metadata *fs_getTableMetadata(char *table)
 
 	t_config *tableMetadataCfg;
 	tableMetadataCfg =load_metadataConfig(url);
-	if(tableMetadataCfg == NULL) return NULL;
+	if(tableMetadataCfg == NULL){
+		log_error(logger,"Error con el archivo de Metadata de tabla");
+		return NULL;
+	}
 
 	log_info(logger,"  Abro el archivo de metadata");
 

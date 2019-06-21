@@ -10,13 +10,13 @@ char *qselect(char *table, char* strKey){
 		return NULL;
 	}
 
-
 	list = fs_getListOfInserts(table,key);
 
 	if(list_size(list) == 0){
 		log_error(logger, "NO se hizo ningun insert");
 		return NULL;
 	}
+
 	log_info(logger, "  Guardo en una lista toda la info de la tabla");
 
 	t_list *dataList = listToDATAmode(list);

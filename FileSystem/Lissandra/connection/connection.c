@@ -1,4 +1,4 @@
-#include"connection.h"
+#include "connection.h"
 
 void *listen_client()
 {
@@ -24,22 +24,26 @@ void *listen_client()
 }
 
 
-
 void process_query_from_client(int client)
 {
 	e_query opCode;
 	recv(client, &opCode, sizeof(opCode), 0);
 
 	char *table, *value;
-	int key, part, compTime, size;
+	int key, part, compTime, size, status;
 	char *consType;
+	char *sKey, *sTimeStamp, *sPart, *sCTime;
+	metadata *tableMetadata;
 
 	switch(opCode) {
+
 		case QUERY_SELECT:
+
 			table = recv_str(client);
 			key = recv_int(client);
-			char *response;
-//					selectM(table, key);
+			sKey = string_itoa(key);
+			char *response = qselect(table, sKey);
+			free(sKey);
 
 			if(response != NULL) {
 				send_res_code(client, RESPONSE_SUCCESS);
@@ -49,62 +53,88 @@ void process_query_from_client(int client)
 			}
 			break;
 
+
 		case QUERY_INSERT:
+
 			table = recv_str(client);
 			key = recv_int(client);
 			value = recv_str(client);
-			int status;
-//					insertM(table, key, value);
-			switch(status) {
-				case 0: send_res_code(client, RESPONSE_SUCCESS); break;
-				case 1: send_res_code(client, RESPONSE_ERROR); break;
-//				case 2: send_res_code(client, RESPONSE_FULL); break;
-			}
+			int timeStamp = recv_int(client);
+			sKey = string_itoa(key);
+			sTimeStamp = string_itoa(timeStamp);
+
+			status = qinsert(table, sKey, value,sTimeStamp);
+			free(sKey); free(sTimeStamp);
+			if(status)
+				send_res_code(client, RESPONSE_SUCCESS);
+			else
+				send_res_code(client, RESPONSE_ERROR);
+
 			break;
 
+
 		case QUERY_CREATE:
+
 			table = recv_str(client);
 			consType = recv_str(client);
 			part = recv_int(client);
 			compTime = recv_int(client);
-//			int status = createM(table, consType, part, compTime);
-			send_res_code(client, RESPONSE_SUCCESS);
+			sPart = string_itoa(part);
+			sCTime = string_itoa(compTime);
+
+			status = qcreate(table, consType, sPart, sCTime);
+			if(status)
+				send_res_code(client, RESPONSE_SUCCESS);
+
+			else
+				send_res_code(client, RESPONSE_ERROR);
+
 			break;
 
+
 		case QUERY_DESCRIBE:
+
 			size = recv_int(client);
 			if(size != 0) {
 				table = (char*)malloc(size);
 				recv(client, table, size, 0);
-//				table_t *t = describeM(table);
-//				if(t != NULL) {
+				tableMetadata = qdescribe(table);
+				if(tableMetadata != NULL) {
 					send_res_code(client, RESPONSE_SUCCESS);
 //					send_int(client, 1);
 //					send_table(client, t);
-//				} else {
-//					send_res_code(client, RESPONSE_ERROR);
-//				}
+				} else {
+					send_res_code(client, RESPONSE_ERROR);
+				}
+
 			} else {
 //				t_list *tl = describeM();
 //				int tCount = list_size(tl);
-//				if(tCount != 0) {
+				if(tCount != 0) {
 					send_res_code(client, RESPONSE_SUCCESS);
 //					send_int(client, tCount);
 					void sendTable(void *t) {
 //						send_table(client, (table_t*)t);
 					}
 //					list_iterate(tl, sendTable);
-//				} else {
+				} else {
 					send_res_code(client, RESPONSE_ERROR);
-//				}
+				}
 			}
 			break;
 
+
 		case QUERY_DROP:
+
 			table = recv_str(client);
-//			int status = dropM(table);
-			send_res_code(client, RESPONSE_SUCCESS);
+			status = qdrop(table);
+			if(status)
+				send_res_code(client, RESPONSE_SUCCESS);
+			else
+				send_res_code(client, RESPONSE_ERROR);
+
 			break;
+
 
 		//casos imposibles
 		case QUERY_JOURNAL: send_res_code(client, RESPONSE_ERROR);break;
