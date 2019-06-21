@@ -263,7 +263,9 @@ t_list *fs_getListOfInserts(char* table,int key)
 	string_append(&tableMetadataUrl,"Metadata.bin");
 	t_config *tableMetadataCfg = load_metadataConfig(tableMetadataUrl);
 
-	char *partition = string_itoa(key % strtol(getPartitions(tableMetadataCfg),NULL,10));
+	char *strpartitions = getPartitions(tableMetadataCfg);
+	char *partition = string_itoa(key % strtol(strpartitions,NULL,10));
+	free(strpartitions);
 
 	config_destroy(tableMetadataCfg);
 

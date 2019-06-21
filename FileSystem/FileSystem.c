@@ -39,8 +39,8 @@ int main(int argc, char **argv)
 //	pthread_create(&tLisentClient,NULL,threadListenToClient,NULL);
 //	pthread_detach(tLisentClient);
 
-//	pthread_create(&tDump,NULL,threadDump,NULL);
-//	pthread_detach(tDump);
+	pthread_create(&tDump,NULL,threadDump,NULL);
+	pthread_detach(tDump);
 
 	start_Api();
 

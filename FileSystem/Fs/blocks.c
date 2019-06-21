@@ -58,13 +58,13 @@ t_list *b_getListOfInserts(char *partUrl)
 
 		pivot = malloc(fSize);
 
-		//if size !=0
 		f = fopen(blockUrl,"r");
 		fread(pivot,fSize,1,f);
 		fclose(f);
 		pivot[fSize] = '\0';
 
-		string_append(&inserts,pivot);
+		if(strcmp(pivot,"&")) //si no es igual a "&" lo agrego a la lista de inserts
+			string_append(&inserts,pivot);
 
 		free(pivot);
 		free(blockUrl);
