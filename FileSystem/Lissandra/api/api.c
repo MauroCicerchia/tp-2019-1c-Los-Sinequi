@@ -21,7 +21,7 @@ void processQuery(char *query)
 {
 	e_query queryType;
 	char log_msg[100];
-	char *selectReturnValue = string_new();
+	char *selectReturnValue;
 	char **args = parseQuery(query);
 	t_list *tables;
 
@@ -67,7 +67,7 @@ void processQuery(char *query)
 			log_info(logger, "Fin INSERT");
 			log_info(logger, "----------------------------------------");
 
-//			free(args);
+			free(args[1]); free(args[2]); free(args[3]); free(args[4]);
 			break;
 
 		case QUERY_CREATE:

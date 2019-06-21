@@ -5,15 +5,18 @@
 void b_loadPartitionsFiles(char *tableUrl,int parts)
 {
 	char *url;
+	char *strPart;
 	for(int i = 0; i < parts; i++){
 		url = string_new();
 		string_append(&url,tableUrl);
-		string_append(&url,string_itoa(i));
+		strPart = string_itoa(i);
+		string_append(&url,strPart);
 		string_append(&url,".bin");
 
 		b_assignSizeAndBlock(url);
 
 		free(url);
+		free(strPart);
 	}
 	free(tableUrl);
 }
@@ -94,16 +97,20 @@ void startPartition(char *url, int blockNumber, int size)
 	char *toSave = string_new();
 
 	string_append(&toSave,"SIZE=");
-	string_append(&toSave,string_itoa(size));
+	char *strSize = string_itoa(size);
+	string_append(&toSave,strSize);
 	string_append(&toSave,"\n");
 	string_append(&toSave,"BLOCKS=[");
-	string_append(&toSave,string_itoa(blockNumber));
+	char *strblockNumber = string_itoa(blockNumber);
+	string_append(&toSave,strblockNumber);
+	free(strblockNumber);
 	string_append(&toSave,"]\n");
 
 	FILE *f = txt_open_for_append(url);
 	txt_write_in_file(f,toSave);
 	txt_close_file(f);
 	free(toSave);
+	free(strSize);
 }
 
 //toma el array de bloques del ,archivo pasado por url, asociado a BLOCKS=
@@ -232,7 +239,7 @@ int freeSizeOfTheFirstNotFullBlock(char *url){
 int b_get_lastBlock(char *url){
 	char **blocksArray = string_get_string_as_array(getListOfBlocks(url));
 	int last = sizeofArray(blocksArray) - 1;
-	char *lastBlock = string_duplicate(blocksArray[0]);
+	char *lastBlock = string_duplicate(blocksArray[last]);
 	int x = strtol(lastBlock,NULL,10);
 	free(lastBlock);
 	free(blocksArray);

@@ -1,7 +1,8 @@
 #include"fs.h"
 
 
-int fs_tableExists(char* table){
+int fs_tableExists(char* table)
+{
 	char *tableUrl = makeUrlForPartition(table,"0");
 	if(access(tableUrl,F_OK) != -1){
 		free(tableUrl);
@@ -14,7 +15,8 @@ int fs_tableExists(char* table){
 }
 
 
-int fs_create(char *table,char *consistency,int parts,int ctime){
+int fs_create(char *table,char *consistency,int parts,int ctime)
+{
 	log_info(logger, "  Chequeo coherencia de particiones");
 	if(parts == 0){
 		log_error(logger,"No puede haber 0 particiones");
@@ -37,14 +39,16 @@ int fs_create(char *table,char *consistency,int parts,int ctime){
 	return 1;
 }
 
-char *makeUrlForPartition(char *table,char *partition){
+char *makeUrlForPartition(char *table,char *partition)
+{
 	char *url = makeTableUrl(table);
 	string_append(&url,partition);
 	string_append(&url,".bin");
 	return url;
 }
 
-char *makeTableUrl(char *table){
+char *makeTableUrl(char *table)
+{
 	char *url = string_new();
 	string_append(&url,absoluto);
 	string_append(&url,"Tables/");
@@ -53,7 +57,8 @@ char *makeTableUrl(char *table){
 	return url;
 }
 
-void makeDirectories(char *table){
+void makeDirectories(char *table)
+{
 	char *url = string_new();
 	string_append(&url,absoluto);
 	string_append(&url,"Tables/");
@@ -62,12 +67,12 @@ void makeDirectories(char *table){
 	free(url);
 }
 
-void makeFiles(char *table,int parts){
+void makeFiles(char *table,int parts)
+{
 	char *url;
 	char* j;
 	FILE *file;
 	for(int i = 0;i<parts; i++){
-		url = string_new();
 		j = string_itoa(i);
 		url = makeUrlForPartition(table,j);
 		file = fopen(url,"w+");
@@ -77,7 +82,8 @@ void makeFiles(char *table,int parts){
 	}
 }
 
-void makeMetadataFile(char *table){
+void makeMetadataFile(char *table)
+{
 	FILE *file;
 	char *url = makeTableUrl(table);
 	string_append(&url,"Metadata.bin");
@@ -86,7 +92,8 @@ void makeMetadataFile(char *table){
 	free(url);
 }
 
-void loadMetadata(char *table,char *consistency,int parts,int ctime){
+void loadMetadata(char *table,char *consistency,int parts,int ctime)
+{
 	FILE *file;
 	char *pctime = string_itoa(ctime);
 	char *pparts = string_itoa(parts);
@@ -117,10 +124,12 @@ void loadMetadata(char *table,char *consistency,int parts,int ctime){
 
 	txt_close_file(file);
 	free(url);
+	free(pctime); free(pparts);
 }
 
 
-void fs_toDump(char *table,char *toDump){
+void fs_toDump(char *table,char *toDump)
+{
 	char *tableUrl = makeTableUrl(table);
 	string_append(&tableUrl,string_itoa(tmpNo));
 	string_append(&tableUrl,".tmp");
@@ -237,7 +246,8 @@ void fs_createBlocks(int blocks)
 	free(url);
 }
 
-t_list *fs_getListOfInserts(char* table,int key){
+t_list *fs_getListOfInserts(char* table,int key)
+{
 	char *tableUrl = makeTableUrl(table);
 	char *tableMetadataUrl, *partUrl, *tmpUrl;
 
@@ -310,7 +320,8 @@ t_list *getAllTmps(char *tableUrl)
 	return allTmpsNames;
 }
 
-void fs_setActualTmps(){
+void fs_setActualTmps()
+{
 	char *url;
 
 	t_list *alltmps; //tmps de una tabla
@@ -328,7 +339,8 @@ void fs_setActualTmps(){
 	list_destroy_and_destroy_elements(allTables, free);
 }
 
-void incrementTmpNo(t_list *alltmps){
+void incrementTmpNo(t_list *alltmps)
+{
 	char *tmp;
 	char **aux;
 	int n;
@@ -342,7 +354,8 @@ void incrementTmpNo(t_list *alltmps){
 	}
 }
 
-t_list *fs_getAllTables(){
+t_list *fs_getAllTables()
+{
 	t_list *allTables = list_create();
 	char *table;
 
