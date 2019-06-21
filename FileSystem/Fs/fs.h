@@ -54,9 +54,9 @@ char *fs_getBitmapUrl();
 char *fs_getlfsMetadataUrl();
 char* fs_getBlocksUrl();
 
-char **getAllTmps(char *);
+t_list *getAllTmps(char *);
 void fs_setActualTmps();
-void incrementTmpNo(char **alltmps);
+void incrementTmpNo(t_list *alltmps);
 
 void fs_toDump(char*,char*); //nombre de tabla y el string a dumpear
 

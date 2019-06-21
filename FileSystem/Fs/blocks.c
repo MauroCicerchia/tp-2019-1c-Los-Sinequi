@@ -291,12 +291,17 @@ void b_addNewBlock(char *url){
 //cuantos bytes le quedan al bloque par asignar
 int b_freeSize(int block){
 	char *url = fs_getBlocksUrl();
-	string_append(&url,string_itoa(block));
+	char *strBlock = string_itoa(block);
+	string_append(&url,strBlock);
 	string_append(&url,".bin");
+
 	struct stat st;
 	stat(url,&st);
+
 	int actualSize = st.st_size;
+
 	free(url);
+	free(strBlock);
 	return (getSizeOfBlocks() - actualSize);
 }
 

@@ -257,18 +257,17 @@ t_list *fs_getListOfInserts(char* table,int key){
 
 	t_list *partList = b_getListOfInserts(partUrl); //trae todas los inserts de esa url (la de particion adecuada)
 
-	char **tmps = getAllTmps(tableUrl);
+	t_list *tmps = getAllTmps(tableUrl);
 	t_list *tmpsList = list_create();
 
-	int i = 0;
-	while(tmps[i] != NULL){
+	for(int i= 0; i < list_size(tmps); i++){
 		tmpUrl = string_new();
 		string_append(&tmpUrl,tableUrl);
-		string_append(&tmpUrl,tmps[i]);
+		string_append(&tmpUrl,list_get(tmps,i));
 		list_add_all(tmpsList,b_getListOfInserts(tmpUrl));
 		free(tmpUrl);
-		i++;
 	}
+
 
 	t_list *mtList = mt_getListofInserts(table); //toma todos los inserts de la memtable referidos a la tabla
 
@@ -278,6 +277,7 @@ t_list *fs_getListOfInserts(char* table,int key){
 
 	list_destroy_and_destroy_elements(tmpsList,free);
 	list_destroy_and_destroy_elements(mtList,free);
+	list_destroy_and_destroy_elements(tmps, free);
 	free(partUrl);
 	free(tableMetadataUrl);
 	free(tableUrl);
@@ -290,58 +290,55 @@ t_list *fs_getListOfInserts(char* table,int key){
 t_list *getAllTmps(char *tableUrl)
 {
 	t_list *allTmpsNames = list_create();
+	char *table;
 
-//	char **allTmpsNames = (char**)malloc(sizeof(char)*3 *(tmpNo+1));
-//	char *tmpUrl;
-//	char *aux;
-//	for(int i = 0; i <= tmpNo; i++){ //que recorra todas las posibilidades de tmps
-//		tmpUrl = string_new();
-//		aux = string_new();
-//		string_append(&aux,string_itoa(i));
-//		string_append(&aux,".tmp");
-//		string_append(&tmpUrl, tableUrl);
-//		string_append(&tmpUrl,aux);
-//		if(access(tmpUrl,F_OK) != -1){ //si existe
-//			allTmpsNames[i] = string_duplicate(aux);
-//		}else allTmpsNames[i] = NULL;
-//		free(aux);
-//		free(tmpUrl);
-//	}
+	DIR *d;
+	struct  dirent *dir;
 
-	allTmpsNames[tmpNo+1] = NULL;
-	if(allTmpsNames[0] == NULL) return NULL;
+	d = opendir(tableUrl);
+	dir = readdir(d);
+	while(dir != NULL){
+		if(string_ends_with(dir->d_name,".tmp")){
+			table = string_duplicate(dir->d_name);
+			list_add(allTmpsNames,table);
+		}
+
+		dir = readdir(d);
+	}
+
+	closedir(d);
 	return allTmpsNames;
 }
 
 void fs_setActualTmps(){
 	char *url;
 
-	char **alltmps; //tmps de una tabla
+	t_list *alltmps; //tmps de una tabla
 	t_list *allTables = fs_getAllTables();
 	for(int i = 0; i < list_size(allTables); i++){ //recorro todas las tablas
 		url = makeTableUrl(list_get(allTables,i));
 		alltmps = getAllTmps(url);
-		if(alltmps != NULL){
+		if(list_size(alltmps) != 0){
 			incrementTmpNo(alltmps);
 		}
 
-		free(alltmps);
+		list_destroy_and_destroy_elements(alltmps, free);
 		free(url);
 	}
 	list_destroy_and_destroy_elements(allTables, free);
 }
 
-void incrementTmpNo(char **alltmps){
+void incrementTmpNo(t_list *alltmps){
 	char *tmp;
 	char **aux;
 	int n;
-	for(int i = 0; i < sizeofArray(alltmps); i++){
-		tmp = string_duplicate(alltmps[i]);
+	for(int i = 0; i < list_size(alltmps); i++){
+		tmp = string_duplicate(list_get(alltmps,i));
 		aux = string_split(tmp, ".");
 		n = strtol(aux[0],NULL,10);
 		if(n > tmpNo ) tmpNo = n;
 		free(tmp);
-		free(aux);
+		free(aux[0]);free(aux[1]);free(aux[2]);free(aux);
 	}
 }
 
@@ -367,6 +364,7 @@ t_list *fs_getAllTables(){
 		dir = readdir(d);
 	}
 
+	free(url);
 	closedir(d);
 	return allTables;
 

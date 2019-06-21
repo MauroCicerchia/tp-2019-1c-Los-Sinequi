@@ -123,9 +123,11 @@ void *threadConfigModify(){
 	log_info(logger, "----------------------------------------");
 	log_info(logger, "Inicia monitoreo de cambios en .config");
 	log_info(logger, "----------------------------------------");
-
+	char *buff = NULL;
 	while(1){
-		read(fd,NULL,200);
+		buff = malloc(200);
+		read(fd,buff,200);
+		free(buff);
 		log_info(logger, "----------------------------------------");
 		log_info(logger, "Se podrujo un cambio en el .config");
 		log_info(logger, "Actualizando valores...");

@@ -32,8 +32,6 @@ void ba_create()
 	bitarray = bitarray_create_with_mode(bitarrayContent, blocks/8 + 1 , LSB_FIRST);
 	free(url);
 
-//	char *btUrl;
-	char *blockNumber;
 	for(int i=0; i < blocks; i++){
 
 		if(b_empty(i)){
@@ -41,7 +39,6 @@ void ba_create()
 		}else{
 			bitarray_set_bit(bitarray,i);
 		}
-//		free(btUrl);
 	}
 	msync(bitarray->bitarray, bitarrayfd, MS_SYNC);
 	sem_post(&MUTEX_BITARRAY);
