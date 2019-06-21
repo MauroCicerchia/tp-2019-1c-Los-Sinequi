@@ -3,11 +3,11 @@
 /*GLOBALES*/
 t_list *memtable;
 
-char *absoluto;
+char *absoluto, *port, *ip;
 
 t_log *logger;
 
-int fd,wd,dumpTime,retardTime,tmpNo,port,valueSize;
+int fd,wd,dumpTime,retardTime,tmpNo,valueSize;
 
 pthread_t tApi,tDump,tListenCfg;
 
@@ -66,6 +66,7 @@ void init_FileSystem()
 	dumpTime = get_dump_time();
 	retardTime = get_retard_time();
 	absoluto = string_duplicate(get_fs_route());
+	ip = get_ip();
 	port = get_port();
 	valueSize = get_valueSize();
 	config_destroy(config);
@@ -191,8 +192,11 @@ char *get_fs_route(){
 int get_valueSize(){
 	return config_get_int_value(config,"TAMAÑO_VALUE");
 }
-int get_port(){
-	return config_get_int_value(config,"PUERTO_ESCUCHA");
+char *get_port(){
+	return config_get_string_value(config,"PUERTO_ESCUCHA");
+}
+char *get_ip(){
+	return config_get_string_value(config,"IP");
 }
 
 int get_blocks_cuantityy(t_config *metadata)
