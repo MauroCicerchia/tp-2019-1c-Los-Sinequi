@@ -3,9 +3,11 @@
 #include<stdio.h>
 #include<unistd.h>
 #include"fcntl.h"
+#include<semaphore.h>
 #include"sys/stat.h"
 #include"sys/mman.h"
 #include"sys/types.h"
+
 
 #include"commons/bitarray.h"
 #include"commons/config.h"
@@ -21,6 +23,9 @@ extern t_bitarray *bitarray;
 extern int bitarrayfd;
 extern char *bitarrayContent;
 extern int lastBlockAssigned;
+extern int flagBloquesLibres;
+
+extern sem_t MUTEX_BITARRAY;
 
 
 #ifndef BITARRAY_H

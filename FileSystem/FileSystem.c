@@ -7,7 +7,7 @@ char *absoluto;
 
 t_log *logger;
 
-int fd,wd,dumpTime,retardTime, tmpNo;
+int fd,wd,dumpTime,retardTime,tmpNo,port,valueSize;
 
 pthread_t tApi,tDump,tListenCfg;
 
@@ -23,8 +23,9 @@ int bitarrayfd;
 char *bitarrayContent;
 
 int lastBlockAssigned;
+int flagBloquesLibres;
 
-sem_t MUTEX_MEMTABLE, MUTEX_RETARDTIME, MUTEX_DUMPTIME;
+sem_t MUTEX_MEMTABLE, MUTEX_RETARDTIME, MUTEX_DUMPTIME, MUTEX_BITARRAY;
 /*GLOBALES*/
 
 int main(int argc, char **argv)
@@ -47,39 +48,47 @@ int main(int argc, char **argv)
 
 void init_FileSystem()
 {
-	memtable = list_create();
+	sem_init(&MUTEX_MEMTABLE,1,1); //inicio los semaforos
+	sem_init(&MUTEX_DUMPTIME,1,1);
+	sem_init(&MUTEX_RETARDTIME,1,1);
+	sem_init(&MUTEX_BITARRAY,1,1);
 
-	tmpNo = 0;
-	lastBlockAssigned = 0;
+	memtable = list_create(); //creo memtable
 
-	absoluto = string_new();
 
 	logger = NULL;
-	iniciar_logger(&logger);
+	iniciar_logger(&logger); //arranco logger
 
-	fd = inotify_init();
+	fd = inotify_init(); //arranco monitoreo en el archivo de config
 	wd = inotify_add_watch(fd,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/Config",IN_MODIFY);
 
 	load_config();
 	dumpTime = get_dump_time();
 	retardTime = get_retard_time();
 	absoluto = string_duplicate(get_fs_route());
+	port = get_port();
+	valueSize = get_valueSize();
 	config_destroy(config);
 
 	t_config *metadata = load_lfsMetadata();
 	metadataBlocks = get_blocks_cuantityy(metadata);
 	metadataSizeBlocks = get_size_of_blocks(metadata);
-	config_destroy(metadata);
+	config_destroy(metadata); //leo metadata del fs
+
+	tmpNo = 0;
+	fs_setActualTmps(); //me fijo cuantos temporales hay al iniciar el sistema
+	flagBloquesLibres = 1; //hay bloques libre
+	lastBlockAssigned = 0; //inicio como ultimo bloque asignado el primero
+	printf("%d",tmpNo);
+//	if(!b_blocksCreated()){ //
+//		b_create();
+//	}
 
 
-	ba_create();
-	ba_bitarrayDestroy();
 
-//	ba_loadBitarray();
 
-	sem_init(&MUTEX_MEMTABLE,1,1);
-	sem_init(&MUTEX_DUMPTIME,1,1);
-	sem_init(&MUTEX_RETARDTIME,1,1);
+
+	ba_create(); //levanto el bitarray
 }
 
 
@@ -89,23 +98,25 @@ void kill_FileSystem()
 	log_info(logger, "Dump de seguridad");
 
 	sem_wait(&MUTEX_MEMTABLE);
-	dump();
+	dump(); //dump de cierre
 	sem_post(&MUTEX_MEMTABLE);
 
 	log_info(logger, "----------------------------------------");
 
-	list_destroy(memtable);
+	list_destroy(memtable); //mato memtable
 
-	ba_bitarrayDestroy();
+	ba_bitarrayDestroy(); //mato el bitarray
 
-	sem_destroy(&MUTEX_MEMTABLE);
+	sem_destroy(&MUTEX_MEMTABLE);//mato semaforos
 	sem_destroy(&MUTEX_DUMPTIME);
 	sem_destroy(&MUTEX_RETARDTIME);
+	sem_destroy(&MUTEX_BITARRAY);
 
 	log_info(logger, "Fin FileSystem");
 	log_info(logger, "----------------------------------------");
 
-	log_destroy(logger);
+	log_destroy(logger); //mato logger
+	//chau fs :)
 }
 
 void *threadConfigModify(){
@@ -174,6 +185,13 @@ int get_retard_time(){
 char *get_fs_route(){
 	return config_get_string_value(config,"PUNTO_MONTAJE");
 }
+int get_valueSize(){
+	return config_get_int_value(config,"TAMAÑO_VALUE");
+}
+int get_port(){
+	return config_get_int_value(config,"PUERTO_ESCUCHA");
+}
+
 int get_blocks_cuantityy(t_config *metadata)
 {
 	return config_get_int_value(metadata,"BLOCKS");
@@ -181,6 +199,8 @@ int get_blocks_cuantityy(t_config *metadata)
 int get_size_of_blocks(t_config *metadata){
 	return config_get_int_value(metadata,"BLOCK_SIZE");
 }
+
+
 t_config *load_lfsMetadata()
 {
 	char *url = fs_getlfsMetadataUrl();

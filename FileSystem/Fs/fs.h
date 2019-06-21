@@ -55,6 +55,8 @@ char *fs_getlfsMetadataUrl();
 char* fs_getBlocksUrl();
 
 char **getAllTmps(char *);
+void fs_setActualTmps();
+void incrementTmpNo(char **alltmps);
 
 void fs_toDump(char*,char*); //nombre de tabla y el string a dumpear
 
@@ -64,6 +66,6 @@ t_list *fs_getListOfInserts(char*,int);
 
 void fs_createBlocks(int);
 
-char **fs_getAllTables();
+t_list *fs_getAllTables();
 
 #endif /* FS_H */

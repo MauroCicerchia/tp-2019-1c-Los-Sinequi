@@ -23,7 +23,7 @@ void processQuery(char *query)
 	char log_msg[100];
 	char *selectReturnValue = string_new();
 	char **args = parseQuery(query);
-	char **tables;
+	t_list *tables;
 
 	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
 
@@ -96,13 +96,13 @@ void processQuery(char *query)
 
 			if(args[1] == NULL){
 				tables = fs_getAllTables();
-				for(int i = 0; i < sizeofArray(tables); i++){
-					metadata *tableInfo = qdescribe(tables[i]);
+				for(int i = 0; i < list_size(tables); i++){
+					metadata *tableInfo = qdescribe(list_get(tables,i));
 
 					if(tableInfo != NULL){
 						log_info(logger, ">>>");
 						log_info(logger,"TABLA:");
-						log_info(logger,tables[i]);
+						log_info(logger,list_get(tables,i));
 						char *cons = string_new(); strcpy(cons,tableInfo->consistency);
 						char *parts = tableInfo->partitions; char *ctime = tableInfo->ctime;
 						sprintf(log_msg,"Consistencia: %s",cons);

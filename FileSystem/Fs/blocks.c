@@ -113,7 +113,6 @@ char *getListOfBlocks(char *partUrl)
 	char *pivot = config_get_string_value(partition,"BLOCKS");
 	char *blocks = string_duplicate(pivot);
 	config_destroy(partition);
-	free(pivot);
 	return blocks;
 }
 
@@ -233,7 +232,7 @@ int freeSizeOfTheFirstNotFullBlock(char *url){
 int b_get_lastBlock(char *url){
 	char **blocksArray = string_get_string_as_array(getListOfBlocks(url));
 	int last = sizeofArray(blocksArray) - 1;
-	char *lastBlock = string_duplicate(blocksArray[last]);
+	char *lastBlock = string_duplicate(blocksArray[0]);
 	int x = strtol(lastBlock,NULL,10);
 	free(lastBlock);
 	free(blocksArray);
@@ -257,6 +256,10 @@ int b_get_firstFreeBlock(char *url){
 //dice si no queda lugar en el bloque
 bool b_full(int block){
 	return b_freeSize(block) == 0;
+}
+
+bool b_empty(int block){
+	return b_freeSize(block) == getSizeOfBlocks();
 }
 
 

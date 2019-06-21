@@ -287,33 +287,67 @@ t_list *fs_getListOfInserts(char* table,int key){
 
 //si no hay ninguno retorna NULL
 //busca en la url de la tabla todos los .tmp y devuelve el "nombre.tmp"
-char **getAllTmps(char *tableUrl)
+t_list *getAllTmps(char *tableUrl)
 {
-	char **allTmpsNames = (char**)malloc(sizeof(char)*3 *(tmpNo+1));
-	char *tmpUrl;
-	char *aux;
-	for(int i = 0;i < tmpNo+1; i++){ //que recorra todas las posibilidades de tmps
-		tmpUrl = string_new();
-		aux = string_new();
-		string_append(&aux,string_itoa(i));
-		string_append(&aux,".tmp");
-		string_append(&tmpUrl, tableUrl);
-		string_append(&tmpUrl,aux);
-		if(access(tmpUrl,F_OK) != -1){ //si existe
-			allTmpsNames[i] = string_duplicate(aux);
-		}else allTmpsNames[i] = NULL;
-		free(aux);
-		free(tmpUrl);
-	}
+	t_list *allTmpsNames = list_create();
+
+//	char **allTmpsNames = (char**)malloc(sizeof(char)*3 *(tmpNo+1));
+//	char *tmpUrl;
+//	char *aux;
+//	for(int i = 0; i <= tmpNo; i++){ //que recorra todas las posibilidades de tmps
+//		tmpUrl = string_new();
+//		aux = string_new();
+//		string_append(&aux,string_itoa(i));
+//		string_append(&aux,".tmp");
+//		string_append(&tmpUrl, tableUrl);
+//		string_append(&tmpUrl,aux);
+//		if(access(tmpUrl,F_OK) != -1){ //si existe
+//			allTmpsNames[i] = string_duplicate(aux);
+//		}else allTmpsNames[i] = NULL;
+//		free(aux);
+//		free(tmpUrl);
+//	}
 
 	allTmpsNames[tmpNo+1] = NULL;
 	if(allTmpsNames[0] == NULL) return NULL;
 	return allTmpsNames;
 }
 
-char **fs_getAllTables(){
-	char **allTables;
-	int i = 0;
+void fs_setActualTmps(){
+	char *url;
+
+	char **alltmps; //tmps de una tabla
+	t_list *allTables = fs_getAllTables();
+	for(int i = 0; i < list_size(allTables); i++){ //recorro todas las tablas
+		url = makeTableUrl(list_get(allTables,i));
+		alltmps = getAllTmps(url);
+		if(alltmps != NULL){
+			incrementTmpNo(alltmps);
+		}
+
+		free(alltmps);
+		free(url);
+	}
+	list_destroy_and_destroy_elements(allTables, free);
+}
+
+void incrementTmpNo(char **alltmps){
+	char *tmp;
+	char **aux;
+	int n;
+	for(int i = 0; i < sizeofArray(alltmps); i++){
+		tmp = string_duplicate(alltmps[i]);
+		aux = string_split(tmp, ".");
+		n = strtol(aux[0],NULL,10);
+		if(n > tmpNo ) tmpNo = n;
+		free(tmp);
+		free(aux);
+	}
+}
+
+t_list *fs_getAllTables(){
+	t_list *allTables = list_create();
+	char *table;
 
 	DIR *d;
 	struct  dirent *dir;
@@ -323,13 +357,17 @@ char **fs_getAllTables(){
 	string_append(&url,"Tables/");
 
 	d = opendir(url);
-//	dir = readdir(d)
-//	while(dir = readdir(d) != NULL){
-//		allTables[i] = string_duplicate(dir->d_name);
-//		i++;
-//
-//	}
+	dir = readdir(d);
+	while(dir != NULL){
+		if(strcmp(dir->d_name,".") && strcmp(dir->d_name,"..")){
+			table = string_duplicate(dir->d_name);
+			list_add(allTables,table);
+		}
+
+		dir = readdir(d);
+	}
+
 	closedir(d);
-	allTables[i] = NULL;
 	return allTables;
+
 }

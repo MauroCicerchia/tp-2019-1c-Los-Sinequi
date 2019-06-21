@@ -10,14 +10,16 @@
 #include<sharedLib/server.h>
 #include"Lissandra/api/api.h"
 #include"sys/inotify.h"
-#include"./Fs/bitarray.h"
-
+#include"Fs/bitarray.h"
+#include"Fs/fs.h"
 
 void init_FileSystem();
 void kill_FileSystem();
 void iniciar_logger(t_log **logger);
 int get_dump_time();
 int get_retard_time();
+int get_port();
+int get_valueSize();
 int get_size_of_blocks(t_config *metadata);
 int get_blocks_cuantityy(t_config *metadata);
 char *get_fs_route();
