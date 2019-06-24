@@ -43,14 +43,17 @@ void processQuery(char *query)
 
 			selectReturnValue = qselect(args[1], args[2]);
 
+			if(selectReturnValue != NULL){
 			log_info(logger, ">>>>");
 			log_info(logger, selectReturnValue);
 			log_info(logger, ">>>>");
 
+			free(selectReturnValue);
+			}
+
 			log_info(logger, "Fin SELECT");
 			log_info(logger, "----------------------------------------");
 
-			if(selectReturnValue != NULL) free(selectReturnValue);
 			free(args);
 			break;
 

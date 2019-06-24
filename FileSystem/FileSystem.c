@@ -79,18 +79,16 @@ void init_FileSystem()
 	metadataSizeBlocks = get_size_of_blocks(metadata);
 	config_destroy(metadata); //leo metadata del fs
 
-	tmpNo = 0;
+	tmpNo = -1;
 	fs_setActualTmps(); //me fijo cuantos temporales hay al iniciar el sistema
+	tmpNo++; // =0 no hay tmps =6 de 0-5 tmps
+
 	flagBloquesLibres = 1; //hay bloques libre
 	lastBlockAssigned = 0; //inicio como ultimo bloque asignado el primero
-	printf("%d",tmpNo);
 
 //	if(!b_blocksCreated()){
 //		b_create();
 //	}
-
-
-
 
 
 	ba_create(); //levanto el bitarray

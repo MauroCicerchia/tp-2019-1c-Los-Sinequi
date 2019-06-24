@@ -274,28 +274,22 @@ t_list *fs_getListOfInserts(char* table,int key)
 	string_append(&partUrl,partition);
 	string_append(&partUrl, ".bin");
 
-	t_list *partList = b_getListOfInserts(partUrl); //trae todas los inserts de esa url (la de particion adecuada)
+	t_list *partList = list_create();
+	b_getListOfInserts(partUrl,partList); //trae todas los inserts de esa url (la de particion adecuada)
 
 	t_list *tmps = getAllTmps(tableUrl);
-	t_list *tmpsList = list_create();
 
 	for(int i= 0; i < list_size(tmps); i++){
 		tmpUrl = string_new();
 		string_append(&tmpUrl,tableUrl);
 		string_append(&tmpUrl,list_get(tmps,i));
-		list_add_all(tmpsList,b_getListOfInserts(tmpUrl));
+		b_getListOfInserts(tmpUrl,partList);
 		free(tmpUrl);
 	}
 
 
-	t_list *mtList = mt_getListofInserts(table); //toma todos los inserts de la memtable referidos a la tabla
+	mt_getListofInserts(table,partList); //toma todos los inserts de la memtable referidos a la tabla
 
-	//juntas todas las listas en una para retornar esa
-	if(list_size(mtList) != 0) list_add_all(partList,mtList);
-	if(list_size(tmpsList) != 0) list_add_all(partList,tmpsList);
-
-	list_destroy_and_destroy_elements(tmpsList,free);
-	list_destroy_and_destroy_elements(mtList,free);
 	list_destroy_and_destroy_elements(tmps, free);
 	free(partUrl);
 	free(tableMetadataUrl);
@@ -336,7 +330,8 @@ void fs_setActualTmps()
 	t_list *alltmps; //tmps de una tabla
 	t_list *allTables = fs_getAllTables();
 	for(int i = 0; i < list_size(allTables); i++){ //recorro todas las tablas
-		url = makeTableUrl(list_get(allTables,i));
+		char *table = list_get(allTables,i);
+		url = makeTableUrl(table);
 		alltmps = getAllTmps(url);
 		if(list_size(alltmps) != 0){
 			incrementTmpNo(alltmps);
@@ -344,6 +339,7 @@ void fs_setActualTmps()
 
 		list_destroy_and_destroy_elements(alltmps, free);
 		free(url);
+
 	}
 	list_destroy_and_destroy_elements(allTables, free);
 }
@@ -357,7 +353,8 @@ void incrementTmpNo(t_list *alltmps)
 		tmp = string_duplicate(list_get(alltmps,i));
 		aux = string_split(tmp, ".");
 		n = strtol(aux[0],NULL,10);
-		if(n > tmpNo ) tmpNo = n;
+		if(n > tmpNo )
+			tmpNo = n;
 		free(tmp);
 		free(aux[0]);free(aux[1]);free(aux[2]);free(aux);
 	}

@@ -3,6 +3,7 @@
 #include<string.h>
 #include<stdint.h>
 #include<stdbool.h>
+#include<semaphore.h>
 #include<commons/log.h>
 #include<commons/collections/list.h>
 #include<commons/string.h>
@@ -10,6 +11,7 @@
 
 extern t_list *memtable;
 extern t_log *logger;
+extern sem_t MUTEX_MEMTABLE;
 
 #ifndef MEMTABLE_H
 #define MEMTABLE_H
@@ -34,5 +36,5 @@ void mt_clean();
 void mt_cleanPivot(t_list *);
 void tableDestroyer(void*);
 void insertDestroyer(void*);
-t_list *mt_getListofInserts(char *table);
+void mt_getListofInserts(char *table,t_list *list);
 #endif

@@ -31,11 +31,11 @@ void b_assignSizeAndBlock(char *partUrl,int size)
 
 
 //trae todas los inserts de esa url, que es la particion.bin o el .tmp
-t_list *b_getListOfInserts(char *partUrl)
+void b_getListOfInserts(char *partUrl, t_list *list)
 {
 	FILE *f;
 	int fSize;
-	t_list *listOfInserts;
+//	t_list *listOfInserts;
 
 	char** blocks = string_get_string_as_array(getListOfBlocks(partUrl));// ["1","43","550"]
 	int size = sizeofArray(blocks); // tamano de array de bloques
@@ -56,7 +56,7 @@ t_list *b_getListOfInserts(char *partUrl)
 		stat(blockUrl,&st);
 		fSize = st.st_size;
 
-		pivot = malloc(fSize);
+		pivot = malloc(fSize+1);
 
 		f = fopen(blockUrl,"r");
 		fread(pivot,fSize,1,f);
@@ -70,23 +70,22 @@ t_list *b_getListOfInserts(char *partUrl)
 		free(blockUrl);
 	}
 
-	listOfInserts = insertsToList(inserts); //parsea el char *inserts por \n y los mete en la lista
+	insertsToList(inserts,list); //parsea el char *inserts por \n y los mete en la lista
 	free(inserts); free(url); free(blocks);
-	return listOfInserts;
 }
 
-t_list *insertsToList(char *inserts)
+void insertsToList(char *inserts, t_list *list)
 {
-	t_list *toReturn = list_create();
+	if(!strcmp(inserts,"")) return; //si viene vacio no agrego nada
+
 	char **arrayOfInserts = string_split(inserts,"\n");
 	char *pivot;
 	for(int i =0; i<sizeofArray(arrayOfInserts); i++)
 	{
 		pivot = string_duplicate(arrayOfInserts[i]);
-		list_add(toReturn,pivot);
+		list_add(list,pivot);
 	}
 	free(arrayOfInserts);
-	return toReturn;
 }
 
 

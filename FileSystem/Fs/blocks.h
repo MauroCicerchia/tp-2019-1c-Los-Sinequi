@@ -17,8 +17,8 @@ extern int metadataSizeBlocks;
 #define BLOCKS_H
 void b_loadPartitionsFiles(char *tableUrl, int parts);   //le asigna el size y un bloque a cada bloque de particion
 void b_assignSizeAndBlock(char *partUrl, int size) ;  //le asigna un bloque y el size a esa url
-t_list *b_getListOfInserts(char *partUrl); //trae todas los inserts de esa url, que es la particion.bin o el .tmp
-t_list *insertsToList(char *inserts);
+void b_getListOfInserts(char *partUrl, t_list *list); //trae todas los inserts de esa url, que es la particion.bin o el .tmp
+void insertsToList(char *inserts,t_list *list);
 void startPartition(char *url, int blockNumber,int size);
 char *getListOfBlocks(char *partUrl);
 int getSizeOfBlocks();
