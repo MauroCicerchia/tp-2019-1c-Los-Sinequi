@@ -1,12 +1,5 @@
 #include"compactador.h"
 
-typedef struct{
-	char *name;
-	int parts;
-	int ctime;
-	sem_t MUTEX_TABLE_PART;
-	sem_t MUTEX_DROP_TABLE;
-}activeTable;
 
 void compact(activeTable *table)//agregar el semaforo para drop
 {
@@ -35,7 +28,7 @@ void compact(activeTable *table)//agregar el semaforo para drop
 	free(tableUrl);
 }
 
-void com_compactTmpsC(t_list *tmpsC,char *tableUrl, activeTable *table, int parts)
+void com_compactTmpsC(t_list *tmpsC,char *tableUrl, activeTable *table)
 {
 	t_list *allInserts = list_create();
 	t_list *tmpInserts;
@@ -56,9 +49,9 @@ void com_compactTmpsC(t_list *tmpsC,char *tableUrl, activeTable *table, int part
 
 	list_sort(allInserts,biggerTimeStamp); //ordeno la lista por timestamp de mayor a menor
 
-	sem_wait(table->MUTEX_TABLE_PART);
+	sem_wait(&table->MUTEX_TABLE_PART);
 	com_saveInPartition(keys,allInserts,table); //tomo la primera de cada key y la guardo en la particion
-	sem_post(table->MUTEX_TABLE_PART);
+	sem_post(&table->MUTEX_TABLE_PART);
 }
 
 
@@ -139,9 +132,9 @@ bool keyIsAdded(uint16_t key,t_list *keys)
 {
 	for (int i = 0; i < list_size(keys); i++){
 		if(list_get(keys,i) == key)
-			return TRUE;
+			return true;
 	}
-	return FALSE;
+	return false;
 }
 
 /*
