@@ -406,7 +406,7 @@ void fs_cleanTmpsC(char *tableUrl){
 			strBlocks = getListOfBlocks(file);
 			blocks = string_get_string_as_array(strBlocks);
 			for(int i = 0; i < sizeofArray(blocks); i++){ //libero bloque por bloque, del bitarray y su contenido
-				b_freeblock(blocks[i]);
+				b_freeblock(strtol(blocks[i],NULL,10));
 			}
 
 			unlink(file); //borro el archivo

@@ -11,7 +11,7 @@ t_log *logger;
 
 int fd,wd,dumpTime,retardTime,tmpNo,valueSize;
 
-pthread_t tApi,tDump,tListenCfg, tLisentClient;
+pthread_t tApi,tDump,tListenCfg, tLisentClient, tCompact;
 
 t_config *config;
 t_config *metadataCfg;
@@ -95,6 +95,11 @@ void init_FileSystem()
 	fs_setActiveTables(); //cargo a memoria todas las tablas activas en "systables"
 
 	compact(list_get(sysTables,0));
+
+	for(int i = 0; i < list_size(sysTables);i++){ //creo todos los hilos de compactacion para las tablas
+		pthread_create(&tCompact,NULL,threadCompact,list_get(sysTables,i));
+		pthread_detach(tCompact);
+	}
 
 	ba_create(); //levanto el bitarray
 }

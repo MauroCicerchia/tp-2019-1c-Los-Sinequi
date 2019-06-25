@@ -417,6 +417,7 @@ void b_freeblock(int block){
 	char *blockUrl = fs_getBlocksUrl();
 	char *strBlock = string_itoa(block);
 	string_append(&blockUrl,strBlock);
+	string_append(&blockUrl,".bin");
 
 	FILE *f = fopen(blockUrl,"w"); //limpio el archivo
 	fclose(f);

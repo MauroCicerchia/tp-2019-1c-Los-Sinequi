@@ -27,4 +27,8 @@ bool keyIsAdded(char *key,t_list *keys);
 void com_saveInPartition(t_list *keys,t_list *allInserts, activeTable *table);
 bool com_gotKey(char *key, char *insert);
 
+activeTable *com_getActiveTable(char *tableName);
+bool tableIsActive(char *tableName);
+int com_getCTime(char *tableName);
+
 #endif

@@ -1,5 +1,21 @@
 #include"compactador.h"
 
+void *threadCompact(char *tableName)
+{
+	while(tableIsActive(tableName)){
+		activeTable *table = com_getActiveTable(tableName);
+
+		sem_wait(&table->MUTEX_DROP_TABLE);
+			table->ctime = com_getCTime(tableName); //actualiza cambios en el tiempo de compactacion
+			compact(table);
+		sem_post(&table->MUTEX_DROP_TABLE);
+
+		usleep(table->ctime);
+	}
+	return NULL;
+}
+
+
 
 void compact(activeTable *table)//agregar el semaforo para drop
 {
@@ -32,17 +48,21 @@ void com_compactTmpsC(t_list *tmpsC,char *tableUrl, activeTable *table)
 {
 	t_list *allInserts = list_create();
 	t_list *tmpInserts;
+	char *tmpUrl;
 
 	for(int i = 0; i < list_size(tmpsC); i++){
+		tmpUrl = string_duplicate(tableUrl);
+		string_append(&tmpUrl,list_get(tmpsC,i));
 		tmpInserts = list_create();
 
-		b_getListOfInserts(tableUrl, tmpInserts);
+		b_getListOfInserts(tmpUrl, tmpInserts);
 
 		for(int j = 0; j < list_size(tmpInserts); j++){ //le paso todos los inserts de ese tmp a la lista ppal
 			list_add(allInserts,string_duplicate(list_get(tmpInserts,j)));
 		}
 
 		list_destroy_and_destroy_elements(tmpInserts,free);
+		free(tmpUrl);
 	}
 
 	t_list *keys = com_getAllKeys(allInserts); //guardo todas las keys posibles
@@ -94,7 +114,7 @@ t_list *com_changeTmpsExtension(t_list *tmps, char *tableUrl)
 		tmpUrl = string_duplicate(tableUrl);
 		tmpcUrl = string_duplicate(tableUrl);
 
-		tmp = list_get(tmps,i);
+		tmp = string_duplicate(list_get(tmps,i));
 		string_append(&tmpUrl,tmp);
 
 		tmpc = string_duplicate(tmp);
@@ -125,7 +145,8 @@ t_list *com_getAllKeys(t_list *inserts)
 		strKey = com_key(list_get(inserts,i));
 //		key = strtol(strKey,NULL,10);
 		if(!keyIsAdded(strKey,keys))
-			list_add(keys,strKey);
+			list_add(keys,string_duplicate(strKey));
+		free(strKey);
 	}
 
 	return keys;
@@ -135,7 +156,7 @@ bool keyIsAdded(char *key,t_list *keys)
 {
 	char *listKey;
 	for (int i = 0; i < list_size(keys); i++){
-		listKey = list_get(keys,i);
+		listKey = string_duplicate(list_get(keys,i));
 		if(!strcmp(key,listKey)){
 			free(listKey);
 			return true;
@@ -155,7 +176,8 @@ void com_saveInPartition(t_list *keys,t_list *allInserts, activeTable *table)
 	char *key;
 	char *tableUrl = makeTableUrl(table->name);
 	char *partUrl,*part,*toInsert;
-
+	int iKey;
+	int tableParts = table->parts;
 
 	bool _gotKey(void *insert){ //wrapper
 		return com_gotKey(key,(char*)insert);
@@ -166,7 +188,8 @@ void com_saveInPartition(t_list *keys,t_list *allInserts, activeTable *table)
 		toInsert = list_find(allInserts,  _gotKey);
 
 		partUrl = string_duplicate(tableUrl);
-		part = string_itoa(strtol(key,NULL,10) % table->parts);
+		iKey = strtol(key,NULL,10);
+		part = string_itoa(iKey % tableParts);
 		string_append(&partUrl,part);
 		string_append(&partUrl,".bin");
 
@@ -182,4 +205,36 @@ bool com_gotKey(char *key, char *insert)
 	bool boolean = !strcmp(listKey,key);
 	free(listKey);
 	return boolean;
+}
+
+activeTable *com_getActiveTable(char *tableName){
+	bool _tableIsActive(void *table){
+		return !strcmp(tableName,((activeTable*)table)->name);
+	}
+
+	return (activeTable*)list_find(sysTables,_tableIsActive);
+}
+
+
+bool tableIsActive(char *tableName)
+{
+	bool _equalName(void *table){
+		return !strcmp(tableName,((activeTable*)table)->name);
+	}
+
+	return list_any_satisfy(sysTables,_equalName);
+}
+
+
+int com_getCTime(char *tableName)
+{
+	char *url = makeTableUrl(tableName);
+	string_append(&url,"Metadata.bin");
+
+	t_config *cfg = config_create(url);
+	int cTime = config_get_int_value(cfg,"CTIME");
+	config_destroy(cfg);
+
+	free(url);
+	return cTime;
 }
