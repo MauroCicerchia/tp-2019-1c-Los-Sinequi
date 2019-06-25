@@ -399,7 +399,7 @@ void fs_cleanTmpsC(char *tableUrl){
 	while(dir != NULL){ //borro todos los archivos del directorio
 		if(isTmpc(dir->d_name)){
 			file = string_duplicate(tableUrl);
-			string_append(&file,dir->d_name);
+			string_append(&file,dir->d_name); //FALTA LIBERAR BLOCKS EN BITARRAY Y DEJARLOS VACIOS
 			unlink(file);
 			free(file);
 		}

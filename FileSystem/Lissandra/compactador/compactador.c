@@ -2,6 +2,8 @@
 
 typedef struct{
 	char *name;
+	int parts;
+	int ctime;
 	sem_t MUTEX_TABLE_PART;
 	sem_t MUTEX_DROP_TABLE;
 }activeTable;
@@ -25,15 +27,15 @@ void compact(activeTable *table)//agregar el semaforo para drop
 	list_destroy_and_destroy_elements(tmps, free);
 
 	//hacer el cambio del tmpc a la/las particiones correspondientes
-	com_compactTmpsC(tmpsC,tableUrl);
+	com_compactTmpsC(tmpsC,tableUrl,table);
 
-	//borrar los .tmpc
+	//borrar los .tmpc y libera los bloques
 	fs_cleanTmpsC(tableUrl);
 
 	free(tableUrl);
 }
 
-void com_compactTmpsC(t_list *tmpsC,char *tableUrl, activeTable *table)
+void com_compactTmpsC(t_list *tmpsC,char *tableUrl, activeTable *table, int parts)
 {
 	t_list *allInserts = list_create();
 	t_list *tmpInserts;
@@ -55,7 +57,7 @@ void com_compactTmpsC(t_list *tmpsC,char *tableUrl, activeTable *table)
 	list_sort(allInserts,biggerTimeStamp); //ordeno la lista por timestamp de mayor a menor
 
 	sem_wait(table->MUTEX_TABLE_PART);
-	com_saveInPartition(keys,allInserts); //tomo la primera de cada key y la guardo en la particion
+	com_saveInPartition(keys,allInserts,table); //tomo la primera de cada key y la guardo en la particion
 	sem_post(table->MUTEX_TABLE_PART);
 }
 
@@ -146,9 +148,12 @@ bool keyIsAdded(uint16_t key,t_list *keys)
  * allInserts = lista ,ordenada por tsmp, de "tsmp;key;value"
  * keys = lista de uint16_t con las todas las key a guardar
  */
-void com_saveInPartition(t_list *keys,t_list *allInserts)
+void com_saveInPartition(t_list *keys,t_list *allInserts, activeTable *table)
 {
 	uint16_t key;
+	char *tableUrl = makeTableUrl(table->name);
+	char *partUrl,*part,*toInsert;
+
 
 	bool _gotkey(void *insert){ //wrapper
 		return com_gotKey(key,(char*)insert);
@@ -156,11 +161,20 @@ void com_saveInPartition(t_list *keys,t_list *allInserts)
 
 	for(int i = 0; i < list_size(keys); i++){
 		key = list_get(keys,i);
-		list_find(allInserts,_gotKey);
+		toInsert = list_find(allInserts,_gotKey);
+
+		partUrl = string_duplicate(tableUrl);
+		part = string_itoa(key % table->parts);
+		string_append(&partUrl,part);
+		string_append(&partUrl,".bin");
+
+		b_saveData(partUrl,toInsert);
+
+		free(partUrl);
 	}
 }
 
-bool com_gotKey(uint16_t key, char *insert){
+bool com_gotKey(uint16_t key, char *insert)
+{
 	return com_key(insert) == key;
-
 }
