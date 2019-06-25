@@ -240,6 +240,6 @@ t_config *load_lfsMetadata()
 
 void threadForCompact(activeTable *table){
 	pthread_t tCompact;
-	pthread_create(&tCompact,NULL,threadCompact,table);
+	pthread_create(&tCompact,NULL,(void*)threadCompact,table);
 	pthread_detach(tCompact);
 }

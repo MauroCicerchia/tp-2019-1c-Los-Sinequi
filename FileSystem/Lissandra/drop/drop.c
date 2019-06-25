@@ -9,7 +9,7 @@ int qdrop(char *table) //agregar semaforo de drop para que nadie toque las tabla
 
 	activeTable *acTable = com_getActiveTable(table);
 
-	sem_wait(acTable->MUTEX_DROP_TABLE);
+	sem_wait(&acTable->MUTEX_DROP_TABLE);
 
 		freeBlocks(table);
 
@@ -17,7 +17,7 @@ int qdrop(char *table) //agregar semaforo de drop para que nadie toque las tabla
 
 		deleteTableFromMemory(table);
 
-	sem_post(acTable->MUTEX_DROP_TABLE);
+	sem_post(&acTable->MUTEX_DROP_TABLE);
 
 	return 1;
 }
