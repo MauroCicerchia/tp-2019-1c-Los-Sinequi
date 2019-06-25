@@ -411,3 +411,31 @@ void fs_cleanTmpsC(char *tableUrl){
 bool isTmpc(char *string){
 	return string_ends_with(string, ".tmpc");
 }
+
+void fs_setActiveTables()
+{
+	char *configUrl;
+	activeTable *pivot;
+	t_config *cfg;
+	t_list *tables = fs_getAllTables();
+
+	for(int i = 0; i < list_size(tables);i++){
+		pivot = malloc(sizeof(activeTable));
+		configUrl = makeTableUrl(list_get(tables,i));
+		string_append(&configUrl,"Metadata.bin");
+
+		cfg = load_metadataConfig(configUrl);
+
+		pivot->name = string_duplicate(list_get(tables,i));
+		sem_init(&(pivot->MUTEX_DROP_TABLE),1,1);
+		sem_init(&(pivot->MUTEX_TABLE_PART),1,1);
+		pivot->ctime = strtol(getCTime(cfg),NULL,10);
+		pivot->parts = strtol(getPartitions(cfg),NULL,10);
+
+		list_add(sysTables,pivot);
+
+		config_destroy(cfg);
+		free(configUrl);
+	}
+
+}

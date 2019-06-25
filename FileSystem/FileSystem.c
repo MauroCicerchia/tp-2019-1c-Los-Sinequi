@@ -3,6 +3,8 @@
 /*GLOBALES*/
 t_list *memtable;
 
+t_list *sysTables;
+
 char *absoluto, *port, *ip;
 
 t_log *logger;
@@ -56,11 +58,11 @@ void init_FileSystem()
 	sem_init(&MUTEX_RETARDTIME,1,1);
 	sem_init(&MUTEX_BITARRAY,1,1);
 
-	memtable = list_create(); //creo memtable
-
-
 	logger = NULL;
 	iniciar_logger(&logger); //arranco logger
+
+	memtable = list_create(); //creo memtable
+	sysTables = list_create();
 
 	fd = inotify_init(); //arranco monitoreo en el archivo de config
 	wd = inotify_add_watch(fd,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/Config",IN_MODIFY);
@@ -90,6 +92,9 @@ void init_FileSystem()
 //		b_create();
 //	}
 
+	fs_setActiveTables(); //cargo a memoria todas las tablas activas en "systables"
+
+	compact(list_get(sysTables,0));
 
 	ba_create(); //levanto el bitarray
 }

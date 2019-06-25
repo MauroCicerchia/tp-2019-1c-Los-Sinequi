@@ -47,7 +47,7 @@ void com_compactTmpsC(t_list *tmpsC,char *tableUrl, activeTable *table)
 
 	t_list *keys = com_getAllKeys(allInserts); //guardo todas las keys posibles
 
-	list_sort(allInserts,biggerTimeStamp); //ordeno la lista por timestamp de mayor a menor
+	list_sort(allInserts,com_biggerTimeStamp); //ordeno la lista por timestamp de mayor a menor
 
 	sem_wait(&table->MUTEX_TABLE_PART);
 	com_saveInPartition(keys,allInserts,table); //tomo la primera de cada key y la guardo en la particion
@@ -55,7 +55,7 @@ void com_compactTmpsC(t_list *tmpsC,char *tableUrl, activeTable *table)
 }
 
 
-bool biggerTimeStamp(void *elem1, void *elem2)
+bool com_biggerTimeStamp(void *elem1, void *elem2)
 {
 	return com_timestamp(elem1) > com_timestamp(elem2);
 }
@@ -72,14 +72,15 @@ uint64_t com_timestamp(void *insert)
 }
 
 
-uint16_t com_key(char *insert)
+char *com_key(char *insert)
 {
 	char **args = string_split((char*)insert, ";");
 	char *strKey = string_duplicate(args[1]);
-	uint16_t key = strtol(strKey,NULL,10);
+//	uint16_t key = strtol(strKey,NULL,10);
 	free(args);
-	free(strKey);
-	return key;
+//	free(strKey);
+//	return key;
+	return strKey;
 }
 
 
@@ -117,22 +118,30 @@ t_list *com_changeTmpsExtension(t_list *tmps, char *tableUrl)
 t_list *com_getAllKeys(t_list *inserts)
 {
 	t_list *keys = list_create();
-	uint16_t key;
+	char *strKey;
+//	uint16_t key;
 
 	for(int i = 0; i < list_size(inserts); i++){
-		key = com_key(list_get(inserts,i));
-		if(!keyIsAdded(key,keys))
-			list_add(keys,key);
+		strKey = com_key(list_get(inserts,i));
+//		key = strtol(strKey,NULL,10);
+		if(!keyIsAdded(strKey,keys))
+			list_add(keys,strKey);
 	}
 
 	return keys;
 }
 
-bool keyIsAdded(uint16_t key,t_list *keys)
+bool keyIsAdded(char *key,t_list *keys)
 {
+	char *listKey;
 	for (int i = 0; i < list_size(keys); i++){
-		if(list_get(keys,i) == key)
+		listKey = list_get(keys,i);
+		if(!strcmp(key,listKey)){
+			free(listKey);
 			return true;
+		}
+
+	free(listKey);
 	}
 	return false;
 }
@@ -143,21 +152,21 @@ bool keyIsAdded(uint16_t key,t_list *keys)
  */
 void com_saveInPartition(t_list *keys,t_list *allInserts, activeTable *table)
 {
-	uint16_t key;
+	char *key;
 	char *tableUrl = makeTableUrl(table->name);
 	char *partUrl,*part,*toInsert;
 
 
-	bool _gotkey(void *insert){ //wrapper
+	bool _gotKey(void *insert){ //wrapper
 		return com_gotKey(key,(char*)insert);
 	}
 
 	for(int i = 0; i < list_size(keys); i++){
 		key = list_get(keys,i);
-		toInsert = list_find(allInserts,_gotKey);
+		toInsert = list_find(allInserts,  _gotKey);
 
 		partUrl = string_duplicate(tableUrl);
-		part = string_itoa(key % table->parts);
+		part = string_itoa(strtol(key,NULL,10) % table->parts);
 		string_append(&partUrl,part);
 		string_append(&partUrl,".bin");
 
@@ -167,7 +176,10 @@ void com_saveInPartition(t_list *keys,t_list *allInserts, activeTable *table)
 	}
 }
 
-bool com_gotKey(uint16_t key, char *insert)
+bool com_gotKey(char *key, char *insert)
 {
-	return com_key(insert) == key;
+	char *listKey = com_key(insert);
+	bool boolean = !strcmp(listKey,key);
+	free(listKey);
+	return boolean;
 }

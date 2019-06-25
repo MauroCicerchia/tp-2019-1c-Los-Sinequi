@@ -15,6 +15,8 @@
 
 #include"Lissandra/connection/connection.h"
 
+#include"Lissandra/compactador/compactador.h"
+
 void init_FileSystem();
 void kill_FileSystem();
 void iniciar_logger(t_log **logger);

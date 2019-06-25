@@ -21,11 +21,13 @@
 
 #include"blocks.h"
 #include"../Lissandra/memtable/memtable.h"
+#include"../Lissandra/compactador/activeTable.h"
 
 extern char* absoluto;
 extern t_log *logger;
 extern t_config *FsMetadataCfg;
 extern int tmpNo;
+extern t_list *sysTables;
 
 typedef struct{
 	char *consistency;
@@ -71,4 +73,5 @@ t_list *fs_getAllTables();
 void fs_cleanTmpsC(char *tableUrl);
 bool isTmpc(char *string);
 
+void fs_setActiveTables();
 #endif /* FS_H */
