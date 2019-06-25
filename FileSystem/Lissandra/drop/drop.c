@@ -7,11 +7,17 @@ int qdrop(char *table) //agregar semaforo de drop para que nadie toque las tabla
 		return 0;
 	}
 
-	freeBlocks(table);
+	activeTable *acTable = com_getActiveTable(table);
 
-	deleteDirectoriesAndFiles(table);
+	sem_wait(acTable->MUTEX_DROP_TABLE);
 
-	deleteTableFromMemory(table);
+		freeBlocks(table);
+
+		deleteDirectoriesAndFiles(table);
+
+		deleteTableFromMemory(table);
+
+	sem_post(acTable->MUTEX_DROP_TABLE);
 
 	return 1;
 }

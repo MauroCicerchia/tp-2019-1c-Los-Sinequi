@@ -11,7 +11,7 @@ t_log *logger;
 
 int fd,wd,dumpTime,retardTime,tmpNo,valueSize;
 
-pthread_t tApi,tDump,tListenCfg, tLisentClient, tCompact;
+pthread_t tApi,tDump,tListenCfg, tLisentClient;
 
 t_config *config;
 t_config *metadataCfg;
@@ -85,7 +85,7 @@ void init_FileSystem()
 	fs_setActualTmps(); //me fijo cuantos temporales hay al iniciar el sistema
 	tmpNo++; // =0 no hay tmps =6 de 0-5 tmps
 
-	flagBloquesLibres = 1; //hay bloques libre
+	flagBloquesLibres = 1; //hay bloques libres
 	lastBlockAssigned = 0; //inicio como ultimo bloque asignado el primero
 
 //	if(!b_blocksCreated()){
@@ -97,8 +97,7 @@ void init_FileSystem()
 	compact(list_get(sysTables,0));
 
 	for(int i = 0; i < list_size(sysTables);i++){ //creo todos los hilos de compactacion para las tablas
-		pthread_create(&tCompact,NULL,threadCompact,list_get(sysTables,i));
-		pthread_detach(tCompact);
+		threadForCompact(list_get(sysTables,i));
 	}
 
 	ba_create(); //levanto el bitarray
@@ -239,3 +238,8 @@ t_config *load_lfsMetadata()
 		return metadata;
 }
 
+void threadForCompact(activeTable *table){
+	pthread_t tCompact;
+	pthread_create(&tCompact,NULL,threadCompact,table);
+	pthread_detach(tCompact);
+}

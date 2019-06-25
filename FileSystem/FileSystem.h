@@ -33,4 +33,5 @@ void *threadListenToClient();
 void *threadDump();
 void load_config();
 t_config *load_lfsMetadata();
+void threadForCompact(activeTable *table);
 

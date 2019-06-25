@@ -1,12 +1,11 @@
 #include"compactador.h"
 
-void *threadCompact(char *tableName)
+void *threadCompact(activeTable *table)
 {
-	while(tableIsActive(tableName)){
-		activeTable *table = com_getActiveTable(tableName);
+	while(tableIsActive(table->name)){
 
 		sem_wait(&table->MUTEX_DROP_TABLE);
-			table->ctime = com_getCTime(tableName); //actualiza cambios en el tiempo de compactacion
+			table->ctime = com_getCTime(table->name); //actualiza cambios en el tiempo de compactacion
 			compact(table);
 		sem_post(&table->MUTEX_DROP_TABLE);
 
