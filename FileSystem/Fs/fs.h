@@ -68,4 +68,7 @@ void fs_createBlocks(int);
 
 t_list *fs_getAllTables();
 
+void fs_cleanTmpsC(char *tableUrl);
+bool isTmpc(char *string);
+
 #endif /* FS_H */

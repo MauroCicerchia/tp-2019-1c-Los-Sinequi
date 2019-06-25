@@ -298,7 +298,7 @@ t_list *fs_getListOfInserts(char* table,int key)
 	return partList;
 }
 
-//si no hay ninguno retorna NULL
+
 //busca en la url de la tabla todos los .tmp y devuelve el "nombre.tmp"
 t_list *getAllTmps(char *tableUrl)
 {
@@ -387,4 +387,27 @@ t_list *fs_getAllTables()
 	closedir(d);
 	return allTables;
 
+}
+
+void fs_cleanTmpsC(char *tableUrl){
+	char *file;
+	DIR *d;
+	struct  dirent *dir;
+
+	d = opendir(tableUrl);
+	dir = readdir(d);
+	while(dir != NULL){ //borro todos los archivos del directorio
+		if(isTmpc(dir->d_name)){
+			file = string_duplicate(tableUrl);
+			string_append(&file,dir->d_name);
+			unlink(file);
+			free(file);
+		}
+		dir = readdir(d);
+	}
+	closedir(d);
+}
+
+bool isTmpc(char *string){
+	return string_ends_with(string, ".tmpc");
 }
