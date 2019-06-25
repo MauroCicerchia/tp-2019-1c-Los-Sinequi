@@ -390,17 +390,26 @@ t_list *fs_getAllTables()
 }
 
 void fs_cleanTmpsC(char *tableUrl){
-	char *file;
+	char *file,*strBlocks;
 	DIR *d;
 	struct  dirent *dir;
+	char **blocks;
+
 
 	d = opendir(tableUrl);
 	dir = readdir(d);
 	while(dir != NULL){ //borro todos los archivos del directorio
 		if(isTmpc(dir->d_name)){
 			file = string_duplicate(tableUrl);
-			string_append(&file,dir->d_name); //FALTA LIBERAR BLOCKS EN BITARRAY Y DEJARLOS VACIOS
-			unlink(file);
+			string_append(&file,dir->d_name);
+
+			strBlocks = getListOfBlocks(file);
+			blocks = string_get_string_as_array(strBlocks);
+			for(int i = 0; i < sizeofArray(blocks); i++){ //libero bloque por bloque, del bitarray y su contenido
+				b_freeblock(blocks[i]);
+			}
+
+			unlink(file); //borro el archivo
 			free(file);
 		}
 		dir = readdir(d);

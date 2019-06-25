@@ -410,3 +410,28 @@ void b_writeBlockAssigned(int block)
 
 	free(strBlock);
 }
+
+
+//limpio el contenido del bloque y lo libero en el bitarray
+void b_freeblock(int block){
+	char *blockUrl = fs_getBlocksUrl();
+	char *strBlock = string_itoa(block);
+	string_append(&blockUrl,strBlock);
+
+	FILE *f = fopen(blockUrl,"w"); //limpio el archivo
+	fclose(f);
+
+	ba_freeBlock(block); //libero en bitarray
+
+	free(blockUrl);
+	free(strBlock);
+}
+
+
+
+
+
+
+
+
+
