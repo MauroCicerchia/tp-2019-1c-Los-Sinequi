@@ -59,6 +59,7 @@ void com_compactTmpsC(t_list *tmpsC,char *tableUrl, activeTable *table)
 	sem_post(table->MUTEX_TABLE_PART);
 }
 
+
 bool biggerTimeStamp(void *elem1, void *elem2)
 {
 	return com_timestamp(elem1) > com_timestamp(elem2);
@@ -142,11 +143,24 @@ bool keyIsAdded(uint16_t key,t_list *keys)
 }
 
 /*
- * allInserts = lista ordenada de "tsmp;key;value"
+ * allInserts = lista ,ordenada por tsmp, de "tsmp;key;value"
  * keys = lista de uint16_t con las todas las key a guardar
  */
 void com_saveInPartition(t_list *keys,t_list *allInserts)
 {
-	for()
+	uint16_t key;
+
+	bool _gotkey(void *insert){ //wrapper
+		return com_gotKey(key,(char*)insert);
+	}
+
+	for(int i = 0; i < list_size(keys); i++){
+		key = list_get(keys,i);
+		list_find(allInserts,_gotKey);
+	}
 }
 
+bool com_gotKey(uint16_t key, char *insert){
+	return com_key(insert) == key;
+
+}
