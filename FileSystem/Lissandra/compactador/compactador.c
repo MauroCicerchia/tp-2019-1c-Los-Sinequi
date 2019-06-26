@@ -1,19 +1,22 @@
 #include"compactador.h"
 
-void *threadCompact(activeTable *table)
+void *threadCompact(char *tableName)
 {
-	while(tableIsActive(table->name)){
+	activeTable *table;
+	while(tableIsActive(tableName)){
 
+		table = com_getActiveTable(tableName);
 		sem_wait(&table->MUTEX_DROP_TABLE);
 			table->ctime = com_getCTime(table->name); //actualiza cambios en el tiempo de compactacion
 			compact(table);
 		sem_post(&table->MUTEX_DROP_TABLE);
 
-		usleep(table->ctime);
+		sleep(table->ctime/1000);
 	}
+	free(tableName);
 	return NULL;
-}
 
+}
 
 
 void compact(activeTable *table)//agregar el semaforo para drop

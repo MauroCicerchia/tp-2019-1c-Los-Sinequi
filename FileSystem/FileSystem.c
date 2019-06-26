@@ -95,14 +95,15 @@ void init_FileSystem()
 
 	fs_setActiveTables(); //cargo a memoria todas las tablas activas en "systables"
 
-
-//	for(int i = 0; i < list_size(sysTables);i++){ //creo todos los hilos de compactacion para las tablas
-//		threadForCompact(list_get(sysTables,i));
-//	}
+	activeTable *x;
+	for(int i = 0; i < list_size(sysTables);i++){ //creo todos los hilos de compactacion para las tablas
+		x = list_get(sysTables,i);
+		threadForCompact(string_duplicate(x->name));
+	}
 
 	ba_create(); //levanto el bitarray
 
-	compact(list_get(sysTables,0));
+//	compact(list_get(sysTables,0));
 }
 
 
@@ -184,11 +185,6 @@ void *threadDump()
 	return NULL;
 }
 
-//void *threadListenToClient()
-//{
-//	listen_client();
-//	return NULL;
-//}
 
 void iniciar_logger(t_log **logger){
 	*logger = log_create("FileSystem.log", "FileSystem", 1, LOG_LEVEL_INFO);
