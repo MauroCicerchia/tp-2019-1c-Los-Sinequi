@@ -236,9 +236,9 @@ t_config *load_lfsMetadata()
 		return metadata;
 }
 
-void threadForCompact(activeTable *table){
+void threadForCompact(char *tableName){
 	pthread_t tCompact;
-	pthread_create(&tCompact,NULL,(void*)threadCompact,table);
+	pthread_create(&tCompact,NULL,(void*)threadCompact,tableName);
 	pthread_detach(tCompact);
 }
 

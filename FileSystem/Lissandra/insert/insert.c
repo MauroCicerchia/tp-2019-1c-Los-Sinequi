@@ -2,8 +2,17 @@
 
 int qinsert(char *table, char* key, char *value, char* timeStamp){
 	log_info(logger, "  Chequeo que la tabla este creada");
-	if(fs_tableExists(table)){
-		log_info(logger, "  La tabla existe");
+
+	if(!fs_tableExists(table)){
+		log_error(logger, "La tabla sobre la que se quiere hacer el insert no existe");
+		return 0;
+	}else log_info(logger, "  La tabla existe");
+
+	if(strlen(value) > valueSize){
+		log_error(logger,"El value supera la longitud definida");
+		return 0;
+	}
+
 		sem_wait(&MUTEX_MEMTABLE);
 		mt_insert(table,timeStamp,key,value);
 		sem_post(&MUTEX_MEMTABLE);
@@ -14,7 +23,5 @@ int qinsert(char *table, char* key, char *value, char* timeStamp){
 		return 1;
 	}
 
-	else log_error(logger, "La tabla sobre la que se quiere hacer el insert no existe");
-	return 0;
-}
+
 
