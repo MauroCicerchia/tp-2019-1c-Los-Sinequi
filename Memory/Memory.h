@@ -10,25 +10,58 @@
 #include<sharedLib/server.h>
 #include<sharedLib/query.h>
 #include<sharedLib/packaging.h>
+#include<sharedLib/consistency.h>
+#include<commons/bitarray.h>
+#include<semaphore.h>
 #include"Segment.h"
 #include<time.h>
+#include"QuerysToFS.h"
+
+void* main_memory;
+t_bitarray* bitmap;
+int get_value_size();
+void THEGREATMALLOC();
 
 t_list* segmentList;
 e_query processQuery(char *, t_log*);
 t_log *logger;
 t_config *config;
+sem_t MUTEX_MEM;
 
+void memory_init();
+void kill_memory();
+void load_config();
 void iniciar_logger();
+segment* segment_init();
 void *listen_client();
 void process_query_from_client(int);
 void start_API();
 segment* search_segment(char*);
-page* search_page(segment*,int);
+page* search_page(segment*,uint16_t);
+int get_frame_size();
+int total_frames();
+void create_bitmap();
+uint16_t get_key_from_memory(int);
+int get_timestamp_from_memory(int);
+char* get_value_from_memory(int);
+void insert_in_frame(uint16_t,int,char*,int);
+void modify_in_frame(char*,int);
+int find_free_frame();
+int get_timestamp();
+void delete_segment_from_mem(segment*);
+void remove_delete_segment(segment*);
+
 char* selectM(char*,int);	   // (nombreTabla,key)
 int insertM(char*,int,char*); // (nombreTabla,key,value)
-segment* segment_init(t_log*);
-void createM(char*,/*consistencia,*/int,int);
-void load_config();
+int createM(char*,char*,int,int);
+int dropM(char*);
+void journalM(void);
+
+
+
+/*table_t *describeM(char*);
+t_list *describeM();*/
+
 
 /*	PUERTO=8000
     IP_FS="192.168.1.2"
