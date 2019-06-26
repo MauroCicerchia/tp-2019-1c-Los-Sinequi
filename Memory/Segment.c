@@ -18,9 +18,16 @@ bool segment_full(void* segmentFound){
 		return list_all_satisfy(((segment*)segmentFound)->page_list,isModified);
 	}
 
-void segment_add_page(segment* segment,int frame_num){
-	page* segmentPage = create_load_page(list_size(segment->page_list),frame_num);
+void segment_add_page(segment* segment,int frame_num, int modified){
+	page* segmentPage = create_load_page(list_size(segment->page_list),frame_num,modified);
 	list_add(segment->page_list,segmentPage);
+}
+
+void remove_page_from_segment(page* aPage, segment* segment){
+	bool isPage(void* anotherPage){
+			return (((page*)anotherPage)->page_num == aPage->page_num);
+		}
+		list_remove_and_destroy_by_condition(segment->page_list,isPage,page_destroy);
 }
 
 void segment_destroy(void* aSegment){

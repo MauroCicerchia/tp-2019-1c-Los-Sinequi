@@ -50,6 +50,10 @@ int find_free_frame();
 int get_timestamp();
 void delete_segment_from_mem(segment*);
 void remove_delete_segment(segment*);
+void* execute_journal();
+void load_page_to_segment(int,segment*,char*,int);
+void execute_replacement(int, char*, segment*);
+
 
 char* selectM(char*,int);	   // (nombreTabla,key)
 int insertM(char*,int,char*); // (nombreTabla,key,value)

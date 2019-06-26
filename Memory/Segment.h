@@ -11,5 +11,6 @@ typedef struct{
 segment* segment_create();
 bool segment_Pages_Available(segment*);
 bool segment_full(void*);
-void segment_add_page(segment*,int);
+void segment_add_page(segment*,int,int);
 void segment_destroy(void*);
+void remove_page_from_segment(page*,segment*);
