@@ -11,6 +11,9 @@
 
 extern t_log *logger;
 
+#ifndef SELECT_H
+#define SELECT_H
+
 typedef struct{
 	uint64_t timeStamp;
 	uint16_t key;
@@ -32,3 +35,5 @@ bool isLastKey(uint16_t ,void*);
 void *elemToDATAmode(void *);
 
 void dataSelect_destroy(void*);
+
+#endif
