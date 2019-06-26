@@ -38,9 +38,9 @@ int main(int argc, char **argv)
 	pthread_create(&tListenCfg,NULL,threadConfigModify,NULL);
 	pthread_detach(tListenCfg);
 
-	pthread_create(&tLisentClient,NULL,threadListenToClient,NULL);
-	pthread_detach(tLisentClient);
-//	threadListenToClient();
+//	pthread_create(&tLisentClient,NULL,threadListenToClient,NULL);
+//	pthread_detach(tLisentClient);
+
 
 	pthread_create(&tDump,NULL,threadDump,NULL);
 	pthread_detach(tDump);
@@ -89,19 +89,20 @@ void init_FileSystem()
 	flagBloquesLibres = 1; //hay bloques libres
 	lastBlockAssigned = 0; //inicio como ultimo bloque asignado el primero
 
-//	if(!b_blocksCreated()){
-//		b_create();
-//	}
+	if(!b_blocksCreated()){
+		b_create();
+	}
 
-//	fs_setActiveTables(); //cargo a memoria todas las tablas activas en "systables"
+	fs_setActiveTables(); //cargo a memoria todas las tablas activas en "systables"
 
-//	compact(list_get(sysTables,0));
 
 //	for(int i = 0; i < list_size(sysTables);i++){ //creo todos los hilos de compactacion para las tablas
 //		threadForCompact(list_get(sysTables,i));
 //	}
 
 	ba_create(); //levanto el bitarray
+
+	compact(list_get(sysTables,0));
 }
 
 
@@ -246,6 +247,6 @@ void threadForCompact(activeTable *table){
 }
 
 void *threadListenToClient(){
-	listen_client();
+//	listen_client();
 	return NULL;
 }

@@ -39,6 +39,7 @@ void b_saveIntoBlock(char *blockUrl,char *data);
 void b_updateSize(char *tmpUrl);
 void b_modifySize(char *url,int tam);
 void b_writeBlockAssigned(int block);
-
 void b_freeblock(int block);
+bool b_blocksCreated();
+void b_create();
 #endif

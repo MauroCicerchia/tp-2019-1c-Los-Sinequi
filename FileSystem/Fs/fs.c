@@ -394,6 +394,7 @@ void fs_cleanTmpsC(char *tableUrl){
 	DIR *d;
 	struct  dirent *dir;
 	char **blocks;
+	int blockToFree;
 
 
 	d = opendir(tableUrl);
@@ -406,7 +407,8 @@ void fs_cleanTmpsC(char *tableUrl){
 			strBlocks = getListOfBlocks(file);
 			blocks = string_get_string_as_array(strBlocks);
 			for(int i = 0; i < sizeofArray(blocks); i++){ //libero bloque por bloque, del bitarray y su contenido
-				b_freeblock(strtol(blocks[i],NULL,10));
+				blockToFree = strtol(blocks[i],NULL,10);
+				b_freeblock(blockToFree);
 			}
 
 			unlink(file); //borro el archivo

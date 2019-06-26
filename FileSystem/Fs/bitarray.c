@@ -45,16 +45,6 @@ void ba_create()
 }
 
 
-//int ba_exists(){
-//	char *url = fs_getBitmapUrl();
-//	if(access(url,F_OK) != -1){
-//		free(url);
-//		return 1;
-//	}
-//	free(url);
-//	return 0;
-//}
-
 int get_blocks_cuantity()
 {
 	return metadataBlocks;
@@ -109,7 +99,7 @@ void ba_freeBlock(int block)
 {
 	sem_wait(&MUTEX_BITARRAY);
 
-	bitarray_clean_bit(bitarray, block);
+	bitarray_clean_bit(bitarray,block);
 	flagBloquesLibres = 1;
 
 	sem_post(&MUTEX_BITARRAY);

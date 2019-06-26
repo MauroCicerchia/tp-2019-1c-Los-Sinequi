@@ -429,6 +429,37 @@ void b_freeblock(int block){
 }
 
 
+bool b_blocksCreated()
+{
+	char *blocksUrl = fs_getBlocksUrl();
+	string_append(&blocksUrl,"0.bin");
+
+	if(access(blocksUrl,F_OK) != -1){
+		free(blocksUrl);
+		return true;
+	}
+	else {
+		free(blocksUrl);
+		return false;
+	}
+}
+
+void b_create(){
+	char *blocksDirectory = fs_getBlocksUrl();
+	char *blockUrl, *strBlock;
+	for(int i = 0; i < metadataBlocks; i++){
+		blockUrl = string_duplicate(blocksDirectory);
+		strBlock = string_itoa(i);
+		string_append(&blockUrl,strBlock);
+		string_append(&blockUrl,".bin");
+
+		FILE *f = fopen(blockUrl,"w");
+		fclose(f);
+
+		free(blockUrl); free(strBlock);
+	}
+	free(blocksDirectory);
+}
 
 
 

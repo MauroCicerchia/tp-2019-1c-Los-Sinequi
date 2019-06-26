@@ -112,8 +112,8 @@ t_list *getFiles(char *tableUrl)
 void deleteTableFromMemory(char *table){
 	void _activeTableDestroyer(void *table){
 		free(((activeTable*)table)->name);
-//		sem_destroy(((activeTable*)table)->MUTEX_DROP_TABLE);
-//		sem_destroy(((activeTable*)table)->MUTEX_TABLE_PART);
+		sem_destroy(&((activeTable*)table)->MUTEX_DROP_TABLE);
+		sem_destroy(&((activeTable*)table)->MUTEX_TABLE_PART);
 		free((activeTable*)table);
 	}
 	int i = 0;
