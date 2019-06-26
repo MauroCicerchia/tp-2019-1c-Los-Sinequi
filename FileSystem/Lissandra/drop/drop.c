@@ -15,9 +15,11 @@ int qdrop(char *table) //agregar semaforo de drop para que nadie toque las tabla
 
 		deleteDirectoriesAndFiles(table);
 
-		deleteTableFromMemory(table);
-
 	sem_post(&acTable->MUTEX_DROP_TABLE);
+
+//		deleteTableFromMemory(table);
+
+
 
 	return 1;
 }
@@ -108,5 +110,21 @@ t_list *getFiles(char *tableUrl)
 
 //saca la tabla de la lista de tablas activas en memoria
 void deleteTableFromMemory(char *table){
-	return;
+	void _activeTableDestroyer(void *table){
+		free(((activeTable*)table)->name);
+//		sem_destroy(((activeTable*)table)->MUTEX_DROP_TABLE);
+//		sem_destroy(((activeTable*)table)->MUTEX_TABLE_PART);
+		free((activeTable*)table);
+	}
+	int i = 0;
+	bool flag = true;
+	while(flag){
+		activeTable *pivot = list_get(sysTables,i);
+		if(!strcmp(table,pivot->name))
+			flag = false;
+		else
+			i++;
+	}
+
+	list_remove_and_destroy_element(sysTables,i,_activeTableDestroyer);
 }

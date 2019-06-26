@@ -92,13 +92,13 @@ void init_FileSystem()
 //		b_create();
 //	}
 
-	fs_setActiveTables(); //cargo a memoria todas las tablas activas en "systables"
+//	fs_setActiveTables(); //cargo a memoria todas las tablas activas en "systables"
 
-	compact(list_get(sysTables,0));
+//	compact(list_get(sysTables,0));
 
-	for(int i = 0; i < list_size(sysTables);i++){ //creo todos los hilos de compactacion para las tablas
-		threadForCompact(list_get(sysTables,i));
-	}
+//	for(int i = 0; i < list_size(sysTables);i++){ //creo todos los hilos de compactacion para las tablas
+//		threadForCompact(list_get(sysTables,i));
+//	}
 
 	ba_create(); //levanto el bitarray
 }
