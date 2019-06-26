@@ -17,9 +17,7 @@ int qdrop(char *table) //agregar semaforo de drop para que nadie toque las tabla
 
 	sem_post(&acTable->MUTEX_DROP_TABLE);
 
-		deleteTableFromMemory(table);
-
-
+	deleteTableFromMemory(table);
 
 	return 1;
 }

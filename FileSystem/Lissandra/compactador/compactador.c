@@ -13,9 +13,10 @@ void *threadCompact(char *tableName)
 
 		sleep(table->ctime/1000);
 	}
+
+
 	free(tableName);
 	return NULL;
-
 }
 
 
