@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include<sys/time.h>
 
 #include<commons/log.h>
 
@@ -9,6 +10,7 @@
 #include<sharedLib/query.h>
 #include<sharedLib/packaging.h>
 #include<sharedLib/consistency.h>
+#include<sharedLib/client.h>
 
 #include"../create/create.h"
 #include"../insert/insert.h"
@@ -19,6 +21,9 @@
 extern char *ip;
 extern char *port;
 extern t_log *logger;
+extern int valueSize;
 
 void *listen_client();
 void process_query_from_client(int client);
+
+uint64_t conn_getCurrentTime();

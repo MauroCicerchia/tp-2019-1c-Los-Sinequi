@@ -12,6 +12,8 @@ int main(int argc, char **argv) {
 
 	start_API(logger);
 
+	printf("%d",get_value_size());
+
 	kill_memory();
 	return 0;
 }
@@ -560,7 +562,10 @@ void remove_delete_segment(segment* aSegment){
 }
 
 int get_value_size(){
-	return 64*sizeof(char);
+	int socket = connect_to_FS(config, logger);
+	send_req_code(socket,REQUEST_VALUESIZE);
+	return recv_int(socket);
+	//	return 64*sizeof(char);
 }
 int get_timestamp(){
 	return (int)time(NULL);

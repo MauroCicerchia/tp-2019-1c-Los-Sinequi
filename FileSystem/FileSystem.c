@@ -38,8 +38,9 @@ int main(int argc, char **argv)
 	pthread_create(&tListenCfg,NULL,threadConfigModify,NULL);
 	pthread_detach(tListenCfg);
 
-//	pthread_create(&tLisentClient,NULL,threadListenToClient,NULL);
-//	pthread_detach(tLisentClient);
+	pthread_create(&tLisentClient,NULL,threadListenToClient,NULL);
+	pthread_detach(tLisentClient);
+//	threadListenToClient();
 
 	pthread_create(&tDump,NULL,threadDump,NULL);
 	pthread_detach(tDump);
@@ -71,8 +72,8 @@ void init_FileSystem()
 	dumpTime = get_dump_time();
 	retardTime = get_retard_time();
 	absoluto = string_duplicate(get_fs_route());
-	ip = get_ip();
-	port = get_port();
+	ip = string_duplicate(get_ip());
+	port = string_duplicate(get_port());
 	valueSize = get_valueSize();
 	config_destroy(config);
 
@@ -242,4 +243,9 @@ void threadForCompact(activeTable *table){
 	pthread_t tCompact;
 	pthread_create(&tCompact,NULL,(void*)threadCompact,table);
 	pthread_detach(tCompact);
+}
+
+void *threadListenToClient(){
+	listen_client();
+	return NULL;
 }

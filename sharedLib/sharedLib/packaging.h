@@ -29,6 +29,7 @@ typedef enum {
 	RESPONSE_FULL
 }e_response_code;
 
+
 void *serialize_package(t_package*, int);
 t_package *create_package(e_query);
 void create_buffer(t_package*);

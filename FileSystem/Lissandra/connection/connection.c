@@ -17,9 +17,12 @@ void *listen_client()
 
 
 		e_request_code rc = recv_req_code(cliSocket);
+		switch(rc){
+			case REQUEST_VALUESIZE: send_int(cliSocket,valueSize); break;
+			case REQUEST_QUERY: process_query_from_client(cliSocket);
+		}
 
-		process_query_from_client(cliSocket);
-
+		closeConnection(socket);
 	}
 }
 
@@ -30,7 +33,7 @@ void process_query_from_client(int client)
 	recv(client, &opCode, sizeof(opCode), 0);
 
 	char *table, *value;
-	int key, part, compTime, size, status;
+	int key, part, compTime, status,timeStamp;
 	char *consType;
 	char *sKey, *sTimeStamp, *sPart, *sCTime;
 	metadata *tableMetadata;
@@ -59,7 +62,7 @@ void process_query_from_client(int client)
 			table = recv_str(client);
 			key = recv_int(client);
 			value = recv_str(client);
-			int timeStamp = recv_int(client);
+			timeStamp = conn_getCurrentTime(); //agregar mi timestamp
 			sKey = string_itoa(key);
 			sTimeStamp = string_itoa(timeStamp);
 
@@ -79,6 +82,7 @@ void process_query_from_client(int client)
 			consType = recv_str(client);
 			part = recv_int(client);
 			compTime = recv_int(client);
+
 			sPart = string_itoa(part);
 			sCTime = string_itoa(compTime);
 
@@ -94,30 +98,37 @@ void process_query_from_client(int client)
 
 		case QUERY_DESCRIBE:
 
-			size = recv_int(client);
-			if(size != 0) {
-				table = (char*)malloc(size);
-				recv(client, table, size, 0);
-				tableMetadata = qdescribe(table);
-				if(tableMetadata != NULL) {
-					send_res_code(client, RESPONSE_SUCCESS);
-//					send_int(client, 1);
-//					send_table(client, t);
-				} else {
-					send_res_code(client, RESPONSE_ERROR);
-				}
+			table = recv_str(client);
 
-			} else {
-//				t_list *tl = describeM();
-//				int tCount = list_size(tl);
-				if(tCount != 0) {
-					send_res_code(client, RESPONSE_SUCCESS);
-//					send_int(client, tCount);
-					void sendTable(void *t) {
-//						send_table(client, (table_t*)t);
+			if(!strcmp(table,"NULL")) { //todas las tablas
+
+				t_list *tables = fs_getAllTables();
+
+				for(int i = 0; i < list_size(tables); i++){
+					tableMetadata = qdescribe(list_get(tables,i));
+					if(tableMetadata != NULL){
+						send_res_code(client, RESPONSE_SUCCESS);
+						send_str(client,tableMetadata->consistency);
+						send_str(client,tableMetadata->partitions);
+						send_str(client,tableMetadata->ctime);
+
+						free(tableMetadata->consistency); free(tableMetadata->ctime); free(tableMetadata->partitions);
+						free(tableMetadata);
 					}
-//					list_iterate(tl, sendTable);
-				} else {
+					else send_res_code(client, RESPONSE_ERROR);
+				}
+			}
+			else { //una sola tabla
+				tableMetadata = qdescribe(table);
+				if(tableMetadata != NULL){
+					send_res_code(client, RESPONSE_SUCCESS);
+					send_str(client,tableMetadata->consistency);
+					send_str(client,tableMetadata->partitions);
+					send_str(client,tableMetadata->ctime);
+
+					free(tableMetadata->consistency); free(tableMetadata->ctime); free(tableMetadata->partitions);
+					free(tableMetadata);
+				}else{
 					send_res_code(client, RESPONSE_ERROR);
 				}
 			}
@@ -144,5 +155,13 @@ void process_query_from_client(int client)
 		case QUERY_ERROR: send_res_code(client, RESPONSE_ERROR);break;
 	}
 
+}
+
+uint64_t conn_getCurrentTime()
+{
+	struct timeval tv;
+	gettimeofday(&tv,NULL);
+
+	return (uint64_t)((tv.tv_sec)*1000 + (tv.tv_usec)/1000);
 }
 
