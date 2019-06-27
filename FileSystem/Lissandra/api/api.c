@@ -21,8 +21,9 @@ void processQuery(char *query)
 {
 	e_query queryType;
 	char log_msg[100];
-	char *selectReturnValue = string_new();
+	char *selectReturnValue;
 	char **args = parseQuery(query);
+	t_list *tables;
 
 	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
 
@@ -42,14 +43,17 @@ void processQuery(char *query)
 
 			selectReturnValue = qselect(args[1], args[2]);
 
+			if(selectReturnValue != NULL){
 			log_info(logger, ">>>>");
 			log_info(logger, selectReturnValue);
 			log_info(logger, ">>>>");
 
+			free(selectReturnValue);
+			}
+
 			log_info(logger, "Fin SELECT");
 			log_info(logger, "----------------------------------------");
 
-			if(selectReturnValue != NULL) free(selectReturnValue);
 			free(args);
 			break;
 
@@ -66,7 +70,7 @@ void processQuery(char *query)
 			log_info(logger, "Fin INSERT");
 			log_info(logger, "----------------------------------------");
 
-//			free(args);
+//			free(args[1]); free(args[2]); free(args[3]); free(args[4]);
 			break;
 
 		case QUERY_CREATE:
@@ -93,19 +97,51 @@ void processQuery(char *query)
 
 			delayer();
 
-			metadata *tableInfo = qdescribe(args[1]);
+			if(args[1] == NULL){
+				tables = fs_getAllTables();
+				for(int i = 0; i < list_size(tables); i++){
+					metadata *tableInfo = qdescribe(list_get(tables,i));
 
-			if(tableInfo != NULL){
-				log_info(logger, ">>>");
-				sprintf(log_msg,"Consistencia: %s",tableInfo->consistency);
-				sprintf(log_msg,"Particiones: %s",tableInfo->partitions);
-				sprintf(log_msg,"Tiempo de compactacion: %s",tableInfo->ctime);
-				log_info(logger, ">>>");
+					if(tableInfo != NULL){
+						log_info(logger, ">>>");
+						log_info(logger,"TABLA:");
+						log_info(logger,list_get(tables,i));
+//						char *cons = tableInfo->consistency;
+//						char *parts = tableInfo->partitions;
+//						char *ctime = tableInfo->ctime;
+						sprintf(log_msg,"Consistencia: %s",tableInfo->consistency);
+						log_info(logger,log_msg);
+						sprintf(log_msg,"Particiones: %s",tableInfo->partitions);
+						log_info(logger,log_msg);
+						sprintf(log_msg,"Tiempo de compactacion: %s",tableInfo->ctime);
+						log_info(logger,log_msg);
+						log_info(logger, ">>>");
 
-				free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
-				free(tableInfo);
+						free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
+						free(tableInfo);
+//						free(cons);
+					}
+				}
+			}else{
+				metadata *tableInfo = qdescribe(args[1]);
+
+				if(tableInfo != NULL){
+					log_info(logger, ">>>");
+					char *cons = string_new(); strcpy(cons,tableInfo->consistency);
+					char *parts = tableInfo->partitions; char *ctime = tableInfo->ctime;
+					sprintf(log_msg,"Consistencia: %s",cons);
+					log_info(logger,log_msg);
+					sprintf(log_msg,"Particiones: %s",parts);
+					log_info(logger,log_msg);
+					sprintf(log_msg,"Tiempo de compactacion: %s",ctime);
+					log_info(logger,log_msg);
+					log_info(logger, ">>>");
+
+					free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
+					free(tableInfo);
+					free(cons);
+				}
 			}
-
 			log_info(logger, "Fin DESCRIBE");
 			log_info(logger, "----------------------------------------");
 
@@ -119,7 +155,7 @@ void processQuery(char *query)
 
 			delayer();
 
-			//drop(args[1]);
+			qdrop(args[1]);
 
 			log_info(logger, "Fin DROP");
 			log_info(logger, "----------------------------------------");

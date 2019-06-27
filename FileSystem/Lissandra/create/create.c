@@ -11,8 +11,8 @@ int qcreate(char *table, char *consistency, char *partitions, char *compactime){
 		log_error(logger,"Tipo de consistencia invalido");
 		return 0;
 	}
-	int parts = atoi(partitions);
-	int ctime = atoi(compactime);
+	int parts = strtol(partitions,NULL,10);
+	int ctime = strtol(compactime,NULL,10);
 	return fs_create(table,consistency,parts,ctime);
 }
 
