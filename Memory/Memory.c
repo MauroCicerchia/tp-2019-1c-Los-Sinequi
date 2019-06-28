@@ -126,10 +126,10 @@ void process_query_from_client(int client) {
 	e_query opCode;
 	recv(client, &opCode, sizeof(opCode), 0);
 
-	char *table, *value;
+	char *table, *value, *consistency;
 	int key, part, compTime, size;
-	char *consType;
-
+	metadata* aMD;
+	t_list* metadata_list;
 	switch(opCode) {
 		case QUERY_SELECT:
 			table = recv_str(client);
@@ -156,7 +156,7 @@ void process_query_from_client(int client) {
 			break;
 		case QUERY_CREATE:
 			table = recv_str(client);
-			consType = recv_str(client);
+			consistency = recv_str(client);
 			part = recv_int(client);
 			compTime = recv_int(client);
 //			int status = createM(table, consType, part, compTime);
@@ -165,27 +165,32 @@ void process_query_from_client(int client) {
 		case QUERY_DESCRIBE:
 			size = recv_int(client);
 			if(size != 0) {
-				table = (char*)malloc(size);
-				recv(client, table, size, 0);
-//				table_t *t = describeM(table);
-//				if(t != NULL) {
+				table = recv_str(client);
+//				table = (char*)malloc(size);
+//				recv(client, table, size, 0);
+				metadata_list = describeM(table);
+				if(metadata_list != NULL) {
 					send_res_code(client, RESPONSE_SUCCESS);
 //					send_int(client, 1);
-//					send_table(client, t);
-//				} else {
-//					send_res_code(client, RESPONSE_ERROR);
-//				}
-			} else {
+					aMD = list_get(metadata_list,0);
+					send_str(client,aMD->consType);
+					send_str(client,aMD->partNum);
+					send_str(client,aMD->compTime);
+					list_destroy_and_destroy_elements(metadata_list,metadata_destroy);
+				} else {
+					send_res_code(client, RESPONSE_ERROR);
+				}
+			}else {
 //				t_list *tl = describeM();
 //				int tCount = list_size(tl);
 //				if(tCount != 0) {
 					send_res_code(client, RESPONSE_SUCCESS);
 //					send_int(client, tCount);
-					void sendTable(void *t) {
+//					void sendTable(void *t) {
 //						send_table(client, (table_t*)t);
-					}
+//					}
 //					list_iterate(tl, sendTable);
-//				} else {
+//				}else {
 					send_res_code(client, RESPONSE_ERROR);
 //				}
 			}
@@ -255,17 +260,16 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_CREATE:
 
-			//createM(args[1], args[2], args[3], args[4]);
-
 			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
-
+			log_info(logger,log_msg);
+			createM(args[1], args[2], atoi(args[3]), atoi(args[4]));
 			break;
 
 		case QUERY_DESCRIBE:
-
-			//describeM(args[1]);
-
 			sprintf(log_msg, "Recibi un DESCRIBE %s", args[1]);
+			log_info(logger,log_msg);
+
+//			describeM(args[1]);
 
 			break;
 
@@ -279,10 +283,8 @@ e_query processQuery(char *query, t_log *logger) {
 			break;
 
 		case QUERY_JOURNAL:
-
+			log_info(logger, "Recibi un JOURNAL");
 			journalM();
-
-			sprintf(log_msg, "Recibi un JOURNAL");
 
 			break;
 
@@ -536,9 +538,9 @@ int createM(char* segmentID,char* consistency ,int partition_num, int compaction
 	return 0;
 }
 
-void describeM(){
-
-	return;
+t_list* describeM(char *table){
+	t_list* md = send_describe_to_FS(table,config,logger);
+	return md;
 }
 
 int dropM(char* segment_id){

@@ -93,7 +93,7 @@ t_list* send_describe_to_FS(char*table,t_config* config,t_log* logger){
 	int FS_socket = connect_to_FS(config,logger);
 
 	if(table != NULL) {
-	//	Paquetizar
+		//Paquetizar
 		t_package *p = create_package(QUERY_DESCRIBE);
 		add_to_package(p, (void*)table, sizeof(char) * strlen(table) + 1);
 
@@ -108,6 +108,7 @@ t_list* send_describe_to_FS(char*table,t_config* config,t_log* logger){
 			aMetaData->consType = recv_str(FS_socket);
 			aMetaData->partNum = recv_str(FS_socket);
 			aMetaData->compTime = recv_str(FS_socket);
+			list_add(metadata_list,aMetaData);
 		}
 		else {
 			log_error(logger, "Error al realizar describe en FS");
@@ -201,4 +202,8 @@ int connect_to_FS(t_config* config, t_log* logger){
 		log_info(logger,"La conexion con FS fue exitosa");
 		return socket;
 	}
+}
+
+void metadata_destroy(void* aMD){
+	free(aMD);
 }

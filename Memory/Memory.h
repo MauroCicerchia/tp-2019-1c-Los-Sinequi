@@ -60,11 +60,8 @@ int insertM(char*,int,char*); // (nombreTabla,key,value)
 int createM(char*,char*,int,int);
 int dropM(char*);
 void journalM(void);
+t_list *describeM(char*);
 
-
-
-/*table_t *describeM(char*);
-t_list *describeM();*/
 
 
 /*	PUERTO=8000
