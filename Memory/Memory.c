@@ -470,9 +470,6 @@ return 0;
 }
 
 char* selectM(char* segmentID, int key){
-	//Busca si existe una pagina con esta key
-	//Develve el valor asociado
-
 	segment* segmentFound = search_segment(segmentID);
 
 	if(segmentFound != NULL){
@@ -539,12 +536,10 @@ int createM(char* segmentID,char* consistency ,int partition_num, int compaction
 	return 0;
 }
 
-/*table_t *describeM(char* table_id){
-	return 0;
+void describeM(){
+
+	return;
 }
-t_list *describeM(){
-	return 0;
-}*/
 
 int dropM(char* segment_id){
 
@@ -580,6 +575,7 @@ void remove_delete_segment(segment* aSegment){
 }
 
 void execute_replacement(int key, char* value, segment* segment_to_use){
+	log_info(logger,"Ejecutando algoritmo de reemplazo LRU");
 	int min_time = get_timestamp();
 	page* min_page;
 	segment* min_segment;
@@ -596,6 +592,10 @@ void execute_replacement(int key, char* value, segment* segment_to_use){
 		list_iterate(s->page_list,searching_page);
 	}
 	list_iterate(segmentList,re_segment);
+
+	char* log_msg;
+	sprintf(log_msg,"Se remueve la key %d del segmento %s \n", get_key_from_memory(min_page->frame_num),min_segment->segment_id);
+	log_info(logger,log_msg);
 
 	remove_page_from_segment(min_page,min_segment);
 	sem_wait(&MUTEX_MEM);

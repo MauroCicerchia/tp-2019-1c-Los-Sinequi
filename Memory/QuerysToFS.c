@@ -25,11 +25,9 @@ char* send_select_to_FS(char* segmentID, int key, t_config* config,t_log* logger
 	t_package *p = create_package(QUERY_SELECT);
 	add_to_package(p, (void*)segmentID, sizeof(char) * (strlen(segmentID) + 1));
 	add_to_package(p, (void*)&key, sizeof(key));
-	log_info(logger, "AVERGA");
 
 
 	int FS_socket = connect_to_FS(config,logger);
-	log_info(logger, "AVERGA");
 
 //	send_req_code(memSocket, REQUEST_QUERY);
 	send_package(p, FS_socket);
@@ -90,9 +88,8 @@ void send_create_to_FS(char* table,char* consType, int part, int compTime,t_conf
 	return;
 }
 
-//no debe ser void, debemos recibir metadata de tablas
-void send_describe_to_FS(char*table,t_config* config,t_log* logger){
-
+t_list* send_describe_to_FS(char*table,t_config* config,t_log* logger){
+	t_list* metadata_list;
 	int FS_socket = connect_to_FS(config,logger);
 
 	if(table != NULL) {
@@ -107,7 +104,12 @@ void send_describe_to_FS(char*table,t_config* config,t_log* logger){
 
 		if(r == RESPONSE_SUCCESS) {
 			//aca recibimos la metadata de una tabla
-		} else {
+			metadata* aMetaData;
+			aMetaData->consType = recv_str(FS_socket);
+			aMetaData->partNum = recv_str(FS_socket);
+			aMetaData->compTime = recv_str(FS_socket);
+		}
+		else {
 			log_error(logger, "Error al realizar describe en FS");
 		}
 	} else {
@@ -119,12 +121,21 @@ void send_describe_to_FS(char*table,t_config* config,t_log* logger){
 
 		if(r == RESPONSE_SUCCESS) {
 			//aca recibimos la metadata de todas las tablas existentes
-		} else {
+			int cant_tablas = recv_int(FS_socket);
+			for(int i=0;i<cant_tablas;i++){
+				metadata* aMetaData;
+				aMetaData->consType = recv_str(FS_socket);
+				aMetaData->partNum = recv_str(FS_socket);
+				aMetaData->compTime = recv_str(FS_socket);
+				list_add(metadata_list,aMetaData);
+			}
+		}
+		else {
 			log_error(logger, "Error al realizar describe en FS.");
 		}
 	}
 	close(FS_socket);
-	return;
+	return(metadata_list);
 }
 
 void send_insert_to_FS(char* table,int key,char* value,t_config* config,t_log* logger){
