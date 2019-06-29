@@ -13,11 +13,13 @@
 #include"../select/select.h"
 #include"../create/create.h"
 #include"../describe/describe.h"
-#include<sys/time.h>
+#include"../drop/drop.h"
 
+#include<sys/time.h>
 
 extern t_log *logger;
 extern t_config *config;
+extern t_config *metadataCfg;
 extern int retardTime;
 extern sem_t MUTEX_RETARDTIME;
 

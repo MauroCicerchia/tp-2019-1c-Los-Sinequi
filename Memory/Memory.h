@@ -57,7 +57,7 @@ void execute_replacement(int, char*, segment*);
 
 char* selectM(char*,int);	   // (nombreTabla,key)
 int insertM(char*,int,char*); // (nombreTabla,key,value)
-int createM(char*,char*,int,int);
+int createM(char*,char*,char*,char*);
 int dropM(char*);
 void journalM(void);
 t_list *describeM(char*);

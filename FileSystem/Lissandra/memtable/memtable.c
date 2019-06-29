@@ -1,10 +1,10 @@
 #include"memtable.h"
 
-void mt_insert(char *table,char* timestamp, char *key,char *value){
+void mt_insert(char *table,char* timestamp, char *key,char *value)
+{
 	if(!mt_tableExists(table)){
 		Itable *newTable = malloc(sizeof(Itable));
-		newTable->table = string_new();
-		strcpy(newTable->table,table);
+		newTable->table = string_duplicate(table);
 		newTable->inserts = list_create();
 		list_add(memtable,newTable);
 	}
@@ -14,13 +14,13 @@ void mt_insert(char *table,char* timestamp, char *key,char *value){
 }
 
 //evalua si la tabla esta en la memtable
-bool mt_tableExists(char *table){
+bool mt_tableExists(char *table)
+{
 	Itable *pTable;
 	if(list_size(memtable) == 0)return false;
 	for(int i=0;i<list_size(memtable);i++){
 		pTable = (Itable*)list_get(memtable,i);
 		if(!strcmp(pTable->table,table)){
-			free(pTable);
 			return true;
 		}
 	}
@@ -28,7 +28,8 @@ bool mt_tableExists(char *table){
 }
 
 //devuelve el puntero a la lista de "inserts" para agregar uno nuevo
-t_list *mt_getTableToInsert(char *table){
+t_list *mt_getTableToInsert(char *table)
+{
 	Itable *pTable;
 	for(int i=0;i<list_size(memtable);i++){
 		pTable = (Itable*)list_get(memtable,i);
@@ -40,34 +41,53 @@ t_list *mt_getTableToInsert(char *table){
 }
 
 //agrega el nuevo insert a la lista de "inserts"
-void mt_addNewInsert(t_list *tableToInsert, char *timestamp, char *key, char *value){
+void mt_addNewInsert(t_list *tableToInsert, char *timestamp, char *key, char *value)
+{
 	Iinsert *pInsert = malloc(sizeof(Iinsert));
-	pInsert->key = string_new();
-	pInsert->timestamp = string_new();
-	pInsert->value = string_new();
-	strcpy(pInsert->key,key);
-	strcpy(pInsert->timestamp,timestamp);
-	strcpy(pInsert->value,value);
+	pInsert->key = string_duplicate(key);
+	pInsert->timestamp = string_duplicate(timestamp);
+	pInsert->value = string_duplicate(value);
+//	strcpy(pInsert->key,key);
+//	strcpy(pInsert->timestamp,timestamp);
+//	strcpy(pInsert->value,value);
 	list_add(tableToInsert,pInsert);
 }
 
 //vacia una tabla tipo memtable
-void mt_clean(){
+void mt_clean()
+{
 	list_destroy_and_destroy_elements(memtable,tableDestroyer);
 	memtable = list_create();
 }
 
-void mt_cleanPivot(t_list *tableToClean){
+void mt_cleanPivot(t_list *tableToClean)
+{
 	list_destroy_and_destroy_elements(tableToClean,tableDestroyer);
 }
-void tableDestroyer(void* table){
+void tableDestroyer(void* table)
+{
 	free(((Itable*)table)->table);
 	list_destroy_and_destroy_elements(((Itable*)table)->inserts,insertDestroyer);
 	free(table);
 }
-void insertDestroyer(void *insert){
+void insertDestroyer(void *insert)
+{
 	free(((Iinsert*)insert)->key);
 	free(((Iinsert*)insert)->timestamp);
 	free(((Iinsert*)insert)->value);
 	free(insert);
 }
+
+void mt_getListofInserts(char *table, t_list *list)
+{
+	t_list *mtinserts = mt_getTableToInsert(table);
+
+	if(list_size(mtinserts) == 0) return;
+
+	sem_wait(&MUTEX_MEMTABLE); //bloqueo memtable mientras hace la asignacion
+		for(int i = 0; i < list_size(mtinserts); i++){
+			list_add(list,string_duplicate(list_get(mtinserts,i)));
+		}
+	sem_post(&MUTEX_MEMTABLE);
+}
+

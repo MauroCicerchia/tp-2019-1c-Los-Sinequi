@@ -1,7 +1,8 @@
 #include"fs.h"
 
 
-int fs_tableExists(char* table){
+int fs_tableExists(char* table)
+{
 	char *tableUrl = makeUrlForPartition(table,"0");
 	if(access(tableUrl,F_OK) != -1){
 		free(tableUrl);
@@ -13,7 +14,9 @@ int fs_tableExists(char* table){
 	}
 }
 
-int fs_create(char *table,char *consistency,int parts,int ctime){
+
+int fs_create(char *table,char *consistency,int parts,int ctime)
+{
 	log_info(logger, "  Chequeo coherencia de particiones");
 	if(parts == 0){
 		log_error(logger,"No puede haber 0 particiones");
@@ -29,19 +32,25 @@ int fs_create(char *table,char *consistency,int parts,int ctime){
 	makeFiles(table,parts);
 	log_info(logger, "  Creo los archivos de particion");
 	makeMetadataFile(table);
+	char *tableUrl = makeTableUrl(table);
+	b_loadPartitionsFiles(tableUrl,parts); //le asigna el size y un bloque a cada bloque de particion
+	free(tableUrl);
+	log_info(logger, "  Les asigno un bloque inicial a cada particion");
 	loadMetadata(table,consistency,parts,ctime);
 	log_info(logger, "  Creo y cargo el archivo de metadata");
 	return 1;
 }
 
-char *makeUrlForPartition(char *table,char *partition){
+char *makeUrlForPartition(char *table,char *partition)
+{
 	char *url = makeTableUrl(table);
 	string_append(&url,partition);
 	string_append(&url,".bin");
 	return url;
 }
 
-char *makeTableUrl(char *table){
+char *makeTableUrl(char *table)
+{
 	char *url = string_new();
 	string_append(&url,absoluto);
 	string_append(&url,"Tables/");
@@ -50,7 +59,8 @@ char *makeTableUrl(char *table){
 	return url;
 }
 
-void makeDirectories(char *table){
+void makeDirectories(char *table)
+{
 	char *url = string_new();
 	string_append(&url,absoluto);
 	string_append(&url,"Tables/");
@@ -59,12 +69,12 @@ void makeDirectories(char *table){
 	free(url);
 }
 
-void makeFiles(char *table,int parts){
+void makeFiles(char *table,int parts)
+{
 	char *url;
 	char* j;
 	FILE *file;
 	for(int i = 0;i<parts; i++){
-		url = string_new();
 		j = string_itoa(i);
 		url = makeUrlForPartition(table,j);
 		file = fopen(url,"w+");
@@ -74,7 +84,8 @@ void makeFiles(char *table,int parts){
 	}
 }
 
-void makeMetadataFile(char *table){
+void makeMetadataFile(char *table)
+{
 	FILE *file;
 	char *url = makeTableUrl(table);
 	string_append(&url,"Metadata.bin");
@@ -83,7 +94,8 @@ void makeMetadataFile(char *table){
 	free(url);
 }
 
-void loadMetadata(char *table,char *consistency,int parts,int ctime){
+void loadMetadata(char *table,char *consistency,int parts,int ctime)
+{
 	FILE *file;
 	char *pctime = string_itoa(ctime);
 	char *pparts = string_itoa(parts);
@@ -114,38 +126,28 @@ void loadMetadata(char *table,char *consistency,int parts,int ctime){
 
 	txt_close_file(file);
 	free(url);
+	free(pctime); free(pparts);
 }
 
-void fs_toDump(char *table,char *toDump){
-	char *tableUrl = makeTableUrl(table);
-	string_append(&tableUrl,table);
-	string_append(&tableUrl,".bin");
-	FILE *file = txt_open_for_append(tableUrl);
-	txt_write_in_file(file,toDump);
+
+void fs_toDump(char *table,char *toDump)
+{
+	char *tmpUrl = makeTableUrl(table);
+	string_append(&tmpUrl,string_itoa(tmpNo));
+	string_append(&tmpUrl,".tmp");
+
+	FILE *file = txt_open_for_append(tmpUrl);
 	fclose(file);
-	free(tableUrl);
+
+	b_assignSizeAndBlock(tmpUrl,0); //le asigno un bloque y un size 0
+
+	b_saveData(tmpUrl,toDump); //guarda en la url tableUrl el char* que se le pasa
+
+	b_updateSize(tmpUrl);
+
+	free(tmpUrl);
 }
 
-//duelve una lista con la info del archivo
-t_list *fs_getListOfInserts(char* table){
-	FILE *file;
-	char *url = makeTableUrl(table);
-	string_append(&url,table);
-	string_append(&url, ".bin");
-	file = fopen(url,"r");
-	t_list *list = list_create();
-	char *line = malloc(sizeof(char)*100);
-	char *aux;
-	while(fgets(line, sizeof(char)*100, file) != NULL){
-		aux = malloc(sizeof(char)*(strlen(line)+1));
-		strcpy(aux,line);
-		list_add(list,aux);
-	}
-	fclose(file);
-	free(line);
-	free(url);
-	return list;
-}
 
 //devuelve un struct con la metadata de la tabla que se le pasa por param
 metadata *fs_getTableMetadata(char *table)
@@ -154,34 +156,37 @@ metadata *fs_getTableMetadata(char *table)
 
 	char *url = makeTableUrl(table);
 	string_append(&url,"Metadata.bin");
-printf("\n%s\n",url);
 
-	t_config *config = NULL;
-	if(load_metadataConfig(config,url) == NULL) return NULL;
+	t_config *tableMetadataCfg;
+	tableMetadataCfg =load_metadataConfig(url);
+	if(tableMetadataCfg == NULL){
+		log_error(logger,"Error con el archivo de Metadata de tabla");
+		return NULL;
+	}
 
 	log_info(logger,"  Abro el archivo de metadata");
 
-	tableMetadata->consistency = getConsistency(config);
-	tableMetadata->ctime = getCTime(config);
-	tableMetadata->partitions = getPartitions(config);
+	tableMetadata->consistency = string_duplicate(getConsistency(tableMetadataCfg));
+	tableMetadata->ctime = string_duplicate(getCTime(tableMetadataCfg));
+	tableMetadata->partitions = string_duplicate(getPartitions(tableMetadataCfg));
 
 	log_info(logger,"  Guardo la metadata");
 
-	config_destroy(config);
+	config_destroy(tableMetadataCfg);
 
 	free(url);
 
 	return tableMetadata;
 }
 
-void *load_metadataConfig(t_config *config,char *url)
+t_config *load_metadataConfig(char *url)
 {
-	config = config_create(url);
-	if(config == NULL){
+	t_config *metadataCfg = config_create(url);
+	if(metadataCfg == NULL){
 		log_error(logger,"No se pudo abrir el archivo de metadata");
 		return NULL;
 	}
-	return "no soy null :)";
+	return metadataCfg;
 
 }
 
@@ -206,4 +211,242 @@ char *getPartitions(t_config *config)
 
 	int parts =config_get_int_value(config,"PARTS");
 	return string_itoa(parts);
+}
+
+char *fs_getBitmapUrl()
+{
+	char *url =string_new();
+	string_append(&url,absoluto);
+	string_append(&url,"Metadata/Bitmap.bin");
+	return url;
+}
+
+char *fs_getlfsMetadataUrl()
+{
+	char *url = string_new();
+	string_append(&url,absoluto);
+	string_append(&url,"Metadata/Metadata.bin");
+	return url;
+}
+
+char* fs_getBlocksUrl()
+{
+	char *url = string_new();
+	string_append(&url,absoluto);
+	string_append(&url,"Blocks/");
+	return url;
+}
+
+void fs_createBlocks(int blocks)
+{
+	char *url = fs_getBlocksUrl();
+	char *block;
+	for(int i=0;i<blocks;i++){
+		block = string_new();
+		string_append(&block,url);
+		string_append(&block,string_itoa(i));
+		string_append(&block,".bin");
+		FILE *f = fopen(block,"w+");
+		fclose(f);
+		free(block);
+	}
+	free(url);
+}
+
+t_list *fs_getListOfInserts(char* table,int key)
+{
+	char *tableUrl = makeTableUrl(table);
+	char *tableMetadataUrl, *partUrl, *tmpUrl;
+
+	tableMetadataUrl = string_new();
+	string_append(&tableMetadataUrl,tableUrl);
+	string_append(&tableMetadataUrl,"Metadata.bin");
+	t_config *tableMetadataCfg = load_metadataConfig(tableMetadataUrl);
+
+	char *strpartitions = getPartitions(tableMetadataCfg);
+	char *partition = string_itoa(key % strtol(strpartitions,NULL,10));
+	free(strpartitions);
+
+	config_destroy(tableMetadataCfg);
+
+	partUrl = string_new();
+	string_append(&partUrl,tableUrl);
+	string_append(&partUrl,partition);
+	string_append(&partUrl, ".bin");
+
+	t_list *partList = list_create();
+	b_getListOfInserts(partUrl,partList); //trae todas los inserts de esa url (la de particion adecuada)
+
+	t_list *tmps = getAllTmps(tableUrl);
+
+	for(int i= 0; i < list_size(tmps); i++){
+		tmpUrl = string_new();
+		string_append(&tmpUrl,tableUrl);
+		string_append(&tmpUrl,list_get(tmps,i));
+		b_getListOfInserts(tmpUrl,partList);
+		free(tmpUrl);
+	}
+
+
+	mt_getListofInserts(table,partList); //toma todos los inserts de la memtable referidos a la tabla
+
+	list_destroy_and_destroy_elements(tmps, free);
+	free(partUrl);
+	free(tableMetadataUrl);
+	free(tableUrl);
+
+	return partList;
+}
+
+
+//busca en la url de la tabla todos los .tmp y devuelve el "nombre.tmp"
+t_list *getAllTmps(char *tableUrl)
+{
+	t_list *allTmpsNames = list_create();
+	char *table;
+
+	DIR *d;
+	struct  dirent *dir;
+
+	d = opendir(tableUrl);
+	dir = readdir(d);
+	while(dir != NULL){
+		if(string_ends_with(dir->d_name,".tmp")){
+			table = string_duplicate(dir->d_name);
+			list_add(allTmpsNames,table);
+		}
+
+		dir = readdir(d);
+	}
+
+	closedir(d);
+	return allTmpsNames;
+}
+
+void fs_setActualTmps()
+{
+	char *url;
+
+	t_list *alltmps; //tmps de una tabla
+	t_list *allTables = fs_getAllTables();
+	for(int i = 0; i < list_size(allTables); i++){ //recorro todas las tablas
+		char *table = list_get(allTables,i);
+		url = makeTableUrl(table);
+		alltmps = getAllTmps(url);
+		if(list_size(alltmps) != 0){
+			incrementTmpNo(alltmps);
+		}
+
+		list_destroy_and_destroy_elements(alltmps, free);
+		free(url);
+
+	}
+	list_destroy_and_destroy_elements(allTables, free);
+}
+
+void incrementTmpNo(t_list *alltmps)
+{
+	char *tmp;
+	char **aux;
+	int n;
+	for(int i = 0; i < list_size(alltmps); i++){
+		tmp = string_duplicate(list_get(alltmps,i));
+		aux = string_split(tmp, ".");
+		n = strtol(aux[0],NULL,10);
+		if(n > tmpNo )
+			tmpNo = n;
+		free(tmp);
+		free(aux[0]);free(aux[1]);free(aux[2]);free(aux);
+	}
+}
+
+t_list *fs_getAllTables()
+{
+	t_list *allTables = list_create();
+	char *table;
+
+	DIR *d;
+	struct  dirent *dir;
+
+	char *url = string_new();
+	string_append(&url, absoluto);
+	string_append(&url,"Tables/");
+
+	d = opendir(url);
+	dir = readdir(d);
+	while(dir != NULL){
+		if(strcmp(dir->d_name,".") && strcmp(dir->d_name,"..")){
+			table = string_duplicate(dir->d_name);
+			list_add(allTables,table);
+		}
+
+		dir = readdir(d);
+	}
+
+	free(url);
+	closedir(d);
+	return allTables;
+
+}
+
+void fs_cleanTmpsC(char *tableUrl){
+	char *file,*strBlocks;
+	DIR *d;
+	struct  dirent *dir;
+	char **blocks;
+	int blockToFree;
+
+
+	d = opendir(tableUrl);
+	dir = readdir(d);
+	while(dir != NULL){ //borro todos los archivos del directorio
+		if(isTmpc(dir->d_name)){
+			file = string_duplicate(tableUrl);
+			string_append(&file,dir->d_name);
+
+			strBlocks = getListOfBlocks(file);
+			blocks = string_get_string_as_array(strBlocks);
+			for(int i = 0; i < sizeofArray(blocks); i++){ //libero bloque por bloque, del bitarray y su contenido
+				blockToFree = strtol(blocks[i],NULL,10);
+				b_freeblock(blockToFree);
+			}
+
+			unlink(file); //borro el archivo
+			free(file);
+		}
+		dir = readdir(d);
+	}
+	closedir(d);
+}
+
+bool isTmpc(char *string){
+	return string_ends_with(string, ".tmpc");
+}
+
+void fs_setActiveTables()
+{
+	char *configUrl;
+	activeTable *pivot;
+	t_config *cfg;
+	t_list *tables = fs_getAllTables();
+
+	for(int i = 0; i < list_size(tables);i++){
+		pivot = malloc(sizeof(activeTable));
+		configUrl = makeTableUrl(list_get(tables,i));
+		string_append(&configUrl,"Metadata.bin");
+
+		cfg = load_metadataConfig(configUrl);
+
+		pivot->name = string_duplicate(list_get(tables,i));
+		sem_init(&(pivot->MUTEX_DROP_TABLE),1,1);
+		sem_init(&(pivot->MUTEX_TABLE_PART),1,1);
+		pivot->ctime = strtol(getCTime(cfg),NULL,10);
+		pivot->parts = strtol(getPartitions(cfg),NULL,10);
+
+		list_add(sysTables,pivot);
+
+		config_destroy(cfg);
+		free(configUrl);
+	}
+
 }

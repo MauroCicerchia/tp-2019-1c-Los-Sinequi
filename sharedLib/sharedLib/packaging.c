@@ -65,20 +65,20 @@ void set_buffer(t_package *paquete,char **args) {
 
 		case QUERY_SELECT: //[nombretabla, key]
 			add_to_package(paquete, args[1], strlen(args[1])+1);
-			add_to_package(paquete, atoi(args[2]), sizeof(int));
+			add_to_package(paquete, (void*)strtol(args[2],NULL,10), sizeof(int));
 			break;
 
 		case QUERY_INSERT: //[nombretabla, key, value, timestamp]
 			add_to_package(paquete, args[1], strlen(args[1])+1);
-			add_to_package(paquete, atoi(args[2]), sizeof(int));
+			add_to_package(paquete, (void*)strtol(args[2],NULL,10), sizeof(int));
 			add_to_package(paquete, args[3], strlen(args[3])+1);
 			break;
 
 		case QUERY_CREATE: //[nombretabla, tipoconsistencia, numeroparticiones, compactationtime]
 			add_to_package(paquete,args[1],strlen(args[1])+1);
 			add_to_package(paquete,args[2],strlen(args[1])+1);
-			add_to_package(paquete,atoi(args[3]),sizeof(int));
-			add_to_package(paquete,atoi(args[4]),sizeof(int));
+			add_to_package(paquete,(void*)strtol(args[2],NULL,10),sizeof(int));
+			add_to_package(paquete,(void*)strtol(args[2],NULL,10),sizeof(int));
 			break;
 
 		case QUERY_DESCRIBE: //[tabla]
@@ -110,6 +110,10 @@ void send_q_type(int socket, e_query qType) {
 	send(socket, &qType, sizeof(qType), 0);
 }
 
+void send_cons_type(int socket, e_cons_type cType) {
+	send(socket, &cType, sizeof(cType), 0);
+}
+
 void send_req_code(int socket, e_request_code reqCode) {
 	send(socket, &reqCode, sizeof(reqCode), 0);
 }
@@ -129,6 +133,8 @@ char *recv_str(int socket) {
 	int size;
 	char *value;
 	recv(socket, &size, sizeof(size), 0);
+	if(size == 0)
+		return NULL;
 	value = (char*)malloc(size);
 	recv(socket, value, size, 0);
 	return value;
@@ -138,6 +144,12 @@ e_query recv_q_type(int socket) {
 	e_query qType;
 	recv(socket, &qType, sizeof(qType), 0);
 	return qType;
+}
+
+e_cons_type recv_cons_type(int socket) {
+	e_cons_type cType;
+	recv(socket, &cType, sizeof(cType), 0);
+	return cType;
 }
 
 e_request_code recv_req_code(int socket) {

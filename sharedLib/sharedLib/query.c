@@ -38,7 +38,7 @@ e_query getQueryType(char *query) {
 }
 
 e_query queryError() {
-	printf("La consulta no es valida.\n");
+	printf("La consulta no es valida. ");
 	return QUERY_ERROR;
 }
 
@@ -109,6 +109,11 @@ int validateQuerySyntax(char **array,e_query queryType){
 			return 1;
 			break;
 
+		case QUERY_METRICS:
+			if( sizeofArray(array) != 1 ) return 0; // cantidad de parametros invalidos
+			return 1;
+			break;
+
 		default:
 			return 0;
 			break;
@@ -133,9 +138,17 @@ char **parseQuery(char *query){
 		} else {
 			b[4] = NULL;
 		}
-	} else if(strcasecmp(query, "DESCRIBE\n") == 0){
+	} else if(strcasecmp(query, "DESCRIBE\n") == 0 || strcasecmp(query, "DESCRIBE") == 0){
 		b = (char**)malloc(sizeof(char*) * 2);
 		b[0] = string_duplicate("DESCRIBE");
+		b[1] = NULL;
+	} else if(strcasecmp(query, "JOURNAL\n") == 0 || strcasecmp(query, "JOURNAL") == 0){
+		b = (char**)malloc(sizeof(char*) * 2);
+		b[0] = string_duplicate("JOURNAL");
+		b[1] = NULL;
+	} else if(strcasecmp(query, "METRICS\n") == 0 || strcasecmp(query, "METRICS") == 0){
+		b = (char**)malloc(sizeof(char*) * 2);
+		b[0] = string_duplicate("METRICS");
 		b[1] = NULL;
 	} else {
 		b = string_split(query," ");

@@ -10,9 +10,14 @@ int main(int argc, char **argv) {
 
 	pthread_create(&threadClient, NULL, listen_client, NULL);
 	pthread_detach(threadClient);
+
 	pthread_create(&threadAutoJournal, NULL, execute_journal, NULL);
 	pthread_detach(threadAutoJournal);
+
+
 	start_API(logger);
+
+
 
 	kill_memory();
 	return 0;
@@ -72,7 +77,7 @@ void create_bitmap(int memSize){
 		bitParameter[i] = '0';
 	}
 
-	bitParameter[(bitNumbers/8)+1] = '\0';
+	bitParameter[(bitNumbers/8)] = '\0';
 	bitmap = bitarray_create(bitParameter,strlen(bitParameter));
 	//printf("%d",bitNumbers);
 }
@@ -117,7 +122,7 @@ void *listen_client() {
 		switch(rc) {
 			case REQUEST_QUERY: process_query_from_client(cliSocket); break;
 			case REQUEST_GOSSIP: break;
-			case REQUEST_JOURNAL: break;
+			case REQUEST_JOURNAL: journalM(); break;
 		}
 	}
 }
@@ -126,10 +131,12 @@ void process_query_from_client(int client) {
 	e_query opCode;
 	recv(client, &opCode, sizeof(opCode), 0);
 
-	char *table, *value, *consistency;
-	int key, part, compTime, size;
-	metadata* aMD;
+  char *table, *value,*part, *compTime;
+	int key, size, status;
+	char *consType;
+  metadata* aMD;
 	t_list* metadata_list;
+
 	switch(opCode) {
 		case QUERY_SELECT:
 			table = recv_str(client);
@@ -147,22 +154,31 @@ void process_query_from_client(int client) {
 			table = recv_str(client);
 			key = recv_int(client);
 			value = recv_str(client);
-			int status = insertM(table, key, value);
+			status = insertM(table, key, value);
 			switch(status) {
 				case 0: send_res_code(client, RESPONSE_SUCCESS); break;
 				case 1: send_res_code(client, RESPONSE_ERROR); break;
 				case 2: send_res_code(client, RESPONSE_FULL); break;
 			}
 			break;
+
 		case QUERY_CREATE:
 			table = recv_str(client);
-			consistency = recv_str(client);
-			part = recv_int(client);
-			compTime = recv_int(client);
-//			int status = createM(table, consType, part, compTime);
+			consType = recv_str(client);
+			part = recv_str(client);
+			compTime = recv_str(client);
+			printf("%s\n",table);
+			printf("%s\n",consType);
+			printf("%s\n",part);
+			printf("%s\n",compTime);
+			status = createM(table, consType, part, compTime);
+
 			send_res_code(client, RESPONSE_SUCCESS);
 			break;
+			//puede romper giles
+
 		case QUERY_DESCRIBE:
+
 			size = recv_int(client);
 			if(size != 0) {
 				table = recv_str(client);
@@ -197,7 +213,7 @@ void process_query_from_client(int client) {
 			break;
 		case QUERY_DROP:
 			table = recv_str(client);
-//			int status = dropM(table);
+			int status = dropM(table);
 			send_res_code(client, RESPONSE_SUCCESS);
 			break;
 	}
@@ -260,16 +276,20 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_CREATE:
 
+
+			createM(args[1], args[2], args[3], args[4]);
+
 			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
 			log_info(logger,log_msg);
 			createM(args[1], args[2], atoi(args[3]), atoi(args[4]));
 			break;
 
 		case QUERY_DESCRIBE:
+
+			describeM(args[1]);
+
 			sprintf(log_msg, "Recibi un DESCRIBE %s", args[1]);
 			log_info(logger,log_msg);
-
-//			describeM(args[1]);
 
 			break;
 
@@ -283,6 +303,7 @@ e_query processQuery(char *query, t_log *logger) {
 			break;
 
 		case QUERY_JOURNAL:
+
 			log_info(logger, "Recibi un JOURNAL");
 			journalM();
 
@@ -533,7 +554,10 @@ char* selectM(char* segmentID, int key){
 	return NULL;
 }
 
-int createM(char* segmentID,char* consistency ,int partition_num, int compaction_time){
+
+int createM(char* segmentID,char* consistency ,char *partition_num, char *compaction_time){
+	/*ENVIAR AL FS OPERACION PARA CREAR TABLA*/
+
 	send_create_to_FS(segmentID, consistency, partition_num, compaction_time, config, logger);
 	return 0;
 }
@@ -543,9 +567,18 @@ t_list* describeM(char *table){
 	return md;
 }
 
+*/
+void describeM(char *segment_id){
+	send_describe_to_FS(segment_id, config, logger);
+
+//	return send_
+}
+
 int dropM(char* segment_id){
 
 	segment* segmentFound = search_segment(segment_id);
+
+	send_drop_to_FS(segment_id, config, logger);
 
 	if(segmentFound != NULL){
 		sem_wait(&MUTEX_MEM);
@@ -607,7 +640,12 @@ void execute_replacement(int key, char* value, segment* segment_to_use){
 }
 
 int get_value_size(){
-	return 64*sizeof(char);
+//	int socket = connect_to_FS(config, logger);
+//	send_req_code(socket,REQUEST_VALUESIZE);
+//	int x = recv_int(socket);
+//	close(socket);
+	return 255;
+	//	return 64*sizeof(char);
 }
 int get_timestamp(){
 	return (int)time(NULL);
