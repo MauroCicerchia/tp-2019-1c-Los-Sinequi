@@ -15,7 +15,7 @@ t_table *table_create(char *name, e_cons_type consType, int part, int compTime) 
 }
 
 void table_add_memory_by_id(t_table* table, int mid) {
-	list_add(table->memories, mid);
+	list_add(table->memories, (void*)mid);
 }
 
 void table_destroy(void *table) {

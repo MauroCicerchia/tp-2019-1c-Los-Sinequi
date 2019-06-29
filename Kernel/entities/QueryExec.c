@@ -97,15 +97,15 @@ void qCreate(char** args, t_log *logger) {
 	e_query queryType = getQueryType(args[0]);
 	char *table = args[1];
 	char *consType = args[2];
-	int part = strtol(args[3], NULL, 10);
-	int compTime = strtol(args[4], NULL, 10);
+	char *part = args[3];
+	char *compTime = args[4];
 
 //	Paquetizar
 	t_package *p = create_package(queryType);
 	add_to_package(p, (void*)table, sizeof(char) * strlen(table) + 1);
 	add_to_package(p, (void*)consType, sizeof(char) * strlen(consType) + 1);
-	add_to_package(p, (void*)&part, sizeof(part));
-	add_to_package(p, (void*)&compTime, sizeof(compTime));
+	add_to_package(p, (void*)part, sizeof(char) * strlen(part) + 1);
+	add_to_package(p, (void*)compTime, sizeof(char) * strlen(compTime) + 1);
 
 //	obtener memoria segun criterio
 	t_memory *mem = get_any_memory();
@@ -119,7 +119,8 @@ void qCreate(char** args, t_log *logger) {
 	e_response_code r = recv_res_code(memSocket);
 
 	if(r == RESPONSE_SUCCESS) {
-		add_table(table_create(table, consType, part, compTime));
+		add_table(table_create(string_duplicate(table), getConsistencyType(consType), strtol(part, NULL, 10), strtol(compTime, NULL, 10)));
+		log_info(logger, " >> Tabla nueva agregada.");
 	} else {
 		log_error(logger, " >> Error al realizar create en memoria.");
 	}
@@ -149,11 +150,18 @@ void qDescribe(char** args, t_log *logger) {
 		e_response_code r = recv_res_code(memSocket);
 
 		if(r == RESPONSE_SUCCESS) {
-			e_cons_type consType = recv_cons_type(memSocket);
-			int part = recv_int(memSocket);
-			int compTime = recv_int(memSocket);
-			update_table(table, consType, part, compTime);
-			output_describe(table, consType, part, compTime);
+			char *tableName = recv_str(memSocket);
+			char *sCType = recv_str(memSocket);
+			e_cons_type consType = getConsistencyType(sCType);
+			free(sCType);
+			char *sPart = recv_str(memSocket);
+			int part = strtol(sPart, NULL, 10);
+			free(sPart);
+			char *sCTime = recv_str(memSocket);
+			int compTime = strtol(sCTime, NULL, 10);
+			free(sCTime);
+			update_table(tableName, consType, part, compTime);
+			output_describe(tableName, consType, part, compTime);
 			log_info(logger, " >> Metadata de tabla actualizada.");
 		} else {
 			log_error(logger, " >> Error al realizar describe en memoria.");
@@ -161,19 +169,25 @@ void qDescribe(char** args, t_log *logger) {
 	} else {
 		send_req_code(memSocket, REQUEST_QUERY);
 		send_q_type(memSocket, QUERY_DESCRIBE);
-		send_int(memSocket, 0);
+		send_str(memSocket, "");
 
 		e_response_code r = recv_res_code(memSocket);
 
 		if(r == RESPONSE_SUCCESS) {
 			int q = recv_int(memSocket);
 			for(int i = 0; i < q; i++) {
-				char *name = recv_str(memSocket);
-				e_cons_type consType = recv_cons_type(memSocket);
-				int part = recv_int(memSocket);
-				int compTime = recv_int(memSocket);
-				update_table(name, consType, part, compTime);
-				output_describe(name, consType, part, compTime);
+				char *tableName = recv_str(memSocket);
+				char *sCType = recv_str(memSocket);
+				e_cons_type consType = getConsistencyType(sCType);
+				free(sCType);
+				char *sPart = recv_str(memSocket);
+				int part = strtol(sPart, NULL, 10);
+				free(sPart);
+				char *sCTime = recv_str(memSocket);
+				int compTime = strtol(sCTime, NULL, 10);
+				free(sCTime);
+				update_table(tableName, consType, part, compTime);
+				output_describe(tableName, consType, part, compTime);
 			}
 			log_info(logger, " >> Metadata de todas las tablas actualizada.");
 		} else {

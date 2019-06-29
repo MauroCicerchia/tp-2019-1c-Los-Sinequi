@@ -3,21 +3,25 @@
 #include<string.h>
 #include<commons/collections/list.h>
 #include<stdbool.h>
+#include<stdint.h>
 
-typedef struct{
+/*typedef struct{
 	int timestamp;
-	int key;
+	uint16_t key;
 	char* value;
 }pageData;
+*/
 
 typedef struct{
 	int page_num;
-	pageData* page_data;
+	int frame_num;
 	int isModified;
+	int last_time_used;
 }page;
 
-pageData* pageData_create();
+//pageData* pageData_create();
+//pageData* create_load_pageData(int, int, char*);
 page* page_create();
-page* create_load_page(int, pageData*,int);
-pageData* create_load_pageData(int, int, char*);
+page* create_load_page(int,int,int);
 void page_destroy(void*);
+

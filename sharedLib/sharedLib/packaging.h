@@ -19,7 +19,8 @@ typedef struct{
 typedef enum {
 	REQUEST_QUERY,
 	REQUEST_JOURNAL,
-	REQUEST_GOSSIP
+	REQUEST_GOSSIP,
+	REQUEST_VALUESIZE
 }e_request_code;
 
 typedef enum {
@@ -27,6 +28,7 @@ typedef enum {
 	RESPONSE_ERROR,
 	RESPONSE_FULL
 }e_response_code;
+
 
 void *serialize_package(t_package*, int);
 t_package *create_package(e_query);

@@ -10,6 +10,7 @@
 
 extern t_list *memtable;
 extern char* absoluto;
+extern int tmpNo;
 
 void dump();
 char *toLFSmode(char*,char*,char*);

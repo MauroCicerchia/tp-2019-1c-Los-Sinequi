@@ -6,16 +6,19 @@
 C_SRCS += \
 ../Memory.c \
 ../Page.c \
+../QuerysToFS.c \
 ../Segment.c 
 
 OBJS += \
 ./Memory.o \
 ./Page.o \
+./QuerysToFS.o \
 ./Segment.o 
 
 C_DEPS += \
 ./Memory.d \
 ./Page.d \
+./QuerysToFS.d \
 ./Segment.d 
 
 

@@ -23,7 +23,7 @@ int sizeofArray(char **array){
 
 void start_API(t_log *logger){
 	char *input;
-	input = readline(">");
+	input = (char*)readline(">");
 	while(strcmp("", input)) {
 		processQuery(input, logger);
 		add_history(input);
