@@ -12,6 +12,7 @@
 
 extern t_log *logger;
 extern sem_t MUTEX_MEMTABLE;
+extern int valueSize;
 
 int qinsert(char*, char*, char*, char*);
 char* toLFSmode(char*,char*,char*);

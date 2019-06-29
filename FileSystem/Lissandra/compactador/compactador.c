@@ -1,19 +1,23 @@
 #include"compactador.h"
 
-void *threadCompact(activeTable *table)
+void *threadCompact(char *tableName)
 {
-	while(tableIsActive(table->name)){
+	activeTable *table;
+	while(tableIsActive(tableName)){
 
+		table = com_getActiveTable(tableName);
 		sem_wait(&table->MUTEX_DROP_TABLE);
 			table->ctime = com_getCTime(table->name); //actualiza cambios en el tiempo de compactacion
 			compact(table);
 		sem_post(&table->MUTEX_DROP_TABLE);
 
-		usleep(table->ctime);
+		sleep(table->ctime/1000);
 	}
+
+
+	free(tableName);
 	return NULL;
 }
-
 
 
 void compact(activeTable *table)//agregar el semaforo para drop
@@ -56,6 +60,7 @@ void com_compactTmpsC(t_list *tmpsC,char *tableUrl, activeTable *table)
 
 		b_getListOfInserts(tmpUrl, tmpInserts);
 
+
 		for(int j = 0; j < list_size(tmpInserts); j++){ //le paso todos los inserts de ese tmp a la lista ppal
 			list_add(allInserts,string_duplicate(list_get(tmpInserts,j)));
 		}
@@ -65,6 +70,13 @@ void com_compactTmpsC(t_list *tmpsC,char *tableUrl, activeTable *table)
 	}
 
 	t_list *keys = com_getAllKeys(allInserts); //guardo todas las keys posibles
+
+	for(int k = 0; k < list_size(allInserts); k++){ // le agrego \n a todos los inserts
+		char *insert =  list_get(allInserts,k);
+		if(!string_ends_with(insert,"\n")){
+			string_append(&insert,"\n");
+		}
+	}
 
 	list_sort(allInserts,com_biggerTimeStamp); //ordeno la lista por timestamp de mayor a menor
 
