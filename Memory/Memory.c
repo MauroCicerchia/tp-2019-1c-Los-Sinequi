@@ -10,9 +10,11 @@ int main(int argc, char **argv) {
 	pthread_create(&threadClient, NULL, listen_client, NULL);
 	pthread_detach(threadClient);
 
+//	printf("%d",get_value_size()); llega putos
+
 	start_API(logger);
 
-	printf("%d",get_value_size());
+
 
 	kill_memory();
 	return 0;
@@ -72,7 +74,7 @@ void create_bitmap(int memSize){
 		bitParameter[i] = '0';
 	}
 
-	bitParameter[(bitNumbers/8)+1] = '\0';
+	bitParameter[(bitNumbers/8)] = '\0';
 	bitmap = bitarray_create(bitParameter,strlen(bitParameter));
 	//printf("%d",bitNumbers);
 }
@@ -252,7 +254,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_CREATE:
 
-			//createM(args[1], args[2], args[3], args[4]);
+			createM(args[1], args[2], args[3], args[4]);
 
 			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
 
@@ -260,7 +262,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_DESCRIBE:
 
-			//describeM(args[1]);
+			describeM(args[1]);
 
 			sprintf(log_msg, "Recibi un DESCRIBE %s", args[1]);
 
@@ -277,7 +279,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_JOURNAL:
 
-			//journal();
+			journalM();
 
 			sprintf(log_msg, "Recibi un JOURNAL");
 
@@ -516,21 +518,27 @@ char* selectM(char* segmentID, int key){
 	return NULL;
 }
 
-int createM(char* segmentID,char* consistency ,int partition_num, int compaction_time){
+int createM(char* segmentID,char* consistency ,char *partition_num, char *compaction_time){
 	/*ENVIAR AL FS OPERACION PARA CREAR TABLA*/
+	send_create_to_FS(segmentID, consistency, partition_num, compaction_time, config, logger);
 	return 0;
 }
 
 /*table_t *describeM(char* table_id){
 	return 0;
 }
-t_list *describeM(){
-	return 0;
-}*/
+*/
+void describeM(char *segment_id){
+	send_describe_to_FS(segment_id, config, logger);
+
+//	return send_
+}
 
 int dropM(char* segment_id){
 
 	segment* segmentFound = search_segment(segment_id);
+
+	send_drop_to_FS(segment_id, config, logger);
 
 	if(segmentFound != NULL){
 		sem_wait(&MUTEX_MEM);
@@ -562,9 +570,11 @@ void remove_delete_segment(segment* aSegment){
 }
 
 int get_value_size(){
-	int socket = connect_to_FS(config, logger);
-	send_req_code(socket,REQUEST_VALUESIZE);
-	return recv_int(socket);
+//	int socket = connect_to_FS(config, logger);
+//	send_req_code(socket,REQUEST_VALUESIZE);
+//	int x = recv_int(socket);
+//	close(socket);
+	return 255;
 	//	return 64*sizeof(char);
 }
 int get_timestamp(){

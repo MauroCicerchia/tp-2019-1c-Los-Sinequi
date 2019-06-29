@@ -53,7 +53,7 @@ void remove_delete_segment(segment*);
 
 char* selectM(char*,int);	   // (nombreTabla,key)
 int insertM(char*,int,char*); // (nombreTabla,key,value)
-int createM(char*,char*,int,int);
+int createM(char*,char*,char*,char*);
 int dropM(char*);
 void journalM(void);
 

@@ -38,8 +38,8 @@ int main(int argc, char **argv)
 	pthread_create(&tListenCfg,NULL,threadConfigModify,NULL);
 	pthread_detach(tListenCfg);
 
-//	pthread_create(&tLisentClient,NULL,threadListenToClient,NULL);
-//	pthread_detach(tLisentClient);
+	pthread_create(&tLisentClient,NULL,threadListenToClient,NULL);
+	pthread_detach(tLisentClient);
 
 
 	pthread_create(&tDump,NULL,threadDump,NULL);
@@ -243,6 +243,6 @@ void threadForCompact(char *tableName){
 }
 
 void *threadListenToClient(){
-//	listen_client();
+	listen_client();
 	return NULL;
 }
