@@ -63,7 +63,7 @@ void processQuery(char *query)
 
 			delayer();
 
-			if(args[4] == NULL) args[4] = string_itoa(getCurrentTime());
+			if(args[4] == NULL) args[4] = string_from_format("%llu",getCurrentTime());
 
 			qinsert(args[1], args[2], args[3], args[4]);
 
@@ -106,9 +106,6 @@ void processQuery(char *query)
 						log_info(logger, ">>>");
 						log_info(logger,"TABLA:");
 						log_info(logger,list_get(tables,i));
-//						char *cons = tableInfo->consistency;
-//						char *parts = tableInfo->partitions;
-//						char *ctime = tableInfo->ctime;
 						sprintf(log_msg,"Consistencia: %s",tableInfo->consistency);
 						log_info(logger,log_msg);
 						sprintf(log_msg,"Particiones: %s",tableInfo->partitions);
@@ -182,8 +179,8 @@ uint64_t getCurrentTime()
 {
 	struct timeval tv;
 	gettimeofday(&tv,NULL);
-
-	return (uint64_t)((tv.tv_sec)*1000 + (tv.tv_usec)/1000);
+	uint64_t  x = (uint64_t)( (tv.tv_sec)*1000 + (tv.tv_usec)/1000 );
+	return x;
 }
 
 
