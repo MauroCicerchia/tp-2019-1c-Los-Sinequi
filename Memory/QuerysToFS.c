@@ -90,9 +90,8 @@ void send_create_to_FS(char* table,char* consType, char *part, char *compTime ,t
 }
 
 t_list* send_describe_to_FS(char*table,t_config* config,t_log* logger){
-	t_list* metadata_list;
+	t_list* metadata_list = list_create();
 	int FS_socket = connect_to_FS(config,logger);
-	char *consistencyType, *tableName, *partitions, *compactTime;
 
 	if(table != NULL) {
 		//Paquetizar
@@ -107,8 +106,8 @@ t_list* send_describe_to_FS(char*table,t_config* config,t_log* logger){
 		if(r == RESPONSE_SUCCESS) {
 			//aca recibimos la metadata de una tabla
 
-			metadata* aMetaData;
-     // aMetaData->tableName = recv_str(FS_socket);
+			metadata* aMetaData = (metadata*)malloc(sizeof(metadata));
+			aMetaData->tableName = recv_str(FS_socket);
 			aMetaData->consType = recv_str(FS_socket);
 			aMetaData->partNum = recv_str(FS_socket);
 			aMetaData->compTime = recv_str(FS_socket);
@@ -131,9 +130,9 @@ t_list* send_describe_to_FS(char*table,t_config* config,t_log* logger){
 			//aca recibimos la metadata de todas las tablas existentes
 			int cant_tablas = recv_int(FS_socket);
 			for(int i=0;i<cant_tablas;i++){
-				metadata* aMetaData;
+				metadata* aMetaData = (metadata*)malloc(sizeof(metadata));
 				aMetaData->tableName = recv_str(FS_socket);
-        aMetaData->consType = recv_str(FS_socket);
+				aMetaData->consType = recv_str(FS_socket);
 				aMetaData->partNum = recv_str(FS_socket);
 				aMetaData->compTime = recv_str(FS_socket);
           //	printf("%s:\n	%s, %s, %s\n",tableName,consistencyType,partitions,compactTime);

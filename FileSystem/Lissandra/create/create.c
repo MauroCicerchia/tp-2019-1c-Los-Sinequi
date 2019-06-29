@@ -18,8 +18,8 @@ int qcreate(char *table, char *consistency, char *partitions, char *compactime){
 	if(flag){
 		pthread_t tNewTable;
 		activeTable *createdTable = addToActiveTables(table,parts,ctime);
-		pthread_create(&tNewTable,NULL,(void*)threadCompact, string_duplicate(createdTable->name));
-		pthread_detach(tNewTable);
+//		pthread_create(&tNewTable,NULL,(void*)threadCompact, string_duplicate(createdTable->name));
+//		pthread_detach(tNewTable);
 	}
 	return flag;
 }

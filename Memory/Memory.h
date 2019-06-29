@@ -19,7 +19,8 @@
 
 void* main_memory;
 t_bitarray* bitmap;
-int get_value_size();
+void get_value_size();
+int valueSize;
 void THEGREATMALLOC();
 
 t_list* segmentList;

@@ -153,7 +153,6 @@ void process_query_from_client(int client)
 			table = recv_str(client);
 			printf("%s",table);
 			status = qdrop(table);
-			status =1;
 			if(status)
 				send_res_code(client, RESPONSE_SUCCESS);
 			else

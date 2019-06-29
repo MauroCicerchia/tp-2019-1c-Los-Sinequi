@@ -14,7 +14,7 @@ int connectToServer(char *IP, char *PORT) {
 	int client_socket = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
 
 	if(connect(client_socket, server_info->ai_addr, server_info->ai_addrlen) == -1){
-		printf("error");
+		printf("Error al conectarse al servidor. Try again later.\n");
 		close(client_socket);
 		return(-1);
 	}

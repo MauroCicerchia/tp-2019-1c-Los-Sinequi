@@ -95,11 +95,11 @@ void init_FileSystem()
 
 	fs_setActiveTables(); //cargo a memoria todas las tablas activas en "systables"
 
-	activeTable *x;
-	for(int i = 0; i < list_size(sysTables);i++){ //creo todos los hilos de compactacion para las tablas
-		x = list_get(sysTables,i);
-		threadForCompact(string_duplicate(x->name));
-	}
+//	activeTable *x;
+//	for(int i = 0; i < list_size(sysTables);i++){ //creo todos los hilos de compactacion para las tablas
+//		x = list_get(sysTables,i);
+//		threadForCompact(string_duplicate(x->name));
+//	}
 
 	ba_create(); //levanto el bitarray
 

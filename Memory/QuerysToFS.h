@@ -8,6 +8,7 @@
 #include<commons/collections/list.h>
 
 typedef struct{
+	char* tableName;
 	char* consType;
 	char* partNum;
 	char* compTime;
