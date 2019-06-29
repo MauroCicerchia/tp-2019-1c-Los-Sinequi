@@ -6,11 +6,14 @@ int main(int argc, char **argv) {
 	memory_init();
 
 	pthread_t threadClient;
+	pthread_t threadAutoJournal;
 
 	pthread_create(&threadClient, NULL, listen_client, NULL);
 	pthread_detach(threadClient);
 
-//	printf("%d",get_value_size()); llega putos
+	pthread_create(&threadAutoJournal, NULL, execute_journal, NULL);
+	pthread_detach(threadAutoJournal);
+
 
 	start_API(logger);
 
@@ -69,7 +72,7 @@ void create_bitmap(int memSize){
 
 	int bitNumbers = total_frames();
 	char* bitParameter = (char*)malloc(sizeof(char)*(bitNumbers/8 + 1));
-
+	printf("%d",total_frames());
 	for(int i = 0; i<=(bitNumbers/8); i++){
 		bitParameter[i] = '0';
 	}
@@ -128,9 +131,11 @@ void process_query_from_client(int client) {
 	e_query opCode;
 	recv(client, &opCode, sizeof(opCode), 0);
 
-	char *table, *value,*part, *compTime;
+  char *table, *value,*part, *compTime;
 	int key, size, status;
 	char *consType;
+  metadata* aMD;
+	t_list* metadata_list;
 
 	switch(opCode) {
 		case QUERY_SELECT:
@@ -167,32 +172,41 @@ void process_query_from_client(int client) {
 			printf("%s\n",part);
 			printf("%s\n",compTime);
 			status = createM(table, consType, part, compTime);
+
 			send_res_code(client, RESPONSE_SUCCESS);
 			break;
 			//puede romper giles
 
 		case QUERY_DESCRIBE:
-			table = recv_str(client);
-			if(table != NULL) {
-//				table_t *t = describeM(table);
-//				if(t != NULL) {
+
+			size = recv_int(client);
+			if(size != 0) {
+				table = recv_str(client);
+//				table = (char*)malloc(size);
+//				recv(client, table, size, 0);
+				metadata_list = describeM(table);
+				if(metadata_list != NULL) {
 					send_res_code(client, RESPONSE_SUCCESS);
 //					send_int(client, 1);
-//					send_table(client, t);
-//				} else {
-//					send_res_code(client, RESPONSE_ERROR);
-//				}
-			} else {
+					aMD = list_get(metadata_list,0);
+					send_str(client,aMD->consType);
+					send_str(client,aMD->partNum);
+					send_str(client,aMD->compTime);
+					list_destroy_and_destroy_elements(metadata_list,metadata_destroy);
+				} else {
+					send_res_code(client, RESPONSE_ERROR);
+				}
+			}else {
 //				t_list *tl = describeM();
 //				int tCount = list_size(tl);
 //				if(tCount != 0) {
 					send_res_code(client, RESPONSE_SUCCESS);
 //					send_int(client, tCount);
-					void sendTable(void *t) {
+//					void sendTable(void *t) {
 //						send_table(client, (table_t*)t);
-					}
+//					}
 //					list_iterate(tl, sendTable);
-//				} else {
+//				}else {
 					send_res_code(client, RESPONSE_ERROR);
 //				}
 			}
@@ -210,6 +224,7 @@ void start_API(t_log *logger){
 	char *input;
 	input = readline(">");
 	while(strcmp("", input)) {
+		add_history(input);
 		processQuery(input, logger);
 		free(input);
 		input = readline(">");
@@ -261,10 +276,12 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_CREATE:
 
+
 			createM(args[1], args[2], args[3], args[4]);
 
 			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
-
+			log_info(logger,log_msg);
+			createM(args[1], args[2], atoi(args[3]), atoi(args[4]));
 			break;
 
 		case QUERY_DESCRIBE:
@@ -272,6 +289,7 @@ e_query processQuery(char *query, t_log *logger) {
 			describeM(args[1]);
 
 			sprintf(log_msg, "Recibi un DESCRIBE %s", args[1]);
+			log_info(logger,log_msg);
 
 			break;
 
@@ -286,9 +304,8 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_JOURNAL:
 
+			log_info(logger, "Recibi un JOURNAL");
 			journalM();
-
-			sprintf(log_msg, "Recibi un JOURNAL");
 
 			break;
 
@@ -389,11 +406,18 @@ int frame_available_in_mem(){
 	return 0;
 }
 
-void load_page_to_segment(int key, segment* segmentFound, char* value) {
+void load_page_to_segment(int key, segment* segmentFound, char* value, int modified) {
 	int frame_num = find_free_frame();
-	segment_add_page(segmentFound, frame_num);
+	segment_add_page(segmentFound, frame_num, modified);
 	insert_in_frame(key, get_timestamp(), value, frame_num);
 	log_info(logger, "Se agrego la pagina con el nuevo valor a segmento y memoria.");
+}
+
+void* execute_journal(){
+	while(true){
+		sleep(config_get_int_value(config, "RETARDO_JOURNAL")/1000);
+		journalM();
+	}
 }
 
 void journalM(){
@@ -430,11 +454,12 @@ int insertM(char* segmentID, int key, char* value){
 				modify_in_frame(value,pageFound->frame_num);
 				sem_post(&MUTEX_MEM);
 				pageFound->isModified=1;
+				pageFound->last_time_used=get_timestamp();
 				return 0;
 			}
 			else{
 				log_info(logger,"No se encontro la pagina con el key buscado,creando pagina.");
-				load_page_to_segment(key, segmentFound, value);
+				load_page_to_segment(key, segmentFound, value, 1);
 				return 0 ;
 			}
 		}
@@ -443,17 +468,23 @@ int insertM(char* segmentID, int key, char* value){
 			segment* newSegment = segment_init();
 			newSegment->segment_id = segmentID;
 			sem_wait(&MUTEX_MEM);
-			load_page_to_segment(key, newSegment, value);
+			load_page_to_segment(key, newSegment, value, 1);
 			sem_post(&MUTEX_MEM);
 			return 0;
 			}
 	}
 	else{
 		if(memory_full()){
-			return 2;
+			journalM();
+			return insertM(segmentID, key, value);
 		}else{
-			//No hay frame available y la mem no esta full
-			//ejecutarReemplazo
+			segment* segmentFound = search_segment(segmentID);
+			if(segmentFound == NULL){
+				segmentFound = segment_init();
+				segmentFound->segment_id = segmentID;
+			}
+			execute_replacement(key,value,segmentFound);
+
 			return 0;
 		}
 	}
@@ -462,15 +493,13 @@ return 0;
 }
 
 char* selectM(char* segmentID, int key){
-	//Busca si existe una pagina con esta key
-	//Develve el valor asociado
-
 	segment* segmentFound = search_segment(segmentID);
 
 	if(segmentFound != NULL){
 		log_info(logger,"Se encontro la tabla buscada.");
 		page* pageFound = search_page(segmentFound,key);
 		if(pageFound != NULL){
+			pageFound->last_time_used=get_timestamp();
 			log_info(logger,"Se encontro la pagina con el key buscado, retornando el valor.");
 			return get_value_from_memory(pageFound->frame_num);
 		}else{
@@ -479,14 +508,14 @@ char* selectM(char* segmentID, int key){
 			if(value!=NULL){
 				if(frame_available_in_mem()){
 					sem_wait(&MUTEX_MEM);
-					load_page_to_segment(key, segmentFound, value);
+					load_page_to_segment(key, segmentFound, value, 0);
 					sem_post(&MUTEX_MEM);
 				}else{
 					if(memory_full()){
-						//Ejecutar Journal
+						journalM();
+						load_page_to_segment(key, segmentFound, value, 0);
 					}else{
-						//No hay frame available y la mem no esta full
-						//Ejecutar Reemplazo
+						execute_replacement(key,value,segmentFound);
 					}
 				}
 				return value;
@@ -500,20 +529,20 @@ char* selectM(char* segmentID, int key){
 		log_error(logger,"No existe la tabla ingresada en memoria");
 		char* value = send_select_to_FS(segmentID,key,config,logger);
 		if(value!=NULL){
+			segment* newSegment = segment_init();
+			newSegment->segment_id = segmentID;
 			if(frame_available_in_mem()){
-				segment* newSegment = segment_init();
-				newSegment->segment_id = segmentID;
 				sem_wait(&MUTEX_MEM);
-				load_page_to_segment(key, newSegment, value);
+				load_page_to_segment(key, newSegment, value, 0);
 				sem_post(&MUTEX_MEM);
 			}else{
 				if(memory_full()){
-					//Ejecutar Journal
-
+					journalM();
+					sem_wait(&MUTEX_MEM);
+					load_page_to_segment(key, newSegment, value, 0);
+					sem_post(&MUTEX_MEM);
 				}else{
-					//No hay frame available y la mem no esta full
-					//Ejecutar Reemplazo
-
+					execute_replacement(key,value,newSegment);
 				}
 			}
 			return value;
@@ -525,15 +554,19 @@ char* selectM(char* segmentID, int key){
 	return NULL;
 }
 
+
 int createM(char* segmentID,char* consistency ,char *partition_num, char *compaction_time){
 	/*ENVIAR AL FS OPERACION PARA CREAR TABLA*/
+
 	send_create_to_FS(segmentID, consistency, partition_num, compaction_time, config, logger);
 	return 0;
 }
 
-/*table_t *describeM(char* table_id){
-	return 0;
+t_list* describeM(char *table){
+	t_list* md = send_describe_to_FS(table,config,logger);
+	return md;
 }
+
 */
 void describeM(char *segment_id){
 	send_describe_to_FS(segment_id, config, logger);
@@ -574,6 +607,36 @@ void remove_delete_segment(segment* aSegment){
 		return strcasecmp(((segment*)anotherSegment)->segment_id,aSegment->segment_id) == 0;
 	}
 	list_remove_and_destroy_by_condition(segmentList,isSegment,segment_destroy);
+}
+
+void execute_replacement(int key, char* value, segment* segment_to_use){
+	log_info(logger,"Ejecutando algoritmo de reemplazo LRU");
+	int min_time = get_timestamp();
+	page* min_page;
+	segment* min_segment;
+	void re_segment(void* aSegment){
+		segment* s = (segment*) aSegment;
+		void searching_page(void* aPage){
+			page*p = (page*) aPage;
+			if((p)->last_time_used < min_time && !(p)->isModified){
+				min_time = (p)->last_time_used;
+				min_page = (p);
+				min_segment = s;
+			}
+		}
+		list_iterate(s->page_list,searching_page);
+	}
+	list_iterate(segmentList,re_segment);
+
+	char* log_msg;
+	sprintf(log_msg,"Se remueve la key %d del segmento %s \n", get_key_from_memory(min_page->frame_num),min_segment->segment_id);
+	log_info(logger,log_msg);
+
+	remove_page_from_segment(min_page,min_segment);
+	sem_wait(&MUTEX_MEM);
+	load_page_to_segment(key, segment_to_use, value, 0);
+	sem_post(&MUTEX_MEM);
+
 }
 
 int get_value_size(){

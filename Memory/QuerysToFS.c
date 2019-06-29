@@ -25,11 +25,9 @@ char* send_select_to_FS(char* segmentID, int key, t_config* config,t_log* logger
 	t_package *p = create_package(QUERY_SELECT);
 	add_to_package(p, (void*)segmentID, sizeof(char) * (strlen(segmentID) + 1));
 	add_to_package(p, (void*)&key, sizeof(key));
-	log_info(logger, "AVERGA");
 
 
 	int FS_socket = connect_to_FS(config,logger);
-	log_info(logger, "AVERGA");
 
 	send_req_code(FS_socket, REQUEST_QUERY);
 	send_package(p, FS_socket);
@@ -91,14 +89,13 @@ void send_create_to_FS(char* table,char* consType, char *part, char *compTime ,t
 	return;
 }
 
-//no debe ser void, debemos recibir metadata de tablas
-void send_describe_to_FS(char*table,t_config* config,t_log* logger){
-
+t_list* send_describe_to_FS(char*table,t_config* config,t_log* logger){
+	t_list* metadata_list;
 	int FS_socket = connect_to_FS(config,logger);
 	char *consistencyType, *tableName, *partitions, *compactTime;
 
 	if(table != NULL) {
-	//	Paquetizar
+		//Paquetizar
 		t_package *p = create_package(QUERY_DESCRIBE);
 		add_to_package(p, (void*)table, sizeof(char) * strlen(table) + 1);
 
@@ -109,13 +106,17 @@ void send_describe_to_FS(char*table,t_config* config,t_log* logger){
 
 		if(r == RESPONSE_SUCCESS) {
 			//aca recibimos la metadata de una tabla
-			tableName = recv_str(FS_socket);
-			consistencyType = recv_str(FS_socket);
-			partitions = recv_str(FS_socket);
-			compactTime = recv_str(FS_socket);
-			printf("%s:\n	%s, %s, %s\n",tableName,consistencyType,partitions,compactTime);
 
-		} else {
+			metadata* aMetaData;
+     // aMetaData->tableName = recv_str(FS_socket);
+			aMetaData->consType = recv_str(FS_socket);
+			aMetaData->partNum = recv_str(FS_socket);
+			aMetaData->compTime = recv_str(FS_socket);
+      //	printf("%s:\n	%s, %s, %s\n",tableName,consistencyType,partitions,compactTime);
+			list_add(metadata_list,aMetaData);
+		}
+		else {
+
 			log_error(logger, "Error al realizar describe en FS");
 		}
 	} else {
@@ -126,20 +127,26 @@ void send_describe_to_FS(char*table,t_config* config,t_log* logger){
 		e_response_code r = recv_res_code(FS_socket);
 
 		if(r == RESPONSE_SUCCESS) {
-			int cant = recv_int(FS_socket);
-			for(int i=0; i<cant; i++){
-				tableName = recv_str(FS_socket);
-				consistencyType = recv_str(FS_socket);
-				partitions = recv_str(FS_socket);
-				compactTime = recv_str(FS_socket);
-				printf("%s:\n	%s, %s, %s\n",tableName,consistencyType,partitions,compactTime);
+
+			//aca recibimos la metadata de todas las tablas existentes
+			int cant_tablas = recv_int(FS_socket);
+			for(int i=0;i<cant_tablas;i++){
+				metadata* aMetaData;
+				aMetaData->tableName = recv_str(FS_socket);
+        aMetaData->consType = recv_str(FS_socket);
+				aMetaData->partNum = recv_str(FS_socket);
+				aMetaData->compTime = recv_str(FS_socket);
+          //	printf("%s:\n	%s, %s, %s\n",tableName,consistencyType,partitions,compactTime);
+				list_add(metadata_list,aMetaData);
 			}
-		} else {
+		}
+		else {
+
 			log_error(logger, "Error al realizar describe en FS.");
 		}
 	}
 	close(FS_socket);
-	return;
+	return(metadata_list);
 }
 
 void send_insert_to_FS(char* table,int key,char* value,t_config* config,t_log* logger){
@@ -205,4 +212,8 @@ int connect_to_FS(t_config* config, t_log* logger){
 		log_info(logger,"La conexion con FS fue exitosa");
 		return socket;
 	}
+}
+
+void metadata_destroy(void* aMD){
+	free(aMD);
 }

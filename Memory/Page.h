@@ -16,11 +16,12 @@ typedef struct{
 	int page_num;
 	int frame_num;
 	int isModified;
+	int last_time_used;
 }page;
 
 //pageData* pageData_create();
 //pageData* create_load_pageData(int, int, char*);
 page* page_create();
-page* create_load_page(int,int);
+page* create_load_page(int,int,int);
 void page_destroy(void*);
 

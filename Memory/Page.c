@@ -16,11 +16,12 @@ page* page_create(){
 	return (segmentPage);
 }
 
-page* create_load_page(int pageNum,int frame_num){
+page* create_load_page(int pageNum,int frame_num,int modified){
 	page* segmentPage = page_create();
 	segmentPage->page_num=pageNum;
 	segmentPage->frame_num=frame_num;
-	segmentPage->isModified=1;
+	segmentPage->isModified=modified;
+	segmentPage->last_time_used=get_timestamp();
 	return segmentPage;
 }
 
