@@ -13,8 +13,8 @@ void *serialize_package(t_package *package, int bytes) {
 	void *serializedPackage = malloc(bytes);
 	int offset = 0;
 
-	memcpy(serializedPackage + offset, &(package->op_code), sizeof(int));
-	offset += sizeof(int);
+	memcpy(serializedPackage + offset, &(package->queryType), sizeof(e_query));
+	offset += sizeof(e_query);
 	memcpy(serializedPackage + offset, package->buffer->stream, package->buffer->size);
 	offset += package->buffer->size;
 
@@ -23,7 +23,7 @@ void *serialize_package(t_package *package, int bytes) {
 
 t_package *create_package(e_query queryType) {
 	t_package *package = malloc(sizeof(t_package));
-	package->op_code = queryType;
+	package->queryType = queryType;
 	create_buffer(package);
 	return package;
 }
@@ -45,7 +45,7 @@ void add_to_package(t_package *package, void *value, int size) {
 
 
 void send_package(t_package *package, int socket_cliente) {
-	int bytes = package->buffer->size + 2*sizeof(int);
+	int bytes = package->buffer->size + sizeof(e_query);
 	void *to_send = serialize_package(package, bytes);
 
 	send(socket_cliente, to_send, bytes, 0);
@@ -61,7 +61,7 @@ void delete_package(t_package *package) {
 
 void set_buffer(t_package *paquete,char **args) {
 
-	switch(paquete->op_code) {
+	switch(paquete->queryType) {
 
 		case QUERY_SELECT: //[nombretabla, key]
 			add_to_package(paquete, args[1], strlen(args[1])+1);
@@ -89,7 +89,7 @@ void set_buffer(t_package *paquete,char **args) {
 			add_to_package(paquete, args[1], strlen(args[1])+1);
 			break;
 
-		case QUERY_JOURNAL: //[]
+		default:
 			break;
 	}
 }

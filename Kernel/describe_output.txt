@@ -1,0 +1,69 @@
+DESCRIBE T1 ::
+	C: SC - P: 2 - CT: 20000
+
+DESCRIBE T22 ::
+	C: SC - P: 1 - CT: 10000
+
+DESCRIBE T2 ::
+	C: SC - P: 3 - CT: 100000
+
+DESCRIBE T3 ::
+	C: SC - P: 1 - CT: 10000
+
+DESCRIBE TABLATEST ::
+	C: SC - P: 2 - CT: 20000
+
+DESCRIBE T23 ::
+	C: SC - P: 3 - CT: 100000
+
+DESCRIBE T1 ::
+	C: SC - P: 2 - CT: 20000
+
+DESCRIBE T22 ::
+	C: SC - P: 1 - CT: 10000
+
+DESCRIBE T2 ::
+	C: SC - P: 3 - CT: 100000
+
+DESCRIBE T3 ::
+	C: SC - P: 1 - CT: 10000
+
+DESCRIBE T23 ::
+	C: SC - P: 3 - CT: 100000
+
+DESCRIBE T1 ::
+	C: SC - P: 2 - CT: 20000
+
+DESCRIBE T2 ::
+	C: SC - P: 3 - CT: 100000
+
+DESCRIBE T3 ::
+	C: SC - P: 1 - CT: 10000
+
+DESCRIBE T23 ::
+	C: SC - P: 3 - CT: 100000
+
+DESCRIBE T1 ::
+	C: SC - P: 1 - CT: 10000
+
+DESCRIBE T1 ::
+	C: SC - P: 1 - CT: 10000
+
+DESCRIBE T1 ::
+	C: SC - P: 1 - CT: 10000
+
+DESCRIBE T1 ::
+	C: SC - P: 1 - CT: 10000
+
+DESCRIBE T1 ::
+	C: SC - P: 1 - CT: 10000
+
+DESCRIBE T1 ::
+	C: SC - P: 1 - CT: 10000
+
+DESCRIBE T1 ::
+	C: SC - P: 1 - CT: 10000
+
+DESCRIBE T1 ::
+	C: SC - P: 1 - CT: 10000
+

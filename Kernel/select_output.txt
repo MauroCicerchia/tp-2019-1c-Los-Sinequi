@@ -1,0 +1,2 @@
+SELECT T1 123 ::
+	HOLA

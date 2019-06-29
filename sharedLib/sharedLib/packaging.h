@@ -11,7 +11,7 @@ typedef struct{
 }t_buffer;
 
 typedef struct{
-	e_query op_code;
+	e_query queryType;
 	t_buffer *buffer;
 
 }t_package;

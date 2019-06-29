@@ -1,6 +1,6 @@
 #include"Kernel.h"
 
-int server, processNumber = 0, memoryNumber = 0, MP, reads = 0, writes = 0, totalOperations = 0;
+int server, processNumber = 0, memoryNumber = 0, MP, reads = 0, writes = 0, totalOperations = 0, exitFlag = 0;
 float readsTime = 0.0f, writesTime = 0.0f;
 t_list *memories, *tables;
 t_config *config;
@@ -16,23 +16,25 @@ int main(int argc, char **argv) {
 
 	display_memories();
 
-	t_table *t1 = table_create("T1", CONS_EC, 1, 1000);
-	add_table(t1);
-
 	pthread_t threadNewReady, threadsExec[MP], threadMetrics;
 
 	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
-	pthread_detach(threadNewReady);
+//	pthread_detach(threadNewReady);
 	pthread_create(&threadMetrics, NULL, print_metrics, NULL);
-	pthread_detach(threadNewReady);
+//	pthread_detach(threadNewReady);
 	for(int i = 0; i < MP; i++) {
 		pthread_create(&threadsExec[i], NULL, processor_execute, (void*)i);
-		pthread_detach(threadsExec[i]);
+//		pthread_detach(threadsExec[i]);
 	}
 
 	sleep(1);
 
 	start_API(logger);
+
+	exitFlag = 1;
+
+	printf("\nTerminando kernel, por favor espere...\n");
+	log_info(logger, "Terminando kernel, por favor espere...");
 
 	kill_kernel();
 
@@ -69,10 +71,6 @@ void kill_kernel() {
 	log_info(logger, "Terminando Kernel");
 	log_info(logger, "------------------------------------------------------------");
 	log_destroy(logger);
-//	pthread_cancel(threadNewReady);
-//	for(int i = 0; i < MP; i++) {
-//		pthread_cancel(threadsExec[i]);
-//	}
 	queue_destroy_and_destroy_elements(new, process_destroy);
 	queue_destroy_and_destroy_elements(ready, process_destroy);
 	list_destroy_and_destroy_elements(memories, memory_destroy);
@@ -208,7 +206,7 @@ void add_process_to_new(t_process* process) {
 
 void *new_to_ready() {
 	char msg[50];
-	while(true) {
+	while(!exitFlag) {
 		sem_wait(&MAX_PROC_READY);
 		sem_wait(&PROC_PEND_NEW);
 		sem_wait(&MUTEX_NEW);
@@ -218,6 +216,7 @@ void *new_to_ready() {
 		sprintf(msg, " >> Proceso %d agregado a la cola de READY", ((t_process*)p)->pid);
 		log_info(logger, msg);
 	}
+	return NULL;
 }
 
 void add_process_to_ready(t_process *process) {
@@ -247,7 +246,7 @@ void *processor_execute(void *p) {
 		return NULL;
 	char msg[50];
 	t_process *exec;
-	while(true) {
+	while(!exitFlag) {
 		exec = ready_to_exec(processor);
 
 		for(int i = 0; i < get_quantum(); i++) {
@@ -313,8 +312,6 @@ void init_memory() {
 	request_memory_pool(0);
 	char **args = parseQuery("DESCRIBE");
 	qDescribe(args, logger);
-//	t_memory *scMem = get_sc_memory();
-//	printf("mid: %d", scMem->mid);
 }
 
 int connect_to_memory(char *IP, int PORT) {
@@ -333,6 +330,7 @@ void request_memory_pool(int memSocket) {
 	//Mock
 	t_memory *mem = memory_create(memoryNumber, get_memory_ip(), get_memory_port());
 	memoryNumber++;
+
 	memory_add_cons_type(mem, CONS_SC);
 //	memory_add_cons_type(mem, CONS_SHC);
 	memory_add_cons_type(mem, CONS_EC);
@@ -387,12 +385,16 @@ t_memory *get_sc_memory_for_table(t_table* t) {
 	bool memByID(void *mem) {
 		return ((t_memory*)mem)->mid == (int)list_get(t->memories, 0);
 	}
-	return (t_memory*)list_find(sc_mem, memByID);
+	t_memory *m = (t_memory*)list_find(sc_mem, memByID);
+	list_destroy(sc_mem);
+	return m;
 }
 
 t_memory *get_random_sc_memory() {
 	t_list *sc_mem = get_sc_memories();
-	return (t_memory*)list_get(sc_mem, random() % list_size(sc_mem));
+	t_memory *m = (t_memory*)list_get(sc_mem, random() % list_size(sc_mem));
+	list_destroy(sc_mem);
+	return m;
 }
 
 t_list *get_shc_memories() {
@@ -452,7 +454,7 @@ void update_shc() {
 		add_memories_to_table((t_table*)t);
 	}
 	void journalMem(void *m) {
-		qJournal((t_memory*)m, logger); //TODO implementar journal en memoria
+		qJournal((t_memory*)m, logger);
 	}
 	sem_wait(&MUTEX_TABLES);
 	t_list *shcTables = list_filter(tables, isSHC);
@@ -505,11 +507,14 @@ void add_memories_to_table(t_table *t) {
 	void addMemoryToTable(void *mem) {
 		table_add_memory_by_id(t, ((t_memory*)mem)->mid);
 	}
+	t_list *mems;
 	switch(t->consType) {
 		case CONS_SC:
-			if(list_size(get_sc_memories()) > 0) {
+			mems = get_sc_memories();
+			if(list_size(mems) > 0) {
 				table_add_memory_by_id(t, get_random_sc_memory()->mid);
 			}
+			list_destroy(mems);
 			break;
 		case CONS_SHC:
 			list_iterate(get_shc_memories(), addMemoryToTable);
@@ -531,7 +536,7 @@ void journal(){
 void *print_metrics() {
 	printf("\nR : RL/30s = 0 : 0.00s\nW : WL/30s = 0 : 0.00s\nML = \n\n");
 
-	while(true) {
+	while(!exitFlag) {
 		sleep(30);
 		sem_wait(&MUTEX_READS);
 		sem_wait(&MUTEX_WRITES);
@@ -600,14 +605,14 @@ void metrics_new_insert(int start, int end) {
 
 char *get_memory_ip() {
 	load_config();
-	char *ip = strdup(config_get_string_value(config, "MEM_IP"));
+	char *ip = string_duplicate(config_get_string_value(config, "MEM_IP"));
 	config_destroy(config);
 	return ip;
 }
 
 char *get_memory_port() {
 	load_config();
-	char *port = strdup(config_get_string_value(config, "MEM_PORT"));
+	char *port = string_duplicate(config_get_string_value(config, "MEM_PORT"));
 	config_destroy(config);
 	return port;
 }
