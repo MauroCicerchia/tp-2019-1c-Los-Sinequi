@@ -123,6 +123,7 @@ e_query processQuery(char *query) {
 
 		case QUERY_JOURNAL:
 			sprintf(log_msg, " >> Recibi un JOURNAL");
+			journal();
 			break;
 
 		case QUERY_ADD:
@@ -294,15 +295,15 @@ void execute_query(t_query *query) {
 			break;
 		case QUERY_CREATE:
 			log_info(logger, " >> Ejecutando un CREATE %s %s %s %s", query->args[1], query->args[2], query->args[3], query->args[4]);
-			/*qCreate(query->args, logger);*/
+			qCreate(query->args, logger);
 			break;
 		case QUERY_DESCRIBE:
 			log_info(logger, " >> Ejecutando un DESCRIBE %s", query->args[1]);
-			/*qDescribe(query->args, logger);*/
+			qDescribe(query->args, logger);
 			break;
 		case QUERY_DROP:
 			log_info(logger, " >> Ejecutando un DROP %s", query->args[1]);
-			/*qDrop(query->args, logger);*/
+			qDrop(query->args, logger);
 			break;
 		default: break;
 	}
@@ -448,7 +449,7 @@ void update_shc() {
 		add_memories_to_table((t_table*)t);
 	}
 	void journalMem(void *m) {
-//		qJournal((t_memory*)m, logger); TODO implementar journal en memoria
+		qJournal((t_memory*)m, logger); //TODO implementar journal en memoria
 	}
 	sem_wait(&MUTEX_TABLES);
 	t_list *shcTables = list_filter(tables, isSHC);
@@ -512,6 +513,15 @@ void add_memories_to_table(t_table *t) {
 		default:
 			break;
 	}
+}
+
+void journal(){
+	void journalMem(void *m) {
+			qJournal((t_memory*)m, logger); //TODO implementar journal en memoria
+		}
+	sem_wait(&MUTEX_MEMORIES);
+		list_iterate(memories,journalMem);
+	sem_post(&MUTEX_MEMORIES);
 }
 
 void *print_metrics() {

@@ -119,7 +119,7 @@ void *listen_client() {
 		switch(rc) {
 			case REQUEST_QUERY: process_query_from_client(cliSocket); break;
 			case REQUEST_GOSSIP: break;
-			case REQUEST_JOURNAL: break;
+			case REQUEST_JOURNAL: journalM(); break;
 		}
 	}
 }
@@ -128,8 +128,8 @@ void process_query_from_client(int client) {
 	e_query opCode;
 	recv(client, &opCode, sizeof(opCode), 0);
 
-	char *table, *value;
-	int key, part, compTime, size;
+	char *table, *value,*part, *compTime;
+	int key, size, status;
 	char *consType;
 
 	switch(opCode) {
@@ -149,21 +149,28 @@ void process_query_from_client(int client) {
 			table = recv_str(client);
 			key = recv_int(client);
 			value = recv_str(client);
-			int status = insertM(table, key, value);
+			status = insertM(table, key, value);
 			switch(status) {
 				case 0: send_res_code(client, RESPONSE_SUCCESS); break;
 				case 1: send_res_code(client, RESPONSE_ERROR); break;
 				case 2: send_res_code(client, RESPONSE_FULL); break;
 			}
 			break;
+
 		case QUERY_CREATE:
 			table = recv_str(client);
 			consType = recv_str(client);
-			part = recv_int(client);
-			compTime = recv_int(client);
-//			int status = createM(table, consType, part, compTime);
+			part = recv_str(client);
+			compTime = recv_str(client);
+			printf("%s\n",table);
+			printf("%s\n",consType);
+			printf("%s\n",part);
+			printf("%s\n",compTime);
+			status = createM(table, consType, part, compTime);
 			send_res_code(client, RESPONSE_SUCCESS);
 			break;
+			//puede romper giles
+
 		case QUERY_DESCRIBE:
 			table = recv_str(client);
 			if(table != NULL) {
@@ -192,7 +199,7 @@ void process_query_from_client(int client) {
 			break;
 		case QUERY_DROP:
 			table = recv_str(client);
-//			int status = dropM(table);
+			int status = dropM(table);
 			send_res_code(client, RESPONSE_SUCCESS);
 			break;
 	}

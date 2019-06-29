@@ -97,15 +97,15 @@ void qCreate(char** args, t_log *logger) {
 	e_query queryType = getQueryType(args[0]);
 	char *table = args[1];
 	char *consType = args[2];
-	int part = strtol(args[3], NULL, 10);
-	int compTime = strtol(args[4], NULL, 10);
+	char *part = args[3];
+	char *compTime = args[4];
 
 //	Paquetizar
 	t_package *p = create_package(queryType);
 	add_to_package(p, (void*)table, sizeof(char) * strlen(table) + 1);
 	add_to_package(p, (void*)consType, sizeof(char) * strlen(consType) + 1);
-	add_to_package(p, (void*)&part, sizeof(part));
-	add_to_package(p, (void*)&compTime, sizeof(compTime));
+	add_to_package(p, (void*)part, sizeof(char) * strlen(part) + 1);
+	add_to_package(p, (void*)compTime, sizeof(char) * strlen(compTime) + 1);
 
 //	obtener memoria segun criterio
 	t_memory *mem = get_any_memory();
@@ -260,7 +260,9 @@ void output_describe(char *name, e_cons_type cType, int part, int compTime) {
 	txt_write_in_file(output, name);
 	txt_write_in_file(output, " ::\n	");
 	txt_write_in_file(output, "C: ");
-	txt_write_in_file(output, getConsistencyStr(cType));
+	char *x = getConsistencyStr(cType);
+	txt_write_in_file(output, x);
+	free(x);
 	txt_write_in_file(output, " - ");
 	txt_write_in_file(output, "P: ");
 	sprintf(buffer, "%d", part);

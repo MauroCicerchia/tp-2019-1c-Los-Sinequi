@@ -13,6 +13,7 @@ typedef enum {
 } e_cons_type;
 
 e_cons_type getConsistencyType(char*);
+char *getConsistencyStr(e_cons_type);
 
 #endif
 
