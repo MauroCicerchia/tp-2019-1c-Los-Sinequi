@@ -1,11 +1,11 @@
 #include"console.h"
 
-char **validate_query_and_return_args(char *query) {
-	char **args = parseQuery(query); //guardas en el vecor args la query
+t_list *validate_query_and_return_args(char *query) {
+	t_list *args = parseQuery(query); //guardas en la lista args la query
 
-	int validQuery = validateQuerySyntax(args, getQueryType(args[0])); //validamos que sea correcta y sino lanzamos exception
+	int validQuery = validateQuerySyntax(args); //validamos que sea correcta y sino lanzamos exception
 	if (!validQuery) {
-		free(args);
+		list_destroy_and_destroy_elements(args, string_destroy);
 		return NULL;
 	}
 
@@ -21,7 +21,7 @@ int sizeofArray(char **array){
 	return i;
 }
 
-void start_API(t_log *logger){
+void start_API(t_log *logger) {
 	char *input;
 	input = (char*)readline(">");
 	while(strcmp("", input)) {
@@ -32,4 +32,8 @@ void start_API(t_log *logger){
 		input = readline(">");
 	}
 	free(input);
+}
+
+void string_destroy(void *str) {
+	free((char*)str);
 }

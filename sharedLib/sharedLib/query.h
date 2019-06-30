@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<ctype.h>
 #include<commons/string.h>
+#include<commons/collections/list.h>
 #include"consistency.h"
 #include"console.h"
 #include<errno.h>
@@ -25,15 +26,15 @@ typedef enum {
 
 typedef struct {
 	e_query queryType;
-	char **args;
+	t_list *args;
 } t_query;
 
-t_query *query_create(e_query, char**);
+t_query *query_create(e_query, t_list*);
 void query_destroy(void*);
 e_query getQueryType(char*);
 e_query queryError();
-int validateQuerySyntax(char**,e_query);
-char **parseQuery(char*);
+int validateQuerySyntax(t_list*);
+t_list *parseQuery(char*);
 int isNumeric(char*);
 
 #endif

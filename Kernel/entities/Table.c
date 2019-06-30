@@ -5,7 +5,7 @@ t_table *table_create(char *name, e_cons_type consType, int part, int compTime) 
 		return (void*)((t_memory*)memory)->mid;
 	}
 	t_table *t = (t_table*)malloc(sizeof(t_table));
-	t->name = name;
+	t->name = string_duplicate(name);
 	t->consType = consType;
 	t->partitions = part;
 	t->compTime = compTime;

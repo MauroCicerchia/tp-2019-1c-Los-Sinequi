@@ -29,6 +29,7 @@ void qSelect(char** args, t_log *logger) {
 
 	send_req_code(memSocket, REQUEST_QUERY);
 	send_package(p, memSocket);
+	delete_package(p);
 
 	e_response_code r = recv_res_code(memSocket);
 
@@ -77,6 +78,7 @@ void qInsert(char** args, t_log *logger) {
 
 	send_req_code(memSocket, REQUEST_QUERY);
 	send_package(p, memSocket);
+	delete_package(p);
 
 	e_response_code r = recv_res_code(memSocket);
 
@@ -115,6 +117,7 @@ void qCreate(char** args, t_log *logger) {
 
 	send_req_code(memSocket, REQUEST_QUERY);
 	send_package(p, memSocket);
+	delete_package(p);
 
 	e_response_code r = recv_res_code(memSocket);
 
@@ -146,6 +149,7 @@ void qDescribe(char** args, t_log *logger) {
 
 		send_req_code(memSocket, REQUEST_QUERY);
 		send_package(p, memSocket);
+		delete_package(p);
 
 		e_response_code r = recv_res_code(memSocket);
 
@@ -188,6 +192,7 @@ void qDescribe(char** args, t_log *logger) {
 				free(sCTime);
 				update_table(tableName, consType, part, compTime);
 				output_describe(tableName, consType, part, compTime);
+				free(tableName);
 			}
 			log_info(logger, " >> Metadata de todas las tablas actualizada.");
 		} else {
@@ -221,6 +226,7 @@ void qDrop(char** args, t_log *logger) {
 
 	send_req_code(memSocket, REQUEST_QUERY);
 	send_package(p, memSocket);
+	delete_package(p);
 
 	e_response_code r = recv_res_code(memSocket);
 
@@ -253,7 +259,7 @@ void qJournal(t_memory *mem, t_log *logger) {
 }
 
 void output_select(char** args, char* value) {
-	FILE* output = txt_open_for_append("../output.txt");
+	FILE* output = txt_open_for_append("../select_output.txt");
 	txt_write_in_file(output, "SELECT ");
 	string_trim(&args[1]);
 	string_trim(&args[2]);
@@ -269,7 +275,7 @@ void output_select(char** args, char* value) {
 
 void output_describe(char *name, e_cons_type cType, int part, int compTime) {
 	char buffer[20];
-	FILE * output = txt_open_for_append("../output.txt");
+	FILE * output = txt_open_for_append("../describe_output.txt");
 	txt_write_in_file(output, "DESCRIBE ");
 	txt_write_in_file(output, name);
 	txt_write_in_file(output, " ::\n	");
@@ -283,6 +289,6 @@ void output_describe(char *name, e_cons_type cType, int part, int compTime) {
 	txt_write_in_file(output, "CT: ");
 	sprintf(buffer, "%d", compTime);
 	txt_write_in_file(output, buffer);
-	txt_write_in_file(output, "\n");
+	txt_write_in_file(output, "\n\n");
 	txt_close_file(output);
 }
