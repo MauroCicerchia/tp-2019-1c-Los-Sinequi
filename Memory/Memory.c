@@ -238,11 +238,9 @@ e_query processQuery(char *query, t_log *logger) {
 	char log_msg[100];
 	e_query queryType;
 
-	char **args = parseQuery(query); //guardas en el vecor args la query
+	t_list *args = parseQuery(query); //guardas en el vecor args la query
 
-	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
-
-	int invalidQuery = validateQuerySyntax(args, queryType); //validamos que sea correcta y sino lanzamos exception
+	int invalidQuery = validateQuerySyntax(args); //validamos que sea correcta y sino lanzamos exception
 	if (!invalidQuery)
 		return queryError();
 
@@ -250,7 +248,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_SELECT:
 
-			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
+			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]); //TODO Cambiar todos los args[x] por list_get(args, x)
 			log_info(logger,log_msg);
 
 //			sendMessage(server,query);
