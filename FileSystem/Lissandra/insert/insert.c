@@ -1,6 +1,8 @@
 #include"insert.h"
 
 int qinsert(char *table, char* key, char *value, char* timeStamp){
+	delayer();
+
 	log_info(logger, "  Chequeo que la tabla este creada");
 
 	if(!fs_tableExists(table)){

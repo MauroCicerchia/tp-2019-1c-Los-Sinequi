@@ -1,6 +1,9 @@
 #include"create.h"
 
 int qcreate(char *table, char *consistency, char *partitions, char *compactime){
+
+	delayer();
+
 	log_info(logger, "  Chequeo si la tabla ya existe en el FS");
 	if(fs_tableExists(table)){
 		log_error(logger,"La tabla ya existe");

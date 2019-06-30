@@ -8,6 +8,8 @@
 #include"../../Lissandra/compactador/activeTable.h"
 #include"../../Lissandra/compactador/compactador.h"
 
+#include"../delayer/delayer.h"
+
 #ifndef DROP_H
 #define DROP_H
 

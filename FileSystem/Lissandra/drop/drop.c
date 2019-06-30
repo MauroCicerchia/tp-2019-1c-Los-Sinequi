@@ -2,6 +2,8 @@
 
 int qdrop(char *table) //agregar semaforo de drop para que nadie toque las tablas meintras se dropean
 {
+	delayer();
+
 	if(!fs_tableExists(table)){
 		log_error(logger,"La tabla que se intenta droppear no existe");
 		return 0;

@@ -8,6 +8,8 @@
 #include"../../Lissandra/compactador/activeTable.h"
 #include"../../Lissandra/compactador/compactador.h"
 
+#include"../delayer/delayer.h"
+
 extern t_log *logger;
 
 int qcreate(char*, char*, char* , char*);

@@ -2,6 +2,8 @@
 
 //evaluar el caso de si no se hizo ningun insert
 char *qselect(char *table, char* strKey){
+	delayer();
+
 	uint16_t key = strtol(strKey,NULL,10);
 	t_list *list = list_create();
 

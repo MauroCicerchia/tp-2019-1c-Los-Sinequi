@@ -39,8 +39,6 @@ void processQuery(char *query)
 			log_info(logger, "----------------------------------------");
 			log_info(logger, "Recibi un SELECT");
 
-			delayer();
-
 			selectReturnValue = qselect(args[1], args[2]);
 
 			if(selectReturnValue != NULL){
@@ -61,8 +59,6 @@ void processQuery(char *query)
 			log_info(logger, "----------------------------------------");
 			log_info(logger, "Recibi un INSERT");
 
-			delayer();
-
 			if(args[4] == NULL) args[4] = string_from_format("%llu",getCurrentTime());
 
 			qinsert(args[1], args[2], args[3], args[4]);
@@ -77,7 +73,6 @@ void processQuery(char *query)
 			log_info(logger, "----------------------------------------");
 			log_info(logger, "Recibi un CREATE");
 
-			delayer();
 
 			if(qcreate(args[1], args[2], args[3], args[4])){
 				log_info(logger, ">>>");
@@ -94,8 +89,6 @@ void processQuery(char *query)
 		case QUERY_DESCRIBE:
 			log_info(logger, "----------------------------------------");
 			log_info(logger, "Recibi un DESCRIBE");
-
-			delayer();
 
 			if(args[1] == NULL){
 				tables = fs_getAllTables();
@@ -150,8 +143,6 @@ void processQuery(char *query)
 			log_info(logger, "----------------------------------------");
 			log_info(logger, "Recibi un DROP");
 
-			delayer();
-
 			qdrop(args[1]);
 
 			log_info(logger, "Fin DROP");
@@ -164,16 +155,6 @@ void processQuery(char *query)
 			free(args);
 	}
 }
-
-
-void delayer()
-{
-	sem_wait(&MUTEX_RETARDTIME);
-	int rt = retardTime;
-	sem_post(&MUTEX_RETARDTIME);
-	sleep(rt/1000);
-}
-
 
 uint64_t getCurrentTime()
 {
