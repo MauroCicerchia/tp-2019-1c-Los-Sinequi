@@ -38,11 +38,11 @@ int main(int argc, char **argv)
 	pthread_create(&tListenCfg,NULL,threadConfigModify,NULL);
 	pthread_detach(tListenCfg);
 
-//	pthread_create(&tLisentClient,NULL,threadListenToClient,NULL);
-//	pthread_detach(tLisentClient);
+	pthread_create(&tLisentClient,NULL,threadListenToClient,NULL);
+	pthread_detach(tLisentClient);
 
-//	pthread_create(&tDump,NULL,threadDump,NULL);
-//	pthread_detach(tDump);
+	pthread_create(&tDump,NULL,threadDump,NULL);
+	pthread_detach(tDump);
 
 	start_Api();
 
@@ -95,10 +95,10 @@ void init_FileSystem()
 	fs_setActiveTables(); //cargo a memoria todas las tablas activas en "systables"
 
 	activeTable *x;
-//	for(int i = 0; i < list_size(sysTables);i++){ //creo todos los hilos de compactacion para las tablas
-//		x = list_get(sysTables,i);
-//		threadForCompact(string_duplicate(x->name));
-//	}
+	for(int i = 0; i < list_size(sysTables);i++){ //creo todos los hilos de compactacion para las tablas
+		x = list_get(sysTables,i);
+		threadForCompact(string_duplicate(x->name));
+	}
 
 	ba_create(); //levanto el bitarray
 

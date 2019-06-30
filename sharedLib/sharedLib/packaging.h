@@ -1,6 +1,7 @@
 #include"query.h"
 #include<stdio.h>
 #include<stdlib.h>
+#include<sys/socket.h>
 
 #ifndef PACKAGING_H
 #define PACKAGING_H

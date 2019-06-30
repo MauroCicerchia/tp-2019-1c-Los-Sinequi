@@ -1,14 +1,5 @@
 #include"packaging.h"
 
-/*
- [select,tabla,key]
-	paquete = crear_paquete(querySELECT);
-	addtopackage(paquete,tabla,strlen(tabla)+1);
-	addtopackage(paquete,key,sizeof(int));
-	sendpackage(paquete,socket);
-	deletepackage(paquete);
-*/
-
 void *serialize_package(t_package *package, int bytes) {
 	void *serializedPackage = malloc(bytes);
 	int offset = 0;
@@ -91,6 +82,12 @@ void set_buffer(t_package *paquete,char **args) {
 
 		case QUERY_JOURNAL: //[]
 			break;
+
+		//imposibles
+		case QUERY_ADD: break;
+		case QUERY_ERROR: break;
+		case QUERY_METRICS: break;
+		case QUERY_RUN: break;
 	}
 }
 
