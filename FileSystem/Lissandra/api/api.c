@@ -112,12 +112,13 @@ void processQuery(char *query)
 //						free(cons);
 					}
 				}
+				list_clean_and_destroy_elements(tables, free);
 			}else{
 				metadata *tableInfo = qdescribe(args[1]);
 
 				if(tableInfo != NULL){
 					log_info(logger, ">>>");
-					char *cons = string_new(); strcpy(cons,tableInfo->consistency);
+					char *cons = string_duplicate(tableInfo->consistency);
 					char *parts = tableInfo->partitions; char *ctime = tableInfo->ctime;
 					sprintf(log_msg,"Consistencia: %s",cons);
 					log_info(logger,log_msg);
@@ -135,7 +136,8 @@ void processQuery(char *query)
 			log_info(logger, "Fin DESCRIBE");
 			log_info(logger, "----------------------------------------");
 
-			free(args);
+			free(args[1]);
+//			free(args);
 
 			break;
 
@@ -148,12 +150,14 @@ void processQuery(char *query)
 			log_info(logger, "Fin DROP");
 			log_info(logger, "----------------------------------------");
 
-			free(args);
+			free(args[1]);
 			break;
 
 		default:
 			free(args);
+			break;
 	}
+
 }
 
 uint64_t getCurrentTime()

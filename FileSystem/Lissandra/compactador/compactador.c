@@ -3,17 +3,21 @@
 void *threadCompact(char *tableName)
 {
 	activeTable *table;
-	while(tableIsActive(tableName)){
+	while(tableIsActive(tableName) && !exitFlag){
 
 		table = com_getActiveTable(tableName);
+
 		sem_wait(&table->MUTEX_DROP_TABLE);
 			table->ctime = com_getCTime(table->name); //actualiza cambios en el tiempo de compactacion
 			compact(table);
 		sem_post(&table->MUTEX_DROP_TABLE);
 
-		sleep(table->ctime/1000);
-	}
+		for(int i = 0; i < 4; i++){
+			sleep(table->ctime/4000);
+			if(exitFlag) break;
+		}
 
+	}
 
 	free(tableName);
 	return NULL;
@@ -40,6 +44,8 @@ void compact(activeTable *table)//agregar el semaforo para drop
 
 	//hacer el cambio del tmpc a la/las particiones correspondientes
 	com_compactTmpsC(tmpsC,tableUrl,table);
+
+	list_destroy_and_destroy_elements(tmpsC, free);
 
 	//borrar los .tmpc y libera los bloques
 	fs_cleanTmpsC(tableUrl);
@@ -71,18 +77,15 @@ void com_compactTmpsC(t_list *tmpsC,char *tableUrl, activeTable *table)
 
 	t_list *keys = com_getAllKeys(allInserts); //guardo todas las keys posibles
 
-	for(int k = 0; k < list_size(allInserts); k++){ // le agrego \n a todos los inserts
-		char *insert =  list_get(allInserts,k);
-		if(!string_ends_with(insert,"\n")){
-			string_append(&insert,"\n");
-		}
-	}
 
 	list_sort(allInserts,com_biggerTimeStamp); //ordeno la lista por timestamp de mayor a menor
 
 	sem_wait(&table->MUTEX_TABLE_PART);
 	com_saveInPartition(keys,allInserts,table); //tomo la primera de cada key y la guardo en la particion
 	sem_post(&table->MUTEX_TABLE_PART);
+
+	list_destroy_and_destroy_elements(keys,free);
+	list_destroy_and_destroy_elements(allInserts,free);
 }
 
 
@@ -107,10 +110,12 @@ char *com_key(char *insert)
 {
 	char **args = string_split((char*)insert, ";");
 	char *strKey = string_duplicate(args[1]);
-//	uint16_t key = strtol(strKey,NULL,10);
+
+	for(int i = 0; i < sizeofArray(args); i++){
+		free(args[i]);
+	}
 	free(args);
-//	free(strKey);
-//	return key;
+
 	return strKey;
 }
 
@@ -191,12 +196,16 @@ void com_saveInPartition(t_list *keys,t_list *allInserts, activeTable *table)
 	int tableParts = table->parts;
 
 	bool _gotKey(void *insert){ //wrapper
-		return com_gotKey(key,(char*)insert);
+		if(com_gotKey(key,(char*)insert))
+			return true;
+		else
+			return false;
+
 	}
 
 	for(int i = 0; i < list_size(keys); i++){
 		key = list_get(keys,i);
-		toInsert = list_find(allInserts,  _gotKey);
+		toInsert = string_duplicate(list_find(allInserts,  _gotKey));
 
 		partUrl = string_duplicate(tableUrl);
 		iKey = strtol(key,NULL,10);
@@ -204,9 +213,12 @@ void com_saveInPartition(t_list *keys,t_list *allInserts, activeTable *table)
 		string_append(&partUrl,part);
 		string_append(&partUrl,".bin");
 
+		string_append(&toInsert,"\n");
+
 		b_saveData(partUrl,toInsert);
 
 		free(partUrl);
+		free(toInsert);
 	}
 }
 

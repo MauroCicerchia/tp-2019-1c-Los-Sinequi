@@ -25,7 +25,7 @@ void *listen_client()
 			case REQUEST_GOSSIP: break;
 			case REQUEST_JOURNAL: break;
 		}
-		sleep(1);
+
 //		close(cliSocket);
 	}
 }
@@ -118,6 +118,7 @@ void process_query_from_client(int client)
 					}
 					else send_res_code(client, RESPONSE_ERROR);
 				}
+				list_clean_and_destroy_elements(tables, free);
 			}
 			else { //una sola tabla
 				tableMetadata = qdescribe(table);

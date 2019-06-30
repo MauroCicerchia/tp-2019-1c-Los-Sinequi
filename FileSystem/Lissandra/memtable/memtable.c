@@ -82,7 +82,7 @@ void mt_getListofInserts(char *table, t_list *list)
 {
 	t_list *mtinserts = mt_getTableToInsert(table);
 
-	if(list_size(mtinserts) == 0) return;
+	if(list_size(mtinserts) == 0) {list_destroy(mtinserts); return;}
 
 	sem_wait(&MUTEX_MEMTABLE); //bloqueo memtable mientras hace la asignacion
 		for(int i = 0; i < list_size(mtinserts); i++){

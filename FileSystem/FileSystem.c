@@ -9,7 +9,7 @@ char *absoluto, *port, *ip;
 
 t_log *logger;
 
-int fd,wd,dumpTime,retardTime,tmpNo,valueSize;
+int fd,wd,dumpTime,retardTime,tmpNo,valueSize, exitFlag;
 
 pthread_t tApi,tDump,tListenCfg, tLisentClient;
 
@@ -42,7 +42,6 @@ int main(int argc, char **argv)
 	pthread_detach(tLisentClient);
 
 	pthread_create(&tDump,NULL,threadDump,NULL);
-	pthread_detach(tDump);
 
 	start_Api();
 
@@ -57,6 +56,8 @@ void init_FileSystem()
 	sem_init(&MUTEX_DUMPTIME,1,1);
 	sem_init(&MUTEX_RETARDTIME,1,1);
 	sem_init(&MUTEX_BITARRAY,1,1);
+
+	exitFlag = 0;
 
 	logger = NULL;
 	iniciar_logger(&logger); //arranco logger
@@ -92,6 +93,8 @@ void init_FileSystem()
 		b_create();
 	}
 
+	ba_create(); //levanto el bitarray
+
 	fs_setActiveTables(); //cargo a memoria todas las tablas activas en "systables"
 
 	activeTable *x;
@@ -100,14 +103,15 @@ void init_FileSystem()
 		threadForCompact(string_duplicate(x->name));
 	}
 
-	ba_create(); //levanto el bitarray
 
-//	compact(list_get(sysTables,0));
+	compact(list_get(sysTables,0));
 }
 
 
 void kill_FileSystem()
 {
+	exitFlag = 1;
+	pthread_join(tDump,NULL);
 	log_info(logger, "----------------------------------------");
 	log_info(logger, "Dump de seguridad");
 
@@ -119,7 +123,16 @@ void kill_FileSystem()
 
 	list_destroy(memtable); //mato memtable
 
+	void free_activeTable(void *pivot){
+		free(((activeTable*)pivot)->name);
+		sem_destroy(&((activeTable*)pivot)->MUTEX_TABLE_PART);
+		sem_destroy(&((activeTable*)pivot)->MUTEX_DROP_TABLE);
+	}
+
+	list_destroy_and_destroy_elements(sysTables, free_activeTable);
+
 	ba_bitarrayDestroy(); //mato el bitarray
+
 
 	sem_destroy(&MUTEX_MEMTABLE);//mato semaforos
 	sem_destroy(&MUTEX_DUMPTIME);
@@ -130,6 +143,8 @@ void kill_FileSystem()
 	log_info(logger, "----------------------------------------");
 
 	log_destroy(logger); //mato logger
+
+	free(absoluto);
 	//chau fs :)
 }
 
@@ -168,11 +183,17 @@ void *threadConfigModify()
 void *threadDump()
 {
 	int dt;
-	while(1){
+	while(!exitFlag){
 		sem_wait(&MUTEX_DUMPTIME);
 		dt = dumpTime;
 		sem_post(&MUTEX_DUMPTIME);
-		sleep(dt/1000);
+
+		for(int i = 0; i < 4; i++){
+			sleep(dt/4000);
+			if(exitFlag) break;
+		}
+
+
 		log_info(logger, "----------------------------------------");
 		log_info(logger, "Iniciando Dump");
 		sem_wait(&MUTEX_MEMTABLE);
@@ -228,6 +249,7 @@ t_config *load_lfsMetadata()
 {
 	char *url = fs_getlfsMetadataUrl();
 	t_config *metadata = config_create(url);
+	free(url);
 		if(metadata == NULL){
 			log_error(logger,"No se pudo abrir el archivo de Metadata del FS");
 			return NULL;

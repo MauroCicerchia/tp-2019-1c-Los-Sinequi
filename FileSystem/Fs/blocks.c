@@ -36,8 +36,9 @@ void b_getListOfInserts(char *partUrl, t_list *list)
 	FILE *f;
 	int fSize;
 //	t_list *listOfInserts;
-
-	char** blocks = string_get_string_as_array(getListOfBlocks(partUrl));// ["1","43","550"]
+	char *stringArrayBlocks = getListOfBlocks(partUrl);
+	char** blocks = string_get_string_as_array(stringArrayBlocks);// ["1","43","550"]
+	free(stringArrayBlocks);
 	int size = sizeofArray(blocks); // tamano de array de bloques
 
 	char *inserts = string_new();
@@ -66,12 +67,15 @@ void b_getListOfInserts(char *partUrl, t_list *list)
 		if(strcmp(pivot,"&")) //si no es igual a "&" lo agrego a la lista de inserts
 			string_append(&inserts,pivot);
 
+		free(blocks[i]);
 		free(pivot);
 		free(blockUrl);
 	}
 
 	insertsToList(inserts,list); //parsea el char *inserts por \n y los mete en la lista
-	free(inserts); free(url); free(blocks);
+	free(inserts); free(url);
+
+	free(blocks);
 }
 
 void insertsToList(char *inserts, t_list *list)
@@ -84,6 +88,7 @@ void insertsToList(char *inserts, t_list *list)
 	{
 		pivot = string_duplicate(arrayOfInserts[i]);
 		list_add(list,pivot);
+		free(arrayOfInserts[i]);
 	}
 	free(arrayOfInserts);
 }
@@ -115,8 +120,7 @@ void startPartition(char *url, int blockNumber, int size)
 char *getListOfBlocks(char *partUrl)
 {
 	t_config *partition = config_create(partUrl);
-	char *pivot = config_get_string_value(partition,"BLOCKS");
-	char *blocks = string_duplicate(pivot);
+	char *blocks = string_duplicate(config_get_string_value(partition,"BLOCKS"));
 	config_destroy(partition);
 	return blocks;
 }
@@ -172,6 +176,9 @@ void b_saveData(char *url,char *data){
 		string_append(&blockUrl, string_itoa(b_get_lastBlock(url)));
 		string_append(&blockUrl, ".bin");
 		b_saveIntoBlock(blockUrl,data);
+
+		b_updateSize(url);
+
 		free(blockUrl);
 		free(blocksDirectory);
 		return;
@@ -225,6 +232,8 @@ void b_saveData(char *url,char *data){
 
 	}//while
 
+b_updateSize(url);
+
 free(blocksDirectory);
 }
 
@@ -237,7 +246,9 @@ int freeSizeOfTheFirstNotFullBlock(char *url){
 
 //devuelve el ultimo bloque, osea el que tiene espacio probablemente
 int b_get_lastBlock(char *url){
-	char **blocksArray = string_get_string_as_array(getListOfBlocks(url));
+	char *stringArrayBlocks = getListOfBlocks(url);
+	char **blocksArray = string_get_string_as_array(stringArrayBlocks);
+	free(stringArrayBlocks);
 	int last = sizeofArray(blocksArray) - 1;
 	char *lastBlock = string_duplicate(blocksArray[last]);
 	int x = strtol(lastBlock,NULL,10);
@@ -251,7 +262,9 @@ int b_get_lastBlock(char *url){
 //-1 si sale del for, pero nodeberia pasar
 //te devuelve el primer bloque libre de la tabla
 int b_get_firstFreeBlock(char *url){
-	char **blocksArray = string_get_string_as_array(getListOfBlocks(url));
+	char *stringArrayBlocks = getListOfBlocks(url);
+	char **blocksArray = string_get_string_as_array(stringArrayBlocks);
+	free(stringArrayBlocks);
 	for(int i = 0; i < sizeofArray(blocksArray); i++){
 		if(!b_full(strtol(blocksArray[i],NULL,10)))
 			return strtol(blocksArray[i],NULL,10);
@@ -273,7 +286,9 @@ bool b_empty(int block){
 //al archivo le agrego un nuevo bloque a la lista de bloques
 void b_addNewBlock(char *url){
 	int newBlock = ba_getNewBlock();
-	char **listBlocks = string_get_string_as_array(getListOfBlocks(url));
+	char *stringArrayBlocks = getListOfBlocks(url);
+	char **listBlocks = string_get_string_as_array(stringArrayBlocks);
+	free(stringArrayBlocks);
 	int size = sizeofArray(listBlocks);
 	listBlocks[size] = string_itoa(newBlock);
 	listBlocks[size + 1] = NULL;
@@ -366,7 +381,7 @@ void b_saveIntoBlock(char *blockUrl,char *data)
 			f = fopen(blockUrl,"w");
 			fclose(f);
 		}
-//		free(pivot);
+		free(pivot);
 	}
 
 	FILE *ff = txt_open_for_append(blockUrl);
@@ -384,6 +399,10 @@ void b_updateSize(char *url){
 	tam += (getSizeOfBlocks() - b_freeSizeOfLastBlock(url) );
 
 	b_modifySize(url,tam);
+
+	for(int i = 0; i < sizeofArray(blocks); i++){
+		free(blocks[i]);
+	}
 	free(blocks);
 }
 
@@ -408,6 +427,7 @@ void b_writeBlockAssigned(int block)
 	txt_write_in_file(f,"&");
 	txt_close_file(f);
 
+	free(url);
 	free(strBlock);
 }
 

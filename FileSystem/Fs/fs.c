@@ -143,8 +143,6 @@ void fs_toDump(char *table,char *toDump)
 
 	b_saveData(tmpUrl,toDump); //guarda en la url tableUrl el char* que se le pasa
 
-	b_updateSize(tmpUrl);
-
 	free(tmpUrl);
 }
 
@@ -158,7 +156,7 @@ metadata *fs_getTableMetadata(char *table)
 	string_append(&url,"Metadata.bin");
 
 	t_config *tableMetadataCfg;
-	tableMetadataCfg =load_metadataConfig(url);
+	tableMetadataCfg = load_metadataConfig(url);
 	if(tableMetadataCfg == NULL){
 		log_error(logger,"Error con el archivo de Metadata de tabla");
 		return NULL;
@@ -166,9 +164,9 @@ metadata *fs_getTableMetadata(char *table)
 
 	log_info(logger,"  Abro el archivo de metadata");
 
-	tableMetadata->consistency = string_duplicate(getConsistency(tableMetadataCfg));
-	tableMetadata->ctime = string_duplicate(getCTime(tableMetadataCfg));
-	tableMetadata->partitions = string_duplicate(getPartitions(tableMetadataCfg));
+	tableMetadata->consistency = getConsistency(tableMetadataCfg);
+	tableMetadata->ctime = getCTime(tableMetadataCfg);
+	tableMetadata->partitions = getPartitions(tableMetadataCfg);
 
 	log_info(logger,"  Guardo la metadata");
 
@@ -194,14 +192,14 @@ char *getConsistency(t_config *config)
 {
 	log_info(logger,"   Leo tipo de consistencia");
 
-	return config_get_string_value(config,"CONS");
+	return string_duplicate(config_get_string_value(config,"CONS"));
 }
 
 char *getCTime(t_config *config)
 {
 	log_info(logger,"   Leo el tiempo de compactacion");
 
-	int ctime =config_get_int_value(config,"CTIME");
+	int ctime = config_get_int_value(config,"CTIME");
 	return string_itoa(ctime);
 }
 
@@ -273,6 +271,7 @@ t_list *fs_getListOfInserts(char* table,int key)
 	string_append(&partUrl,tableUrl);
 	string_append(&partUrl,partition);
 	string_append(&partUrl, ".bin");
+	free(partition);
 
 	t_list *partList = list_create();
 	b_getListOfInserts(partUrl,partList); //trae todas los inserts de esa url (la de particion adecuada)
@@ -406,6 +405,7 @@ void fs_cleanTmpsC(char *tableUrl){
 
 			strBlocks = getListOfBlocks(file);
 			blocks = string_get_string_as_array(strBlocks);
+			free(strBlocks);
 			for(int i = 0; i < sizeofArray(blocks); i++){ //libero bloque por bloque, del bitarray y su contenido
 				blockToFree = strtol(blocks[i],NULL,10);
 				b_freeblock(blockToFree);
@@ -440,8 +440,11 @@ void fs_setActiveTables()
 		pivot->name = string_duplicate(list_get(tables,i));
 		sem_init(&(pivot->MUTEX_DROP_TABLE),1,1);
 		sem_init(&(pivot->MUTEX_TABLE_PART),1,1);
-		pivot->ctime = strtol(getCTime(cfg),NULL,10);
-		pivot->parts = strtol(getPartitions(cfg),NULL,10);
+		char *strCtime = getCTime(cfg);
+		char *strParts = getPartitions(cfg);
+		pivot->ctime = strtol(strCtime,NULL,10);
+		pivot->parts = strtol(strParts,NULL,10);
+		free(strCtime); free(strParts);
 
 		list_add(sysTables,pivot);
 
@@ -449,4 +452,5 @@ void fs_setActiveTables()
 		free(configUrl);
 	}
 
+	list_destroy_and_destroy_elements(tables,free);
 }
