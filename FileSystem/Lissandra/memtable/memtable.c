@@ -10,7 +10,6 @@ void mt_insert(char *table,char* timestamp, char *key,char *value)
 	}
 	t_list *tableToInsert = mt_getTableToInsert(table);
 	mt_addNewInsert(tableToInsert,timestamp,key,value);
-	log_info(logger, "  Inserto en memtable");
 }
 
 //evalua si la tabla esta en la memtable
@@ -47,9 +46,7 @@ void mt_addNewInsert(t_list *tableToInsert, char *timestamp, char *key, char *va
 	pInsert->key = string_duplicate(key);
 	pInsert->timestamp = string_duplicate(timestamp);
 	pInsert->value = string_duplicate(value);
-//	strcpy(pInsert->key,key);
-//	strcpy(pInsert->timestamp,timestamp);
-//	strcpy(pInsert->value,value);
+
 	list_add(tableToInsert,pInsert);
 }
 

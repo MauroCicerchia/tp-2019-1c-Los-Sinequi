@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<stdbool.h>
 #include<string.h>
 #include<unistd.h>
 #include<semaphore.h>
@@ -7,6 +8,7 @@
 #include<commons/config.h>
 #include"commons/string.h"
 #include<readline/readline.h>
+#include<readline/history.h>
 //#include"sharedLib/query.h"
 //#include<sharedLib/consistency.h>
 #include"../insert/insert.h"

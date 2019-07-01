@@ -158,17 +158,14 @@ metadata *fs_getTableMetadata(char *table)
 	t_config *tableMetadataCfg;
 	tableMetadataCfg = load_metadataConfig(url);
 	if(tableMetadataCfg == NULL){
-		log_error(logger,"Error con el archivo de Metadata de tabla");
+		log_error(logger,"[DESCRIBE]: Error con el archivo de Metadata de tabla");
 		return NULL;
 	}
 
-	log_info(logger,"  Abro el archivo de metadata");
 
 	tableMetadata->consistency = getConsistency(tableMetadataCfg);
 	tableMetadata->ctime = getCTime(tableMetadataCfg);
 	tableMetadata->partitions = getPartitions(tableMetadataCfg);
-
-	log_info(logger,"  Guardo la metadata");
 
 	config_destroy(tableMetadataCfg);
 
@@ -190,23 +187,18 @@ t_config *load_metadataConfig(char *url)
 
 char *getConsistency(t_config *config)
 {
-	log_info(logger,"   Leo tipo de consistencia");
 
 	return string_duplicate(config_get_string_value(config,"CONS"));
 }
 
 char *getCTime(t_config *config)
 {
-	log_info(logger,"   Leo el tiempo de compactacion");
-
 	int ctime = config_get_int_value(config,"CTIME");
 	return string_itoa(ctime);
 }
 
 char *getPartitions(t_config *config)
 {
-	log_info(logger,"   Leo la cantidad de particiones");
-
 	int parts =config_get_int_value(config,"PARTS");
 	return string_itoa(parts);
 }

@@ -4,17 +4,21 @@ int qdrop(char *table) //agregar semaforo de drop para que nadie toque las tabla
 {
 	delayer();
 
+	log_info(logger,"[DROP]: Chequeando que la tabla exista...");
 	if(!fs_tableExists(table)){
-		log_error(logger,"La tabla que se intenta droppear no existe");
+		log_error(logger,"[DROP]: La tabla que se intenta droppear no existe");
 		return 0;
 	}
+	log_info(logger,"[DROP]: La tabla existe!");
 
 	activeTable *acTable = com_getActiveTable(table);
 
+	log_info(logger,"[DROP]: Inicia borrado...");
 	sem_wait(&acTable->MUTEX_DROP_TABLE);
-
+		log_info(logger,"[DROP]: Liberando bloques...");
 		freeBlocks(table);
 
+		log_info(logger,"[DROP]: Borrando directorios...");
 		deleteDirectoriesAndFiles(table);
 
 	sem_post(&acTable->MUTEX_DROP_TABLE);

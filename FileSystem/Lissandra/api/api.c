@@ -9,6 +9,7 @@ void *start_Api()
 
 	while(strcmp("", input)) {
 		processQuery(input);
+		add_history(input);
 		free(input);
 		input = readline("\n>");
 	}
@@ -20,7 +21,7 @@ void *start_Api()
 void processQuery(char *query)
 {
 	e_query queryType;
-	char log_msg[100];
+	char log_msg[200];
 	char *selectReturnValue;
 	char **args = parseQuery(query);
 	t_list *tables;
@@ -36,76 +37,62 @@ void processQuery(char *query)
 	switch(queryType) { //identificamos query y procedemos a su ejecucion
 
 		case QUERY_SELECT:
-			log_info(logger, "----------------------------------------");
-			log_info(logger, "Recibi un SELECT");
+			sprintf(log_msg, "[API]: Recibi un SELECT de %s, Key: %s",args[1],args[2]);
+			log_info(logger, log_msg);
 
 			selectReturnValue = qselect(args[1], args[2]);
 
 			if(selectReturnValue != NULL){
-			log_info(logger, ">>>>");
-			log_info(logger, selectReturnValue);
-			log_info(logger, ">>>>");
+			sprintf(log_msg,"[API]: El valor encontrado es: %s",selectReturnValue);
+			log_info(logger, log_msg);
 
 			free(selectReturnValue);
 			}
 
-			log_info(logger, "Fin SELECT");
-			log_info(logger, "----------------------------------------");
+			log_info(logger, "[API]: Fin SELECT");
 
 			free(args);
 			break;
 
 		case QUERY_INSERT:
-			log_info(logger, "----------------------------------------");
-			log_info(logger, "Recibi un INSERT");
+			sprintf(log_msg,"[API]: Recibi un INSERT: %s Key: %s, Value: %s",args[1],args[2],args[3]);
+			log_info(logger, log_msg);
 
 			if(args[4] == NULL) args[4] = string_from_format("%llu",getCurrentTime());
 
 			qinsert(args[1], args[2], args[3], args[4]);
 
-			log_info(logger, "Fin INSERT");
-			log_info(logger, "----------------------------------------");
-
+			log_info(logger,"[API]: Fin INSERT");
 //			free(args[1]); free(args[2]); free(args[3]); free(args[4]);
 			break;
 
 		case QUERY_CREATE:
-			log_info(logger, "----------------------------------------");
-			log_info(logger, "Recibi un CREATE");
-
+			sprintf(log_msg,"[API]: Recibi un CREATE de tabla: %s",args[1]);
+			log_info(logger,log_msg);
+			sprintf(log_msg,"Consistencia: %s, Particiones: %s, T. Compactacion: %s",args[2],args[3],args[5]);
+			log_info(logger,log_msg);
 
 			if(qcreate(args[1], args[2], args[3], args[4])){
-				log_info(logger, ">>>");
-				log_info(logger, "Tabla creada con exito");
-				log_info(logger, ">>>");
-			}else log_error(logger,"error en la creacion");
+				log_info(logger, "[API]: Tabla creada con exito");
+			}else log_error(logger,"[API]: Error en la creacion");
 
-			log_info(logger, "Fin CREATE");
-			log_info(logger, "----------------------------------------");
+			log_info(logger, "[API]: Fin CREATE");
 
 			free(args);
 			break;
 
 		case QUERY_DESCRIBE:
-			log_info(logger, "----------------------------------------");
-			log_info(logger, "Recibi un DESCRIBE");
 
 			if(args[1] == NULL){
+				log_info(logger,"[API]: Recibi un DESCRIBE global");
 				tables = fs_getAllTables();
 				for(int i = 0; i < list_size(tables); i++){
 					metadata *tableInfo = qdescribe(list_get(tables,i));
 
 					if(tableInfo != NULL){
-						log_info(logger, ">>>");
-						log_info(logger,"TABLA:");
-						log_info(logger,list_get(tables,i));
-						sprintf(log_msg,"Consistencia: %s",tableInfo->consistency);
+
+						sprintf(log_msg,"[API]: Tabla: %s -> Cons: %s, Parts: %s, T.Comp: %s",(char*)list_get(tables,i),tableInfo->consistency,tableInfo->partitions,tableInfo->ctime);
 						log_info(logger,log_msg);
-						sprintf(log_msg,"Particiones: %s",tableInfo->partitions);
-						log_info(logger,log_msg);
-						sprintf(log_msg,"Tiempo de compactacion: %s",tableInfo->ctime);
-						log_info(logger,log_msg);
-						log_info(logger, ">>>");
 
 						free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
 						free(tableInfo);
@@ -114,27 +101,24 @@ void processQuery(char *query)
 				}
 				list_clean_and_destroy_elements(tables, free);
 			}else{
+				sprintf(log_msg, "[API]: Recibi un DESCRIBE de: %s",args[1]);
+				log_info(logger, log_msg);
+
 				metadata *tableInfo = qdescribe(args[1]);
 
 				if(tableInfo != NULL){
-					log_info(logger, ">>>");
 					char *cons = string_duplicate(tableInfo->consistency);
 					char *parts = tableInfo->partitions; char *ctime = tableInfo->ctime;
-					sprintf(log_msg,"Consistencia: %s",cons);
+
+					sprintf(log_msg,"[API]: Consistencia: %s, Particiones: %s, T. Compactacion: %s",cons,parts,ctime);
 					log_info(logger,log_msg);
-					sprintf(log_msg,"Particiones: %s",parts);
-					log_info(logger,log_msg);
-					sprintf(log_msg,"Tiempo de compactacion: %s",ctime);
-					log_info(logger,log_msg);
-					log_info(logger, ">>>");
 
 					free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
 					free(tableInfo);
 					free(cons);
 				}
 			}
-			log_info(logger, "Fin DESCRIBE");
-			log_info(logger, "----------------------------------------");
+			log_info(logger, "[API]: Fin DESCRIBE");
 
 			free(args[1]);
 //			free(args);
@@ -142,13 +126,13 @@ void processQuery(char *query)
 			break;
 
 		case QUERY_DROP:
-			log_info(logger, "----------------------------------------");
-			log_info(logger, "Recibi un DROP");
+			sprintf(log_msg, "[API]: Recibi un DROP %s", args[1]);
+			log_info(logger,log_msg);
+
 
 			qdrop(args[1]);
 
-			log_info(logger, "Fin DROP");
-			log_info(logger, "----------------------------------------");
+			log_info(logger, "[API]: Fin DROP");
 
 			free(args[1]);
 			break;
