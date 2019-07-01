@@ -2,8 +2,9 @@
 
 void *threadCompact(char *tableName)
 {
+	char log_msg[100];
 	activeTable *table;
-	while(tableIsActive(tableName) && !exitFlag){
+	while(tableIsActive(tableName)){
 
 		table = com_getActiveTable(tableName);
 
@@ -12,13 +13,12 @@ void *threadCompact(char *tableName)
 			compact(table);
 		sem_post(&table->MUTEX_DROP_TABLE);
 
-		for(int i = 0; i < 4; i++){
-			sleep(table->ctime/4000);
-			if(exitFlag) break;
+			sleep(table->ctime/8000);
 		}
 
-	}
-
+	sprintf(log_msg,"[Compactador %s]: Tabla quitada de lista de tablas activas", tableName);
+	log_info(logger,log_msg);
+	log_info(logger,"Terminando hilo de compactador...");
 	free(tableName);
 	return NULL;
 }
@@ -26,6 +26,7 @@ void *threadCompact(char *tableName)
 
 void compact(activeTable *table)//agregar el semaforo para drop
 {
+	char log_msg[100];
 	char *tableUrl = makeTableUrl(table->name);
 
 	//conseguir todos los .tmp
@@ -33,9 +34,15 @@ void compact(activeTable *table)//agregar el semaforo para drop
 
 
 	if(list_size(tmps) == 0){
-		log_warning(logger,"No hay temporales para compactar");
+		sprintf(log_msg,"[Compactador %s]: No hay temporales para compactar", table->name);
+		log_warning(logger,log_msg);
 		return;
 	}
+
+	sprintf(log_msg,"[Compactador %s]: Hay temporales para compactar", table->name);
+	log_warning(logger,log_msg);
+	sprintf(log_msg,"[Compactador %s]: Compactando...", table->name);
+	log_warning(logger,log_msg);
 
 	//cambiar a .tmpc
 	t_list *tmpsC = com_changeTmpsExtension(tmps,tableUrl);
@@ -49,6 +56,9 @@ void compact(activeTable *table)//agregar el semaforo para drop
 
 	//borrar los .tmpc y libera los bloques
 	fs_cleanTmpsC(tableUrl);
+
+	sprintf(log_msg,"[Compactador %s]: Compactacion terminada", table->name);
+	log_warning(logger,log_msg);
 
 	free(tableUrl);
 }

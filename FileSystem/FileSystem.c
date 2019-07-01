@@ -110,19 +110,21 @@ void init_FileSystem()
 
 void kill_FileSystem()
 {
+	log_info(logger,"[Lissandra]: Terminando FS");
 	exitFlag = 1;
 	pthread_join(tDump,NULL);
-	log_info(logger, "----------------------------------------");
-	log_info(logger, "Dump de seguridad");
+	log_info(logger, "[Lissandra]: Iniciando DUMP de seguridad...");
 
 	sem_wait(&MUTEX_MEMTABLE);
 	dump(); //dump de cierre
 	sem_post(&MUTEX_MEMTABLE);
+	log_info(logger, "[Lissandra]: Dump dump terminado!");
 
-	log_info(logger, "----------------------------------------");
-
+	log_info(logger, "[Lissandra]: Destruyendo MEMTABLE...");
 	list_destroy(memtable); //mato memtable
+	log_info(logger, "[Lissandra]: Destruida con exito!");
 
+	log_info(logger, "[Lissandra]: Liberando lista de tablas activas...");
 	void free_activeTable(void *pivot){
 		free(((activeTable*)pivot)->name);
 		sem_destroy(&((activeTable*)pivot)->MUTEX_TABLE_PART);
@@ -130,8 +132,13 @@ void kill_FileSystem()
 	}
 
 	list_destroy_and_destroy_elements(sysTables, free_activeTable);
+	log_info(logger, "[Lissandra]: Liberada!");
 
+
+	log_info(logger, "[Lissandra]: Destruyendo Bitarray...");
 	ba_bitarrayDestroy(); //mato el bitarray
+	log_info(logger, "[Lissandra]: Destruido!");
+
 
 
 	sem_destroy(&MUTEX_MEMTABLE);//mato semaforos
@@ -139,8 +146,7 @@ void kill_FileSystem()
 	sem_destroy(&MUTEX_RETARDTIME);
 	sem_destroy(&MUTEX_BITARRAY);
 
-	log_info(logger, "Fin FileSystem");
-	log_info(logger, "----------------------------------------");
+	log_info(logger, "[Lissandra]: Termina FS.");
 
 	log_destroy(logger); //mato logger
 
@@ -150,17 +156,14 @@ void kill_FileSystem()
 
 void *threadConfigModify()
 {
-	log_info(logger, "----------------------------------------");
-	log_info(logger, "Inicia monitoreo de cambios en .config");
-	log_info(logger, "----------------------------------------");
+	log_info(logger, "[Monitor]: Inicia monitoreo de cambios en .config");
 	char *buff = NULL;
 	while(1){
 		buff = malloc(200);
 		read(fd,buff,200);
 		free(buff);
-		log_info(logger, "----------------------------------------");
-		log_info(logger, "Se podrujo un cambio en el .config");
-		log_info(logger, "Actualizando valores...");
+		log_info(logger, "[Monitor]: Se podrujo un cambio en .config");
+		log_info(logger, "[Monitor]:Actualizando valores...");
 
 		load_config();
 
@@ -174,8 +177,7 @@ void *threadConfigModify()
 
 		config_destroy(config);
 
-		log_info(logger, "Valores actualizados y disponibles para su uso");
-		log_info(logger, "----------------------------------------");
+		log_info(logger, "[Monitor]: Valores actualizados");
 	}
 	return NULL;
 }
@@ -194,13 +196,11 @@ void *threadDump()
 		}
 
 
-		log_info(logger, "----------------------------------------");
-		log_info(logger, "Iniciando Dump");
+		log_info(logger, "[DUMP]: Iniciando Dump");
 		sem_wait(&MUTEX_MEMTABLE);
 		dump();
 		sem_post(&MUTEX_MEMTABLE);
-		log_info(logger, "Fin Dump");
-		log_info(logger, "----------------------------------------");
+		log_info(logger, "[DUMP]: Fin Dump");
 	}
 	return NULL;
 }
