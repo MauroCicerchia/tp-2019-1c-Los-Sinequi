@@ -46,7 +46,7 @@ void kill_memory(){
 
 void iniciar_logger()
 {
-	logger = log_create("../Memory.log", "Memory", 0, LOG_LEVEL_INFO);
+	logger = log_create("../Memory.log", "Memory", 1, LOG_LEVEL_INFO);
 	log_info(logger,"--INICIANDO MEMORIA--");
 }
 
@@ -63,8 +63,7 @@ int get_frame_size(){
 	int frameSize=0;
 	frameSize += sizeof(uint16_t); //key
 	frameSize += sizeof(int); //timestamp
-	//Preguntar tamanio del value a luzquito
-	frameSize += get_value_size();
+	frameSize += valueSize;
 	return frameSize;
 }
 
@@ -90,6 +89,8 @@ int total_frames(){
 }
 
 void THEGREATMALLOC(){
+	get_value_size();
+
 	int memSize = config_get_int_value(config, "TAM_MEM");
 
 	main_memory = malloc(memSize); //EL GRAN MALLOC
@@ -122,7 +123,7 @@ void *listen_client() {
 		switch(rc) {
 			case REQUEST_QUERY: process_query_from_client(cliSocket); break;
 			case REQUEST_GOSSIP: break;
-			case REQUEST_JOURNAL: journalM(); break;
+			case REQUEST_JOURNAL: journalM(); send_res_code(cliSocket, RESPONSE_SUCCESS); break;
 		}
 	}
 }
@@ -167,28 +168,21 @@ void process_query_from_client(int client) {
 			consType = recv_str(client);
 			part = recv_str(client);
 			compTime = recv_str(client);
-			printf("%s\n",table);
-			printf("%s\n",consType);
-			printf("%s\n",part);
-			printf("%s\n",compTime);
 			status = createM(table, consType, part, compTime);
 
 			send_res_code(client, RESPONSE_SUCCESS);
 			break;
-			//puede romper giles
+			//TODO puede romper giles
 
 		case QUERY_DESCRIBE:
 
-			size = recv_int(client);
-			if(size != 0) {
-				table = recv_str(client);
-//				table = (char*)malloc(size);
-//				recv(client, table, size, 0);
+			table = recv_str(client);
+			if(strcmp(table, "") != 0) {
 				metadata_list = describeM(table);
 				if(metadata_list != NULL) {
 					send_res_code(client, RESPONSE_SUCCESS);
-//					send_int(client, 1);
 					aMD = list_get(metadata_list,0);
+					send_str(client,aMD->tableName);
 					send_str(client,aMD->consType);
 					send_str(client,aMD->partNum);
 					send_str(client,aMD->compTime);
@@ -197,24 +191,31 @@ void process_query_from_client(int client) {
 					send_res_code(client, RESPONSE_ERROR);
 				}
 			}else {
-//				t_list *tl = describeM();
-//				int tCount = list_size(tl);
-//				if(tCount != 0) {
+				t_list *metadata_list = describeM(NULL);
+				int tCount = list_size(metadata_list);
+				if(tCount != 0) {
 					send_res_code(client, RESPONSE_SUCCESS);
-//					send_int(client, tCount);
-//					void sendTable(void *t) {
-//						send_table(client, (table_t*)t);
-//					}
-//					list_iterate(tl, sendTable);
-//				}else {
+					send_int(client, tCount);
+					for(int i = 0; i<tCount; i++) {
+						aMD = list_get(metadata_list,i);
+						send_str(client,aMD->tableName);
+						send_str(client,aMD->consType);
+						send_str(client,aMD->partNum);
+						send_str(client,aMD->compTime);
+					}
+					list_destroy_and_destroy_elements(metadata_list,metadata_destroy);
+				}else {
 					send_res_code(client, RESPONSE_ERROR);
-//				}
+				}
 			}
 			break;
 		case QUERY_DROP:
 			table = recv_str(client);
-			int status = dropM(table);
-			send_res_code(client, RESPONSE_SUCCESS);
+			status = dropM(table);
+			if(status == 0)
+				send_res_code(client, RESPONSE_SUCCESS);
+			else
+				send_res_code(client, RESPONSE_ERROR);
 			break;
 	}
 }
@@ -237,11 +238,9 @@ e_query processQuery(char *query, t_log *logger) {
 	char log_msg[100];
 	e_query queryType;
 
-	char **args = parseQuery(query); //guardas en el vecor args la query
+	t_list *args = parseQuery(query); //guardas en el vecor args la query
 
-	queryType = getQueryType(args[0]); //guardamos el tipo de query por ej: SELECT
-
-	int invalidQuery = validateQuerySyntax(args, queryType); //validamos que sea correcta y sino lanzamos exception
+	int invalidQuery = validateQuerySyntax(args); //validamos que sea correcta y sino lanzamos exception
 	if (!invalidQuery)
 		return queryError();
 
@@ -249,7 +248,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_SELECT:
 
-			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]);
+			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]); //TODO Cambiar todos los args[x] por list_get(args, x)
 			log_info(logger,log_msg);
 
 //			sendMessage(server,query);
@@ -276,20 +275,15 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_CREATE:
 
-
-			createM(args[1], args[2], args[3], args[4]);
-
 			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
 			log_info(logger,log_msg);
-			createM(args[1], args[2], atoi(args[3]), atoi(args[4]));
+			createM(args[1], args[2], args[3], args[4]);
 			break;
 
 		case QUERY_DESCRIBE:
-
-			describeM(args[1]);
-
 			sprintf(log_msg, "Recibi un DESCRIBE %s", args[1]);
 			log_info(logger,log_msg);
+			describeM(args[1]);
 
 			break;
 
@@ -352,7 +346,7 @@ void insert_in_frame(uint16_t key, int timestamp, char* value, int frame_num){
 	base += sizeof(uint16_t);
 	memcpy(base, &timestamp, sizeof(int));
 	base += sizeof(int);
-	memcpy(base, value, get_value_size());
+	memcpy(base, value, valueSize);
 
 	bitarray_set_bit(bitmap,frame_num);
 
@@ -363,7 +357,7 @@ void modify_in_frame(char* value, int frame_num){
 	int timestamp = get_timestamp();
 	memcpy(base, &timestamp, sizeof(int));
 	base += sizeof(int);
-	memcpy(base, value, get_value_size());
+	memcpy(base, value, valueSize);
 
 }
 
@@ -416,6 +410,7 @@ void load_page_to_segment(int key, segment* segmentFound, char* value, int modif
 void* execute_journal(){
 	while(true){
 		sleep(config_get_int_value(config, "RETARDO_JOURNAL")/1000);
+		log_info(logger, "Ejecutando Journal automatico.");
 		journalM();
 	}
 }
@@ -458,7 +453,7 @@ int insertM(char* segmentID, int key, char* value){
 				return 0;
 			}
 			else{
-				log_info(logger,"No se encontro la pagina con el key buscado,creando pagina.");
+				log_warning(logger,"No se encontro la pagina con el key buscado,creando pagina.");
 				load_page_to_segment(key, segmentFound, value, 1);
 				return 0 ;
 			}
@@ -503,7 +498,7 @@ char* selectM(char* segmentID, int key){
 			log_info(logger,"Se encontro la pagina con el key buscado, retornando el valor.");
 			return get_value_from_memory(pageFound->frame_num);
 		}else{
-			log_info(logger,"No se encontro la pagina con el key buscado, consultando a FS.");
+			log_warning(logger,"No se encontro la pagina con el key buscado, consultando a FS.");
 			char* value = send_select_to_FS(segmentID,key,config,logger);
 			if(value!=NULL){
 				if(frame_available_in_mem()){
@@ -526,7 +521,7 @@ char* selectM(char* segmentID, int key){
 		}
 	}
 	else{
-		log_error(logger,"No existe la tabla ingresada en memoria");
+		log_warning(logger,"No existe la tabla ingresada en memoria");
 		char* value = send_select_to_FS(segmentID,key,config,logger);
 		if(value!=NULL){
 			segment* newSegment = segment_init();
@@ -567,13 +562,6 @@ t_list* describeM(char *table){
 	return md;
 }
 
-*/
-void describeM(char *segment_id){
-	send_describe_to_FS(segment_id, config, logger);
-
-//	return send_
-}
-
 int dropM(char* segment_id){
 
 	segment* segmentFound = search_segment(segment_id);
@@ -586,7 +574,6 @@ int dropM(char* segment_id){
 		remove_delete_segment(segmentFound);
 		sem_post(&MUTEX_MEM);
 		log_info(logger,"Se elimino el segmento y se libero la memoria");
-		//Avisar FS
 	}else{
 		log_info(logger,"No se encontro la tabla a borrar.");
 		return -1;
@@ -639,14 +626,14 @@ void execute_replacement(int key, char* value, segment* segment_to_use){
 
 }
 
-int get_value_size(){
-//	int socket = connect_to_FS(config, logger);
-//	send_req_code(socket,REQUEST_VALUESIZE);
-//	int x = recv_int(socket);
-//	close(socket);
-	return 255;
-	//	return 64*sizeof(char);
+void get_value_size(){
+	int socket = connect_to_FS(config, logger);
+	send_req_code(socket,REQUEST_VALUESIZE);
+	valueSize = recv_int(socket);
+	close(socket);
+	log_info(logger, "Value Size recibido de FS.");
 }
+
 int get_timestamp(){
 	return (int)time(NULL);
 }

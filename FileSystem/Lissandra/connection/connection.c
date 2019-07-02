@@ -8,7 +8,6 @@ void *listen_client()
 		exit(1);
 	}
 	while(1) {
-//		printf("HOLA");
 		int cliSocket = connectToClient(socket);
 
 		if(cliSocket == -1) {
@@ -16,14 +15,15 @@ void *listen_client()
 			exit(1);
 		}
 
-
 		e_request_code rc = recv_req_code(cliSocket);
-//		printf("%d",rc);
-//		printf("HOLA");
 
 		switch(rc){
 			case REQUEST_VALUESIZE: send_int(cliSocket,valueSize); break;
 			case REQUEST_QUERY: process_query_from_client(cliSocket); break;
+
+			//imposible
+			case REQUEST_GOSSIP: break;
+			case REQUEST_JOURNAL: break;
 		}
 		sleep(1);
 //		close(cliSocket);
@@ -37,7 +37,7 @@ void process_query_from_client(int client)
 	recv(client, &opCode, sizeof(opCode), 0);
 
 	char *table, *value;
-	int key, part, compTime, status,timeStamp;
+	int key, status,timeStamp;
 	char *consType;
 	char *sKey, *sTimeStamp, *sPart, *sCTime;
 	metadata *tableMetadata;
@@ -86,17 +86,6 @@ void process_query_from_client(int client)
 			consType = recv_str(client);
 			sPart = recv_str(client);
 			sCTime = recv_str(client);
-
-//			sPart = string_itoa(part);
-//			sCTime = string_itoa(compTime);
-
-			printf("%s\n",table);
-			printf("%s\n",consType);
-//			printf("%d\n",part);
-//			printf("%d\n",compTime);
-			printf("%s\n",sPart);
-			printf("%s\n",sCTime);
-//			status = 1;
 			status = qcreate(table, consType, sPart, sCTime);
 			if(status)
 				send_res_code(client, RESPONSE_SUCCESS);
@@ -153,7 +142,6 @@ void process_query_from_client(int client)
 			table = recv_str(client);
 			printf("%s",table);
 			status = qdrop(table);
-			status =1;
 			if(status)
 				send_res_code(client, RESPONSE_SUCCESS);
 			else

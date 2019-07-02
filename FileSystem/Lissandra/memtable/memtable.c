@@ -86,7 +86,17 @@ void mt_getListofInserts(char *table, t_list *list)
 
 	sem_wait(&MUTEX_MEMTABLE); //bloqueo memtable mientras hace la asignacion
 		for(int i = 0; i < list_size(mtinserts); i++){
-			list_add(list,string_duplicate(list_get(mtinserts,i)));
+			Iinsert *structInsert = list_get(mtinserts,i);
+			char *pivot = string_new();
+			string_append(&pivot,structInsert->timestamp);
+			string_append(&pivot, ";");
+			string_append(&pivot,structInsert->key);
+			string_append(&pivot,";");
+			string_append(&pivot,structInsert->value);
+			string_append(&pivot,"\n");
+
+			list_add(list,string_duplicate(pivot));
+			free(pivot);
 		}
 	sem_post(&MUTEX_MEMTABLE);
 }

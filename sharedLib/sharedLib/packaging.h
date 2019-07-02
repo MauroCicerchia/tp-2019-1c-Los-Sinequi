@@ -1,6 +1,7 @@
 #include"query.h"
 #include<stdio.h>
 #include<stdlib.h>
+#include<sys/socket.h>
 
 #ifndef PACKAGING_H
 #define PACKAGING_H
@@ -11,7 +12,7 @@ typedef struct{
 }t_buffer;
 
 typedef struct{
-	e_query op_code;
+	e_query queryType;
 	t_buffer *buffer;
 
 }t_package;

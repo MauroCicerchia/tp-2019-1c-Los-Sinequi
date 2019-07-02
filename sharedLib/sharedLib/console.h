@@ -3,12 +3,14 @@
 #include<string.h>
 #include<stdbool.h>
 #include<commons/log.h>
+#include<commons/collections/list.h>
 
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
-char **validate_query_and_return_args(char*);
+t_list *validate_query_and_return_args(char*);
 int sizeofArray(char**);
 void start_API(t_log *);
+void string_destroy(void*);
 
 #endif
