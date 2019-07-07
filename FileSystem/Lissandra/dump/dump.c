@@ -6,8 +6,8 @@ void dump(){ //averiguar por semaforos
 	Itable *pTable; Iinsert *pInsert;
 	int size = list_size(memtable);
 	if(size != 0){
-		log_info(logger,"  Hay informacion para dumpear");
-		log_info(logger,"  Dumpeando...");
+		log_info(logger,"[Dump]: Hay informacion para dumpear");
+		log_info(logger,"[Dump]: Dumpeando...");
 		for(int i=0; i<size; i++){ //recorro todas las tablas
 			toDump = string_new();
 			pTable = (Itable*)list_get(memtable,i);
@@ -26,10 +26,10 @@ void dump(){ //averiguar por semaforos
 			free(toDump);
 		}
 		mt_clean();
-		log_info(logger,"  Dump exitoso");
+		log_info(logger,"[Dump]: Dump exitoso");
 	}
 	else{
-		log_warning(logger,"No hay nada que dumpear");
+		log_warning(logger,"[Dump]: No hay nada que dumpear");
 	}
 	tmpNo++;
 }

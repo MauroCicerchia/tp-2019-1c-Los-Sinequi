@@ -10,6 +10,8 @@
 #include"../../Fs/fs.h"
 #include"../dump/dump.h"
 
+#include"../delayer/delayer.h"
+
 extern t_log *logger;
 extern sem_t MUTEX_MEMTABLE;
 extern int valueSize;

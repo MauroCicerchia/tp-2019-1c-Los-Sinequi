@@ -12,6 +12,7 @@
 #include"../compactador/activeTable.h"
 
 extern t_log *logger;
+extern int exitFlag;
 
 #ifndef COMPACTADOR_H
 #define COMPACTADOR_H

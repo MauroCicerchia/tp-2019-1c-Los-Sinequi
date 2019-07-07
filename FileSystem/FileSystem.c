@@ -9,7 +9,7 @@ char *absoluto, *port, *ip;
 
 t_log *logger;
 
-int fd,wd,dumpTime,retardTime,tmpNo,valueSize;
+int fd,wd,dumpTime,retardTime,tmpNo,valueSize, exitFlag;
 
 pthread_t tApi,tDump,tListenCfg, tLisentClient;
 
@@ -61,9 +61,12 @@ void init_FileSystem()
 	logger = NULL;
 	iniciar_logger(&logger); //arranco logger
 
+	log_info(logger,"[Lissandra]: Iniciando Lissandra FS");
+	log_info(logger,"[Lissandra]: Creando estructuras...");
+
 	memtable = list_create(); //creo memtable
 	sysTables = list_create();
-
+	log_info(logger,"[Lissandra]: Leyendo variables...");
 	fd = inotify_init(); //arranco monitoreo en el archivo de config
 	wd = inotify_add_watch(fd,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/Config",IN_MODIFY);
 
@@ -80,7 +83,7 @@ void init_FileSystem()
 	metadataBlocks = get_blocks_cuantityy(metadata);
 	metadataSizeBlocks = get_size_of_blocks(metadata);
 	config_destroy(metadata); //leo metadata del fs
-
+	log_info(logger,"[Lissandra]: Seteando hilos...");
 	tmpNo = -1;
 	fs_setActualTmps(); //me fijo cuantos temporales hay al iniciar el sistema
 	tmpNo++; // =0 no hay tmps =6 de 0-5 tmps
@@ -92,6 +95,8 @@ void init_FileSystem()
 		b_create();
 	}
 
+	ba_create(); //levanto el bitarray
+
 	fs_setActiveTables(); //cargo a memoria todas las tablas activas en "systables"
 
 	activeTable *x;
@@ -100,52 +105,65 @@ void init_FileSystem()
 		threadForCompact(string_duplicate(x->name));
 	}
 
-	ba_create(); //levanto el bitarray
-
+	log_info(logger,"[Lissandra]: Lissandra FS Listo!");
 //	compact(list_get(sysTables,0));
 }
 
 
 void kill_FileSystem()
 {
-	log_info(logger, "----------------------------------------");
-	log_info(logger, "Dump de seguridad");
+	log_info(logger,"[Lissandra]: Terminando FS");
+	log_info(logger, "[Lissandra]: Iniciando DUMP de seguridad...");
 
 	sem_wait(&MUTEX_MEMTABLE);
 	dump(); //dump de cierre
 	sem_post(&MUTEX_MEMTABLE);
+	log_info(logger, "[Lissandra]: Dump dump terminado!");
 
-	log_info(logger, "----------------------------------------");
-
+	log_info(logger, "[Lissandra]: Destruyendo MEMTABLE...");
 	list_destroy(memtable); //mato memtable
+	log_info(logger, "[Lissandra]: Destruida con exito!");
 
+	log_info(logger, "[Lissandra]: Liberando lista de tablas activas...");
+	void free_activeTable(void *pivot){
+		free(((activeTable*)pivot)->name);
+		sem_destroy(&((activeTable*)pivot)->MUTEX_TABLE_PART);
+		sem_destroy(&((activeTable*)pivot)->MUTEX_DROP_TABLE);
+	}
+
+	list_destroy_and_destroy_elements(sysTables, free_activeTable);
+	log_info(logger, "[Lissandra]: Liberada!");
+
+
+	log_info(logger, "[Lissandra]: Destruyendo Bitarray...");
 	ba_bitarrayDestroy(); //mato el bitarray
+	log_info(logger, "[Lissandra]: Destruido!");
+
+
 
 	sem_destroy(&MUTEX_MEMTABLE);//mato semaforos
 	sem_destroy(&MUTEX_DUMPTIME);
 	sem_destroy(&MUTEX_RETARDTIME);
 	sem_destroy(&MUTEX_BITARRAY);
 
-	log_info(logger, "Fin FileSystem");
-	log_info(logger, "----------------------------------------");
+	log_info(logger, "[Lissandra]: Termina FS.");
 
 	log_destroy(logger); //mato logger
+
+	free(absoluto);
 	//chau fs :)
 }
 
 void *threadConfigModify()
 {
-	log_info(logger, "----------------------------------------");
-	log_info(logger, "Inicia monitoreo de cambios en .config");
-	log_info(logger, "----------------------------------------");
+	log_info(logger, "[Monitor]: Inicia monitoreo de cambios en .config");
 	char *buff = NULL;
 	while(1){
 		buff = malloc(200);
 		read(fd,buff,200);
 		free(buff);
-		log_info(logger, "----------------------------------------");
-		log_info(logger, "Se podrujo un cambio en el .config");
-		log_info(logger, "Actualizando valores...");
+		log_info(logger, "[Monitor]: Se podrujo un cambio en .config");
+		log_info(logger, "[Monitor]:Actualizando valores...");
 
 		load_config();
 
@@ -159,8 +177,7 @@ void *threadConfigModify()
 
 		config_destroy(config);
 
-		log_info(logger, "Valores actualizados y disponibles para su uso");
-		log_info(logger, "----------------------------------------");
+		log_info(logger, "[Monitor]: Valores actualizados");
 	}
 	return NULL;
 }
@@ -168,19 +185,17 @@ void *threadConfigModify()
 void *threadDump()
 {
 	int dt;
-	while(1){
 		sem_wait(&MUTEX_DUMPTIME);
 		dt = dumpTime;
 		sem_post(&MUTEX_DUMPTIME);
-		sleep(dt/1000);
-		log_info(logger, "----------------------------------------");
-		log_info(logger, "Iniciando Dump");
+
+		sleep(dt);
+
+		log_info(logger, "[DUMP]: Iniciando Dump");
 		sem_wait(&MUTEX_MEMTABLE);
 		dump();
 		sem_post(&MUTEX_MEMTABLE);
-		log_info(logger, "Fin Dump");
-		log_info(logger, "----------------------------------------");
-	}
+		log_info(logger, "[DUMP]: Fin Dump");
 	return NULL;
 }
 
@@ -228,6 +243,7 @@ t_config *load_lfsMetadata()
 {
 	char *url = fs_getlfsMetadataUrl();
 	t_config *metadata = config_create(url);
+	free(url);
 		if(metadata == NULL){
 			log_error(logger,"No se pudo abrir el archivo de Metadata del FS");
 			return NULL;

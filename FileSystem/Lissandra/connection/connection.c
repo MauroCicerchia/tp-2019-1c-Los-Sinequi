@@ -2,19 +2,22 @@
 
 void *listen_client()
 {
+	log_error(logger,"[RX/TX]: Iniciando servidor...");
 	int socket = createServer(ip,port);
 	if(socket == -1) {
-		log_error(logger,"No se pudo crear el servidor");
+		log_error(logger,"[RX/TX]: No se pudo crear el servidor");
 		exit(1);
 	}
+	log_error(logger,"[RX/TX]: Servidor creado");
 	while(1) {
 		int cliSocket = connectToClient(socket);
 
 		if(cliSocket == -1) {
-			printf("No se pudo conectar con el cliente\n");
+			printf("[RX/TX]: No se pudo conectar con el cliente\n");
 			exit(1);
 		}
 
+		log_error(logger,"[RX/TX]: Recibo request de cliente");
 		e_request_code rc = recv_req_code(cliSocket);
 
 		switch(rc){
@@ -25,7 +28,8 @@ void *listen_client()
 			case REQUEST_GOSSIP: break;
 			case REQUEST_JOURNAL: break;
 		}
-		sleep(1);
+		log_error(logger,"[RX/TX]: Request enviada");
+
 //		close(cliSocket);
 	}
 }
@@ -118,6 +122,7 @@ void process_query_from_client(int client)
 					}
 					else send_res_code(client, RESPONSE_ERROR);
 				}
+				list_clean_and_destroy_elements(tables, free);
 			}
 			else { //una sola tabla
 				tableMetadata = qdescribe(table);
