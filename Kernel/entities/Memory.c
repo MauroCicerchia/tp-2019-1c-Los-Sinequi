@@ -13,7 +13,8 @@ t_memory *memory_create(int mid, char *ip, char *port) {
 }
 
 void memory_destroy(void *memory) {
-//	free(((t_memory*) memory)->ip);
+	free(((t_memory*) memory)->ip);
+	free(((t_memory*) memory)->port);
 	free(memory);
 }
 

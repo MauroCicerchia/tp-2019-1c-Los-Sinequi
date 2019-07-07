@@ -42,6 +42,7 @@ int main(int argc, char **argv)
 	pthread_detach(tLisentClient);
 
 	pthread_create(&tDump,NULL,threadDump,NULL);
+	pthread_detach(tDump);
 
 	start_Api();
 
@@ -57,14 +58,15 @@ void init_FileSystem()
 	sem_init(&MUTEX_RETARDTIME,1,1);
 	sem_init(&MUTEX_BITARRAY,1,1);
 
-	exitFlag = 0;
-
 	logger = NULL;
 	iniciar_logger(&logger); //arranco logger
 
+	log_info(logger,"[Lissandra]: Iniciando Lissandra FS");
+	log_info(logger,"[Lissandra]: Creando estructuras...");
+
 	memtable = list_create(); //creo memtable
 	sysTables = list_create();
-
+	log_info(logger,"[Lissandra]: Leyendo variables...");
 	fd = inotify_init(); //arranco monitoreo en el archivo de config
 	wd = inotify_add_watch(fd,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/Config",IN_MODIFY);
 
@@ -81,7 +83,7 @@ void init_FileSystem()
 	metadataBlocks = get_blocks_cuantityy(metadata);
 	metadataSizeBlocks = get_size_of_blocks(metadata);
 	config_destroy(metadata); //leo metadata del fs
-
+	log_info(logger,"[Lissandra]: Seteando hilos...");
 	tmpNo = -1;
 	fs_setActualTmps(); //me fijo cuantos temporales hay al iniciar el sistema
 	tmpNo++; // =0 no hay tmps =6 de 0-5 tmps
@@ -103,16 +105,14 @@ void init_FileSystem()
 		threadForCompact(string_duplicate(x->name));
 	}
 
-
-	compact(list_get(sysTables,0));
+	log_info(logger,"[Lissandra]: Lissandra FS Listo!");
+//	compact(list_get(sysTables,0));
 }
 
 
 void kill_FileSystem()
 {
 	log_info(logger,"[Lissandra]: Terminando FS");
-	exitFlag = 1;
-	pthread_join(tDump,NULL);
 	log_info(logger, "[Lissandra]: Iniciando DUMP de seguridad...");
 
 	sem_wait(&MUTEX_MEMTABLE);
@@ -185,23 +185,17 @@ void *threadConfigModify()
 void *threadDump()
 {
 	int dt;
-	while(!exitFlag){
 		sem_wait(&MUTEX_DUMPTIME);
 		dt = dumpTime;
 		sem_post(&MUTEX_DUMPTIME);
 
-		for(int i = 0; i < 4; i++){
-			sleep(dt/4000);
-			if(exitFlag) break;
-		}
-
+		sleep(dt);
 
 		log_info(logger, "[DUMP]: Iniciando Dump");
 		sem_wait(&MUTEX_MEMTABLE);
 		dump();
 		sem_post(&MUTEX_MEMTABLE);
 		log_info(logger, "[DUMP]: Fin Dump");
-	}
 	return NULL;
 }
 

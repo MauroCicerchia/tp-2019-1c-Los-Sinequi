@@ -1,14 +1,8 @@
 #include"QueryExec.h"
 
-void qSelect(char** args, t_log *logger) {
-
-//	Convertir args en tipo valido
-	e_query queryType = getQueryType(args[0]);
-	char *table = args[1];
-	uint16_t key = strtol(args[2], NULL, 10);
-
+void qSelect(char *table, uint16_t key, t_log *logger) {
 //	Paquetizar
-	t_package *p = create_package(queryType);
+	t_package *p = create_package(QUERY_SELECT);
 	add_to_package(p, (void*)table, sizeof(char) * (strlen(table) + 1));
 	add_to_package(p, (void*)&key, sizeof(key));
 
@@ -23,19 +17,18 @@ void qSelect(char** args, t_log *logger) {
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
 
-	char msg[50];
-	sprintf(msg, " >> Enviando select a memoria %d.", mem->mid);
-	log_info(logger, msg);
+	log_info(logger, " >> Enviando select a memoria %d.", mem->mid);
 
 	send_req_code(memSocket, REQUEST_QUERY);
 	send_package(p, memSocket);
+	delete_package(p);
 
 	e_response_code r = recv_res_code(memSocket);
 
 	if(r == RESPONSE_SUCCESS) {
 		char *value = recv_str(memSocket);
 
-		output_select(args, value);
+		output_select(table, key, value);
 	} else {
 //		notificar error
 		log_error(logger, " >> Error al realizar select en memoria.");
@@ -47,15 +40,9 @@ void qSelect(char** args, t_log *logger) {
 	return;
 }
 
-void qInsert(char** args, t_log *logger) {
-//	Convertir args en tipo valido
-	e_query queryType = getQueryType(args[0]);
-	char *table = args[1];
-	uint16_t key = strtol(args[2], NULL, 10);
-	char *value = args[3];
-
+void qInsert(char* table, uint16_t key, char *value, t_log *logger) {
 //	Paquetizar
-	t_package *p = create_package(queryType);
+	t_package *p = create_package(QUERY_INSERT);
 	add_to_package(p, (void*)table, sizeof(char) * (strlen(table) + 1));
 	add_to_package(p, (void*)&key, sizeof(key));
 	add_to_package(p, (void*)value, sizeof(char) * (strlen(value) + 1));
@@ -71,17 +58,16 @@ void qInsert(char** args, t_log *logger) {
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
 
-	char msg[50];
-	sprintf(msg, " >> Enviando insert a memoria %d.", mem->mid);
-	log_info(logger, msg);
+	log_info(logger, " >> Enviando insert a memoria %d.", mem->mid);
 
 	send_req_code(memSocket, REQUEST_QUERY);
 	send_package(p, memSocket);
+	delete_package(p);
 
 	e_response_code r = recv_res_code(memSocket);
 
 	if(r == RESPONSE_SUCCESS) {
-
+		log_info(logger, " >> Insert Realizado correctamente en memoria.");
 	} else {
 		log_error(logger, " >> Error al realizar insert en memoria.");
 	}
@@ -92,16 +78,9 @@ void qInsert(char** args, t_log *logger) {
 	return;
 }
 
-void qCreate(char** args, t_log *logger) {
-//	Convertir args en tipo valido
-	e_query queryType = getQueryType(args[0]);
-	char *table = args[1];
-	char *consType = args[2];
-	char *part = args[3];
-	char *compTime = args[4];
-
+void qCreate(char *table, char *consType, char *part, char *compTime, t_log *logger) {
 //	Paquetizar
-	t_package *p = create_package(queryType);
+	t_package *p = create_package(QUERY_CREATE);
 	add_to_package(p, (void*)table, sizeof(char) * strlen(table) + 1);
 	add_to_package(p, (void*)consType, sizeof(char) * strlen(consType) + 1);
 	add_to_package(p, (void*)part, sizeof(char) * strlen(part) + 1);
@@ -115,11 +94,12 @@ void qCreate(char** args, t_log *logger) {
 
 	send_req_code(memSocket, REQUEST_QUERY);
 	send_package(p, memSocket);
+	delete_package(p);
 
 	e_response_code r = recv_res_code(memSocket);
 
 	if(r == RESPONSE_SUCCESS) {
-		add_table(table_create(string_duplicate(table), getConsistencyType(consType), strtol(part, NULL, 10), strtol(compTime, NULL, 10)));
+		add_table(table_create(table, getConsistencyType(consType), strtol(part, NULL, 10), strtol(compTime, NULL, 10)));
 		log_info(logger, " >> Tabla nueva agregada.");
 	} else {
 		log_error(logger, " >> Error al realizar create en memoria.");
@@ -128,11 +108,7 @@ void qCreate(char** args, t_log *logger) {
 	return;
 }
 
-void qDescribe(char** args, t_log *logger) {
-//	Convertir args en tipo valido
-	e_query queryType = getQueryType(args[0]);
-	char *table = args[1];
-
+void qDescribe(char* table, t_log *logger) {
 //	obtener memoria segun criterio
 	t_memory *mem = get_any_memory();
 
@@ -141,11 +117,12 @@ void qDescribe(char** args, t_log *logger) {
 
 	if(table != NULL) {
 //		Paquetizar
-		t_package *p = create_package(queryType);
+		t_package *p = create_package(QUERY_DESCRIBE);
 		add_to_package(p, (void*)table, sizeof(char) * strlen(table) + 1);
 
 		send_req_code(memSocket, REQUEST_QUERY);
 		send_package(p, memSocket);
+		delete_package(p);
 
 		e_response_code r = recv_res_code(memSocket);
 
@@ -188,6 +165,7 @@ void qDescribe(char** args, t_log *logger) {
 				free(sCTime);
 				update_table(tableName, consType, part, compTime);
 				output_describe(tableName, consType, part, compTime);
+				free(tableName);
 			}
 			log_info(logger, " >> Metadata de todas las tablas actualizada.");
 		} else {
@@ -198,13 +176,9 @@ void qDescribe(char** args, t_log *logger) {
 	return;
 }
 
-void qDrop(char** args, t_log *logger) {
-//	Convertir args en tipo valido
-	e_query queryType = getQueryType(args[0]);
-	char *table = args[1];
-
+void qDrop(char *table, t_log *logger) {
 //	Paquetizar
-	t_package *p = create_package(queryType);
+	t_package *p = create_package(QUERY_DROP);
 	add_to_package(p, (void*)table, sizeof(char) * strlen(table) + 1);
 
 //	obtener memoria segun criterio
@@ -221,6 +195,7 @@ void qDrop(char** args, t_log *logger) {
 
 	send_req_code(memSocket, REQUEST_QUERY);
 	send_package(p, memSocket);
+	delete_package(p);
 
 	e_response_code r = recv_res_code(memSocket);
 
@@ -240,36 +215,35 @@ void qJournal(t_memory *mem, t_log *logger) {
 
 	e_response_code r = recv_res_code(memSocket);
 
-	char msg[50];
 	if(r == RESPONSE_SUCCESS) {
-		sprintf(msg, " >> Journal enviado a memoria %d.", mem->mid);
-		log_info(logger, msg);
+		log_info(logger, " >> Journal enviado a memoria %d.", mem->mid);
 	} else {
-		sprintf(msg, " >> Error al realizar journal en memoria %d.", mem->mid);
-		log_error(logger, msg);
+		log_info(logger, " >> Error al realizar journal en memoria %d.", mem->mid);
 	}
 	close(memSocket);
 	return;
 }
 
-void output_select(char** args, char* value) {
-	FILE* output = txt_open_for_append("../output.txt");
-	txt_write_in_file(output, "SELECT ");
-	string_trim(&args[1]);
-	string_trim(&args[2]);
+void output_select(char *table, uint16_t key, char* value) {
+	char *sKey = string_itoa(key);
+	string_trim(&table);
+	string_trim(&key);
 	string_trim(&value);
-	txt_write_in_file(output, args[1]);
+	FILE* output = txt_open_for_append("../select_output.txt");
+	txt_write_in_file(output, "SELECT ");
+	txt_write_in_file(output, table);
 	txt_write_in_file(output, " ");
-	txt_write_in_file(output, args[2]);
+	txt_write_in_file(output, key);
 	txt_write_in_file(output, " ::\n	");
 	txt_write_in_file(output, value);
 	txt_write_in_file(output, "\n");
 	txt_close_file(output);
+	free(sKey);
 }
 
 void output_describe(char *name, e_cons_type cType, int part, int compTime) {
 	char buffer[20];
-	FILE * output = txt_open_for_append("../output.txt");
+	FILE * output = txt_open_for_append("../describe_output.txt");
 	txt_write_in_file(output, "DESCRIBE ");
 	txt_write_in_file(output, name);
 	txt_write_in_file(output, " ::\n	");
@@ -283,6 +257,6 @@ void output_describe(char *name, e_cons_type cType, int part, int compTime) {
 	txt_write_in_file(output, "CT: ");
 	sprintf(buffer, "%d", compTime);
 	txt_write_in_file(output, buffer);
-	txt_write_in_file(output, "\n");
+	txt_write_in_file(output, "\n\n");
 	txt_close_file(output);
 }
