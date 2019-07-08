@@ -185,17 +185,19 @@ void *threadConfigModify()
 void *threadDump()
 {
 	int dt;
+	while(1){
 		sem_wait(&MUTEX_DUMPTIME);
 		dt = dumpTime;
 		sem_post(&MUTEX_DUMPTIME);
 
-		sleep(dt);
+		sleep(dt/1000);
 
 		log_info(logger, "[DUMP]: Iniciando Dump");
 		sem_wait(&MUTEX_MEMTABLE);
 		dump();
 		sem_post(&MUTEX_MEMTABLE);
 		log_info(logger, "[DUMP]: Fin Dump");
+	}
 	return NULL;
 }
 

@@ -2,36 +2,44 @@
 
 void *listen_client()
 {
-	log_error(logger,"[RX/TX]: Iniciando servidor...");
+	log_info(logger,"[RX/TX]: Iniciando servidor...");
 	int socket = createServer(ip,port);
 	if(socket == -1) {
 		log_error(logger,"[RX/TX]: No se pudo crear el servidor");
 		exit(1);
 	}
-	log_error(logger,"[RX/TX]: Servidor creado");
+	log_info(logger,"[RX/TX]: Servidor creado");
 	while(1) {
 		int cliSocket = connectToClient(socket);
 
 		if(cliSocket == -1) {
 			printf("[RX/TX]: No se pudo conectar con el cliente\n");
-			exit(1);
 		}
-
-		log_error(logger,"[RX/TX]: Recibo request de cliente");
-		e_request_code rc = recv_req_code(cliSocket);
-
-		switch(rc){
-			case REQUEST_VALUESIZE: send_int(cliSocket,valueSize); break;
-			case REQUEST_QUERY: process_query_from_client(cliSocket); break;
-
-			//imposible
-			case REQUEST_GOSSIP: break;
-			case REQUEST_JOURNAL: break;
+		else{
+			pthread_t queryThread;
+			pthread_create(&queryThread, NULL, attendClient, &cliSocket);
+			pthread_detach(queryThread);
 		}
-		log_error(logger,"[RX/TX]: Request enviada");
 
 //		close(cliSocket);
 	}
+}
+
+void *attendClient(void *socket){
+	int cliSocket = *(int*)socket;
+	log_info(logger,"[RX/TX]: Recibo request de cliente");
+			e_request_code rc = recv_req_code(cliSocket);
+
+			switch(rc){
+				case REQUEST_VALUESIZE: send_int(cliSocket,valueSize); break;
+				case REQUEST_QUERY: process_query_from_client(cliSocket); break;
+
+				//imposible
+				case REQUEST_GOSSIP: break;
+				case REQUEST_JOURNAL: break;
+			}
+			log_info(logger,"[RX/TX]: Request enviada");
+			return NULL;
 }
 
 

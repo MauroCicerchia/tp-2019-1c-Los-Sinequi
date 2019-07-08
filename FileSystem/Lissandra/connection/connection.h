@@ -27,3 +27,5 @@ void *listen_client();
 void process_query_from_client(int client);
 
 uint64_t conn_getCurrentTime();
+
+void *attendClient(void *socket);

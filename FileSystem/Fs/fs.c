@@ -133,7 +133,9 @@ void loadMetadata(char *table,char *consistency,int parts,int ctime)
 void fs_toDump(char *table,char *toDump)
 {
 	char *tmpUrl = makeTableUrl(table);
-	string_append(&tmpUrl,string_itoa(tmpNo));
+	char *x = string_itoa(tmpNo);
+	string_append(&tmpUrl,x);
+	free(x);
 	string_append(&tmpUrl,".tmp");
 
 	FILE *file = txt_open_for_append(tmpUrl);
@@ -409,6 +411,9 @@ void fs_cleanTmpsC(char *tableUrl){
 		dir = readdir(d);
 	}
 	closedir(d);
+
+	for(int j = 0; j < sizeofArray(blocks);j++){free(blocks[j]);}
+	free(blocks);
 }
 
 bool isTmpc(char *string){

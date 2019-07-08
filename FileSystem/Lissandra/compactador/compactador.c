@@ -13,7 +13,7 @@ void *threadCompact(char *tableName)
 			compact(table);
 		sem_post(&table->MUTEX_DROP_TABLE);
 
-			sleep(table->ctime);
+			sleep(table->ctime/1000);
 		}
 
 	sprintf(log_msg,"[Compactador %s]: Tabla quitada de lista de tablas activas", tableName);
@@ -32,10 +32,11 @@ void compact(activeTable *table)//agregar el semaforo para drop
 	//conseguir todos los .tmp
 	t_list *tmps = getAllTmps(tableUrl);
 
-
 	if(list_size(tmps) == 0){
 		sprintf(log_msg,"[Compactador %s]: No hay temporales para compactar", table->name);
 		log_warning(logger,log_msg);
+		list_destroy(tmps);
+		free(tableUrl);
 		return;
 	}
 
@@ -229,7 +230,9 @@ void com_saveInPartition(t_list *keys,t_list *allInserts, activeTable *table)
 
 		free(partUrl);
 		free(toInsert);
+		free(part);
 	}
+	free(tableUrl);
 }
 
 bool com_gotKey(char *key, char *insert)
