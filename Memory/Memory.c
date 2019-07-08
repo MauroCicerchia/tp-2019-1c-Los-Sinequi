@@ -10,9 +10,13 @@ int main(int argc, char **argv) {
 
 	pthread_t threadClient;
 	pthread_t threadAutoJournal;
+	pthread_t threadGossip;
 
-	//pthread_create(&threadClient, NULL, listen_client, NULL);
-	//pthread_detach(threadClient);
+	pthread_create(&threadGossip,NULL,auto_gossip,NULL);
+	pthread_detach(threadGossip);
+
+	pthread_create(&threadClient, NULL, listen_client, NULL);
+	pthread_detach(threadClient);
 
 	//pthread_create(&threadAutoJournal, NULL, execute_journal, NULL);
 	//pthread_detach(threadAutoJournal);
@@ -25,13 +29,18 @@ int main(int argc, char **argv) {
 
 void memory_init(){
 		load_config();
+		iniciar_logger();
 
 		segmentList = list_create();
+
 		gossip_table = list_create();
-		iniciar_logger();
+		ip = config_get_string_value(config, "IP");
+		port = config_get_string_value(config, "PUERTO");
+		add_to_gossip_table(ip,port,config,logger);
 
 		sem_init(&MUTEX_MEM,0,1);
 		THEGREATMALLOC();
+
 }
 
 void kill_memory(){
@@ -41,6 +50,7 @@ void kill_memory(){
 	free(main_memory);
 	bitarray_destroy(bitmap);
 	sem_destroy(&MUTEX_MEM);
+	gossip_table_destroy();
 
 }
 
@@ -57,7 +67,7 @@ void load_config() {
 		exit(-1);
 	}
 }
-
+//********************************** Memoria Principal ***************************
 int get_frame_size(){
 
 	int frameSize=0;
@@ -99,7 +109,7 @@ void THEGREATMALLOC(){
 
 	log_info(logger,"Memoria principal alocada");
 }
-
+//*****************************************************************************
 void* attend_client(void* socket) {
 	int cliSocket = *(int*) socket;
 	e_request_code rc = recv_req_code(cliSocket);
@@ -123,18 +133,9 @@ void* attend_client(void* socket) {
 }
 
 void *listen_client() {
-	ip = config_get_string_value(config, "IP");
-	port = config_get_string_value(config, "PUERTO");
+
 	int socket = createServer(ip,port);
-	//intento de cambio de puerto automatico EXITOSO
-	int portNum=atoi(port);
-	portNum++;
-	char* newPort = (char*) malloc(sizeof(char) * 5);
-	sprintf(newPort,"%d",portNum);
-	config_set_value(config,"PUERTO",newPort);
-
-	free(newPort);
-
+	log_error(logger,"Servidor creado en: %s - %s",ip,port);
 	if(socket == -1) {
 		printf("No se pudo crear el servidor\n");
 		exit(1);
@@ -255,6 +256,18 @@ void process_query_from_client(int client) {
 			break;
 	}
 }
+
+void* auto_gossip(){
+	int delay = config_get_int_value(config,"RETARDO_GOSSIPING");
+	log_info(logger,"Iniciando Gossiping");
+	while(true){
+		execute_gossip_client(config,logger);
+		//log_info(logger,"************** %d ************",list_size(gossip_table));
+		print_gossip_table();
+		sleep(delay/1000);
+	}
+}
+
 
 void start_API(t_log *logger){
 

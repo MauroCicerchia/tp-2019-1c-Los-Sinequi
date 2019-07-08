@@ -60,6 +60,8 @@ void execute_replacement(int, char*, segment*);
 
 void* attend_client(void*);
 
+void* auto_gossip();
+
 char* selectM(char*,int);	   // (nombreTabla,key)
 int insertM(char*,int,char*); // (nombreTabla,key,value)
 int createM(char*,char*,char*,char*);
