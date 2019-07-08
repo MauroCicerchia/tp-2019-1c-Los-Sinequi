@@ -23,11 +23,13 @@ void qSelect(char *table, uint16_t key, t_log *logger) {
 	send_package(p, memSocket);
 	delete_package(p);
 
+	log_info(logger, "algo");
+
 	e_response_code r = recv_res_code(memSocket);
 
 	if(r == RESPONSE_SUCCESS) {
 		char *value = recv_str(memSocket);
-
+		log_info(logger, "algo %s", value);
 		output_select(table, key, value);
 	} else {
 //		notificar error
@@ -227,13 +229,13 @@ void qJournal(t_memory *mem, t_log *logger) {
 void output_select(char *table, uint16_t key, char* value) {
 	char *sKey = string_itoa(key);
 	string_trim(&table);
-	string_trim(&key);
+	string_trim(&sKey);
 	string_trim(&value);
 	FILE* output = txt_open_for_append("../select_output.txt");
 	txt_write_in_file(output, "SELECT ");
 	txt_write_in_file(output, table);
 	txt_write_in_file(output, " ");
-	txt_write_in_file(output, key);
+	txt_write_in_file(output, sKey);
 	txt_write_in_file(output, " ::\n	");
 	txt_write_in_file(output, value);
 	txt_write_in_file(output, "\n");

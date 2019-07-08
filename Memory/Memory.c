@@ -18,8 +18,8 @@ int main(int argc, char **argv) {
 	pthread_create(&threadClient, NULL, listen_client, NULL);
 	pthread_detach(threadClient);
 
-	//pthread_create(&threadAutoJournal, NULL, execute_journal, NULL);
-	//pthread_detach(threadAutoJournal);
+//	pthread_create(&threadAutoJournal, NULL, execute_journal, NULL);
+//	pthread_detach(threadAutoJournal);
 
 	start_API(logger);
 
@@ -674,7 +674,7 @@ void get_value_size(){
 	valueSize = recv_int(socket);
 	close(socket);
 	log_info(logger, "Value Size recibido de FS.");
-	//valueSize = 255;
+//	valueSize = 255;
 }
 
 int get_timestamp(){

@@ -165,7 +165,7 @@ e_query processQuery(char *query) {
 }
 
 int read_lql_file(char *path) {
-	char buffer[200];
+	char buffer[500];
 	FILE *lql = fopen(path, "rt");
 	if(lql == NULL) {
 		log_error(logger, " >> No se ha podido abrir el archivo %s", path);
@@ -175,7 +175,9 @@ int read_lql_file(char *path) {
 	t_list *fileQuerys = list_create();
 
 	while(fgets(buffer, sizeof(buffer), lql)) {
+		log_info(logger,buffer);
 		t_list *args = parseQuery(buffer);
+		log_info(logger,"asdasd");
 		e_query queryType = getQueryType(list_get(args, 0));
 		t_query *currentQuery = query_create(queryType, args);
 		list_add(fileQuerys, (void*)currentQuery);
@@ -468,8 +470,10 @@ void update_shc() {
 	sem_post(&MUTEX_TABLES);
 	sem_wait(&MUTEX_MEMORIES);
 	t_list *shc_mem = get_shc_memories();
-	list_iterate(shc_mem, journalMem);
 	sem_post(&MUTEX_MEMORIES);
+
+	if(list_size(shc_mem) > 1)
+		list_iterate(shc_mem, journalMem);
 }
 
 t_table *get_table(char *id) {
