@@ -1,6 +1,9 @@
 #include "Memory.h"
 int server;
-
+char* ip;
+char* port;
+char* seed_ip;
+char* seed_port;
 int main(int argc, char **argv) {
 
 	memory_init();
@@ -8,16 +11,13 @@ int main(int argc, char **argv) {
 	pthread_t threadClient;
 	pthread_t threadAutoJournal;
 
-	pthread_create(&threadClient, NULL, listen_client, NULL);
-	pthread_detach(threadClient);
+	//pthread_create(&threadClient, NULL, listen_client, NULL);
+	//pthread_detach(threadClient);
 
 	//pthread_create(&threadAutoJournal, NULL, execute_journal, NULL);
 	//pthread_detach(threadAutoJournal);
 
-
 	start_API(logger);
-
-
 
 	kill_memory();
 	return 0;
@@ -27,7 +27,7 @@ void memory_init(){
 		load_config();
 
 		segmentList = list_create();
-
+		gossip_table = list_create();
 		iniciar_logger();
 
 		sem_init(&MUTEX_MEM,0,1);
@@ -109,6 +109,7 @@ void* attend_client(void* socket) {
 		process_query_from_client(cliSocket);
 		break;
 	case REQUEST_GOSSIP:
+		execute_gossip_server(cliSocket,config,logger);
 		break;
 	case REQUEST_JOURNAL:
 		journalM();
@@ -122,10 +123,17 @@ void* attend_client(void* socket) {
 }
 
 void *listen_client() {
-	char *ip = config_get_string_value(config, "IP");
-	char *port = config_get_string_value(config, "PUERTO");
+	ip = config_get_string_value(config, "IP");
+	port = config_get_string_value(config, "PUERTO");
 	int socket = createServer(ip,port);
+	//intento de cambio de puerto automatico EXITOSO
+	int portNum=atoi(port);
+	portNum++;
+	char* newPort = (char*) malloc(sizeof(char) * 5);
+	sprintf(newPort,"%d",portNum);
+	config_set_value(config,"PUERTO",newPort);
 
+	free(newPort);
 
 	if(socket == -1) {
 		printf("No se pudo crear el servidor\n");
@@ -136,8 +144,7 @@ void *listen_client() {
 		int cliSocket = connectToClient(socket);
 
 		if(cliSocket == -1) {
-			printf("No se pudo conectar con el cliente\n");
-			exit(1);
+			log_warning(logger,"No se pudo conectar con el cliente\n");
 		}else{
 			//crear hilo con ese file descriptor
 			//hacer lo de recibir req code y all eso

@@ -4,18 +4,21 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../Gossip.c \
 ../Memory.c \
 ../Page.c \
 ../QuerysToFS.c \
 ../Segment.c 
 
 OBJS += \
+./Gossip.o \
 ./Memory.o \
 ./Page.o \
 ./QuerysToFS.o \
 ./Segment.o 
 
 C_DEPS += \
+./Gossip.d \
 ./Memory.d \
 ./Page.d \
 ./QuerysToFS.d \

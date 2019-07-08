@@ -16,6 +16,7 @@
 #include<semaphore.h>
 #include"Segment.h"
 #include<time.h>
+#include"Gossip.h"
 #include"QuerysToFS.h"
 #define max_clients 4
 
