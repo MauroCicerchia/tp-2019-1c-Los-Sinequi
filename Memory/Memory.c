@@ -669,12 +669,12 @@ void execute_replacement(int key, char* value, segment* segment_to_use){
 }
 
 void get_value_size(){
-	/*int socket = connect_to_FS(config, logger);
+	int socket = connect_to_FS(config, logger);
 	send_req_code(socket,REQUEST_VALUESIZE);
 	valueSize = recv_int(socket);
 	close(socket);
-	log_info(logger, "Value Size recibido de FS.");  <-- Mockea3*/
-	valueSize = 255;
+	log_info(logger, "Value Size recibido de FS.");
+	//valueSize = 255;
 }
 
 int get_timestamp(){

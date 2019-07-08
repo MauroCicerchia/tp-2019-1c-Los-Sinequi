@@ -124,9 +124,11 @@ int validateQuerySyntax(t_list *array){
 t_list *parseQuery(char *query){
 	t_list *args = list_create();
 
+	if(!string_starts_with(query,"RUN"))string_to_upper(query);
+
 	void add_to_args(char *s) {
 		string_trim(&s);
-		string_to_upper(s);
+//		string_to_upper(s);
 		list_add(args, string_duplicate(s));
 		free(s);
 	}
@@ -142,18 +144,18 @@ t_list *parseQuery(char *query){
 		char **sSplit = string_split(fSplit[0], " ");
 		for(int i = 0; i < sizeofArray(sSplit); i++) {
 			string_trim(&sSplit[i]);
-			string_to_upper(sSplit[i]);
+//			string_to_upper(sSplit[i]);
 			list_add(args, string_duplicate(sSplit[i]));
 			free(sSplit[i]);
 		}
 		if(fSplit[1] != NULL) {
 			string_trim(&fSplit[1]);
-			string_to_upper(fSplit[1]);
+//			string_to_upper(fSplit[1]);
 			list_add(args, string_duplicate(fSplit[1]));
 			free(fSplit[1]);
 			if(fSplit[2] != NULL) {
 				string_trim(&fSplit[2]);
-				string_to_upper(fSplit[2]);
+//				string_to_upper(fSplit[2]);
 				list_add(args, string_duplicate(fSplit[2]));
 				free(fSplit[2]);
 			}

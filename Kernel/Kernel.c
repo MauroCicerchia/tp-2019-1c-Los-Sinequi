@@ -11,7 +11,6 @@ t_log *logger;
 // TODO Validar que haya memoria antes de realizar query
 
 int main(int argc, char **argv) {
-
 	init_kernel();
 
 	display_memories();
@@ -310,7 +309,7 @@ void init_memory() {
 	request_memory_pool(memSocket);
 	log_info(logger, " >> Memorias obtenidas correctamente.");
 	log_info(logger, " >> Realizando Describe inicial.");
-	//qDescribe(NULL, logger); TODO
+	qDescribe(NULL, logger); 
 	log_info(logger, " >> Tablas obtenidas correctamente.");
 	close(memSocket);
 	free(ip);
