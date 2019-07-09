@@ -305,8 +305,14 @@ void execute_query(t_query *query) {
 }
 
 void init_memory() {
-	request_memory_pool(0);
+	char *ip = get_memory_ip();
+	char *port = get_memory_port();
+	int memSocket = connect_to_memory(ip, port);
+	request_memory_pool(memSocket);
 	//qDescribe(NULL, logger);
+	close(memSocket);
+	free(ip);
+	free(port);
 }
 
 int connect_to_memory(char *IP, int PORT) {
@@ -319,19 +325,23 @@ int connect_to_memory(char *IP, int PORT) {
 }
 
 void request_memory_pool(int memSocket) {
-//	enviar REQUEST_GOSSIP
-//	recibir RESPONSE_SUCCESS cant_memorias sizeip ip size port port n veces
-
-	//Mock
-	t_memory *mem = memory_create(memoryNumber, get_memory_ip(), get_memory_port());
-	memoryNumber++;
-
-	memory_add_cons_type(mem, CONS_SC);
-//	memory_add_cons_type(mem, CONS_SHC);
-	memory_add_cons_type(mem, CONS_EC);
-	sem_wait(&MUTEX_MEMORIES);
-	list_add(memories, (void*) mem);
-	sem_post(&MUTEX_MEMORIES);
+	send_req_code(memSocket, REQUEST_GOSSIP);
+	send_int(memSocket, 0);
+	e_response_code response = recv_res_code(memSocket);
+	if(response == RESPONSE_SUCCESS) {
+		int q = recv_int(memSocket);
+		int i;
+		char *ip, *port;
+		for(i = 0; i < q; i++) {
+			ip = recv_str(memSocket);
+			port = recv_str(memSocket);
+			t_memory *mem = memory_create(memoryNumber, ip, port);
+			memoryNumber++;
+			sem_wait(&MUTEX_MEMORIES);
+			list_add(memories, (void*) mem);
+			sem_post(&MUTEX_MEMORIES);
+		}
+	}
 }
 
 void display_memories() {
