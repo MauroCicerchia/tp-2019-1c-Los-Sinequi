@@ -6,6 +6,7 @@
 #include<commons/string.h>
 #include<commons/config.h>
 #include<readline/readline.h>
+#include<readline/history.h>
 #include<sharedLib/console.h>
 #include<sharedLib/server.h>
 #include<sharedLib/query.h>
@@ -15,7 +16,9 @@
 #include<semaphore.h>
 #include"Segment.h"
 #include<time.h>
+#include"Gossip.h"
 #include"QuerysToFS.h"
+#define max_clients 4
 
 void* main_memory;
 t_bitarray* bitmap;
@@ -55,6 +58,9 @@ void* execute_journal();
 void load_page_to_segment(int,segment*,char*,int);
 void execute_replacement(int, char*, segment*);
 
+void* attend_client(void*);
+
+void* auto_gossip();
 
 char* selectM(char*,int);	   // (nombreTabla,key)
 int insertM(char*,int,char*); // (nombreTabla,key,value)

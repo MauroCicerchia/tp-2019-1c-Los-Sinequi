@@ -63,7 +63,7 @@ int request_valuesize_to_FS(t_config* config, t_log* logger){
 	return 0;
 }
 
-void send_create_to_FS(char* table,char* consType, char *part, char *compTime ,t_config* config, t_log* logger){
+int send_create_to_FS(char* table,char* consType, char *part, char *compTime ,t_config* config, t_log* logger){
 
 	//	Paquetizar
 	t_package *p = create_package(QUERY_CREATE);
@@ -82,11 +82,14 @@ void send_create_to_FS(char* table,char* consType, char *part, char *compTime ,t
 	printf("responde fs");
 	if(r == RESPONSE_SUCCESS) {
 		log_info(logger,"Se creo la tabla en FS");
+		close(FS_socket);
+		return 0;
 	} else {
 		log_error(logger, " Error al realizar create en FS");
+		close(FS_socket);
+		return -1;
 	}
-	close(FS_socket);
-	return;
+
 }
 
 t_list* send_describe_to_FS(char*table,t_config* config,t_log* logger){

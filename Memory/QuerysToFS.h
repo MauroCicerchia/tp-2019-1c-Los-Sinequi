@@ -17,7 +17,7 @@ typedef struct{
 void metadata_destroy(void*);
 char* send_select_to_FS(char*,int,t_config*,t_log*);
 
-void send_create_to_FS(char*,char*,char*,char*,t_config*,t_log*);
+int send_create_to_FS(char*,char*,char*,char*,t_config*,t_log*);
 t_list *send_describe_to_FS(char*,t_config*,t_log*);
 
 void send_insert_to_FS(char*,int,char*,t_config*,t_log*);

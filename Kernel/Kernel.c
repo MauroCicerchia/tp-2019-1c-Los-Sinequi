@@ -16,6 +16,8 @@ int main(int argc, char **argv) {
 
 	display_memories();
 
+	add_table(table_create("T1",CONS_SC,1,10000)); //harcodea3
+
 	pthread_t threadNewReady, threadsExec[MP], threadMetrics;
 
 	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
@@ -304,7 +306,7 @@ void execute_query(t_query *query) {
 
 void init_memory() {
 	request_memory_pool(0);
-	qDescribe(NULL, logger);
+	//qDescribe(NULL, logger);
 }
 
 int connect_to_memory(char *IP, int PORT) {

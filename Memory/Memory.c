@@ -1,23 +1,27 @@
 #include "Memory.h"
 int server;
-
+char* ip;
+char* port;
+char* seed_ip;
+char* seed_port;
 int main(int argc, char **argv) {
 
 	memory_init();
 
 	pthread_t threadClient;
 	pthread_t threadAutoJournal;
+	pthread_t threadGossip;
+
+	pthread_create(&threadGossip,NULL,auto_gossip,NULL);
+	pthread_detach(threadGossip);
 
 	pthread_create(&threadClient, NULL, listen_client, NULL);
 	pthread_detach(threadClient);
 
-	pthread_create(&threadAutoJournal, NULL, execute_journal, NULL);
-	pthread_detach(threadAutoJournal);
-
+	//pthread_create(&threadAutoJournal, NULL, execute_journal, NULL);
+	//pthread_detach(threadAutoJournal);
 
 	start_API(logger);
-
-
 
 	kill_memory();
 	return 0;
@@ -25,13 +29,18 @@ int main(int argc, char **argv) {
 
 void memory_init(){
 		load_config();
+		iniciar_logger();
 
 		segmentList = list_create();
 
-		iniciar_logger();
+		gossip_table = list_create();
+		ip = config_get_string_value(config, "IP");
+		port = config_get_string_value(config, "PUERTO");
+		add_to_gossip_table(ip,port,config,logger);
 
 		sem_init(&MUTEX_MEM,0,1);
 		THEGREATMALLOC();
+
 }
 
 void kill_memory(){
@@ -41,6 +50,7 @@ void kill_memory(){
 	free(main_memory);
 	bitarray_destroy(bitmap);
 	sem_destroy(&MUTEX_MEM);
+	gossip_table_destroy();
 
 }
 
@@ -57,7 +67,7 @@ void load_config() {
 		exit(-1);
 	}
 }
-
+//********************************** Memoria Principal ***************************
 int get_frame_size(){
 
 	int frameSize=0;
@@ -99,32 +109,55 @@ void THEGREATMALLOC(){
 
 	log_info(logger,"Memoria principal alocada");
 }
+//*****************************************************************************
+void* attend_client(void* socket) {
+	int cliSocket = *(int*) socket;
+	e_request_code rc = recv_req_code(cliSocket);
+	sleep(3);
+	switch (rc) {
+	case REQUEST_QUERY:
+		process_query_from_client(cliSocket);
+		break;
+	case REQUEST_GOSSIP:
+		execute_gossip_server(cliSocket,config,logger);
+		break;
+	case REQUEST_JOURNAL:
+		journalM();
+		send_res_code(cliSocket, RESPONSE_SUCCESS);
+		break;
+	default:
+		break;
+	}
+	return NULL;
 
+}
 
 void *listen_client() {
-	char *ip = config_get_string_value(config, "IP");
-	char *port = config_get_string_value(config, "PUERTO");
+
 	int socket = createServer(ip,port);
+	log_error(logger,"Servidor creado en: %s - %s",ip,port);
 	if(socket == -1) {
 		printf("No se pudo crear el servidor\n");
 		exit(1);
 	}
+
 	while(true) {
 		int cliSocket = connectToClient(socket);
 
 		if(cliSocket == -1) {
-			printf("No se pudo conectar con el cliente\n");
-			exit(1);
+			log_warning(logger,"No se pudo conectar con el cliente\n");
+		}else{
+			//crear hilo con ese file descriptor
+			//hacer lo de recibir req code y all eso
+			//y listo volvemos a empezar el while true
+			// semaforo max connection
+			pthread_t client;
+			pthread_create(&client,NULL,attend_client,&cliSocket);
+			pthread_detach(client);
+
 		}
+//		e_request_code rc = attend_client(cliSocket);
 
-
-		e_request_code rc = recv_req_code(cliSocket);
-
-		switch(rc) {
-			case REQUEST_QUERY: process_query_from_client(cliSocket); break;
-			case REQUEST_GOSSIP: break;
-			case REQUEST_JOURNAL: journalM(); send_res_code(cliSocket, RESPONSE_SUCCESS); break;
-		}
 	}
 }
 
@@ -133,7 +166,7 @@ void process_query_from_client(int client) {
 	recv(client, &opCode, sizeof(opCode), 0);
 
   char *table, *value,*part, *compTime;
-	int key, size, status;
+	int key, status;
 	char *consType;
   metadata* aMD;
 	t_list* metadata_list;
@@ -169,10 +202,12 @@ void process_query_from_client(int client) {
 			part = recv_str(client);
 			compTime = recv_str(client);
 			status = createM(table, consType, part, compTime);
+			if(status == 0)
+				send_res_code(client, RESPONSE_SUCCESS);
+			else
+				send_res_code(client, RESPONSE_ERROR);
 
-			send_res_code(client, RESPONSE_SUCCESS);
 			break;
-			//TODO puede romper giles
 
 		case QUERY_DESCRIBE:
 
@@ -217,8 +252,22 @@ void process_query_from_client(int client) {
 			else
 				send_res_code(client, RESPONSE_ERROR);
 			break;
+		default:
+			break;
 	}
 }
+
+void* auto_gossip(){
+	int delay = config_get_int_value(config,"RETARDO_GOSSIPING");
+	log_info(logger,"Iniciando Gossiping");
+	while(true){
+		execute_gossip_client(config,logger);
+		//log_info(logger,"************** %d ************",list_size(gossip_table));
+		print_gossip_table();
+		sleep(delay/1000);
+	}
+}
+
 
 void start_API(t_log *logger){
 
@@ -235,7 +284,6 @@ void start_API(t_log *logger){
 
 e_query processQuery(char *query, t_log *logger) {
 	int insertResult;
-	char log_msg[100];
 	e_query queryType;
 
 	t_list *args = parseQuery(query); //guardas en el vecor args la query
@@ -244,24 +292,23 @@ e_query processQuery(char *query, t_log *logger) {
 	if (!invalidQuery)
 		return queryError();
 
+	queryType = getQueryType(list_get(args,0));
 	switch(queryType) {
 
 		case QUERY_SELECT:
 
-			sprintf(log_msg, "Recibi un SELECT %s %s", args[1], args[2]); //TODO Cambiar todos los args[x] por list_get(args, x)
-			log_info(logger,log_msg);
+			log_info(logger, "Recibi un SELECT %s %s", (char*) list_get(args,1), (char*) list_get(args,2));
 
 //			sendMessage(server,query);
-			printf("%s",selectM(args[1], atoi(args[2])));
+			printf("%s",selectM( (char*) list_get(args,1), atoi(list_get(args,2))));
 //			queryToFileSystem(*query);
 
 			break;
 
 		case QUERY_INSERT:
-			sprintf(log_msg, "Recibi un INSERT %s %s %s", args[1], args[2], args[3]);
-			log_info(logger,log_msg);
+			log_info(logger, "Recibi un INSERT %s %s %s", (char*) list_get(args,1), (char*) list_get(args,2), (char*) list_get(args,3));
 
-			insertResult = insertM(args[1], atoi(args[2]), args[3]);
+			insertResult = insertM(list_get(args,1), atoi(list_get(args,2)), list_get(args,3));
 
 			if(insertResult == 1){
 				log_error(logger,"No se puedo insertar un valor");
@@ -275,24 +322,21 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_CREATE:
 
-			sprintf(log_msg, "Recibi un CREATE %s %s %s %s", args[1], args[2], args[3], args[4]);
-			log_info(logger,log_msg);
-			createM(args[1], args[2], args[3], args[4]);
+			log_info(logger, "Recibi un CREATE %s %s %s %s", (char*) list_get(args,1), (char*) list_get(args,2),(char*) list_get(args,3), (char*) list_get(args,4));
+			createM(list_get(args,1), list_get(args,2), list_get(args,3), list_get(args,4));
 			break;
 
 		case QUERY_DESCRIBE:
-			sprintf(log_msg, "Recibi un DESCRIBE %s", args[1]);
-			log_info(logger,log_msg);
-			describeM(args[1]);
+			log_info(logger, "Recibi un DESCRIBE %s", (char*) list_get(args,1));
+			describeM(list_get(args,1));
 
 			break;
 
 		case QUERY_DROP:
 
-			sprintf(log_msg, "Recibi un DROP %s", args[1]);
-			log_info(logger,log_msg);
+			log_info(logger, "Recibi un DROP %s", (char*) list_get(args,1));
 
-			dropM(args[1]);
+			dropM(list_get(args,1));
 
 			break;
 
@@ -553,8 +597,8 @@ char* selectM(char* segmentID, int key){
 int createM(char* segmentID,char* consistency ,char *partition_num, char *compaction_time){
 	/*ENVIAR AL FS OPERACION PARA CREAR TABLA*/
 
-	send_create_to_FS(segmentID, consistency, partition_num, compaction_time, config, logger);
-	return 0;
+	int status = send_create_to_FS(segmentID, consistency, partition_num, compaction_time, config, logger);
+	return status;
 }
 
 t_list* describeM(char *table){
@@ -615,9 +659,7 @@ void execute_replacement(int key, char* value, segment* segment_to_use){
 	}
 	list_iterate(segmentList,re_segment);
 
-	char* log_msg;
-	sprintf(log_msg,"Se remueve la key %d del segmento %s \n", get_key_from_memory(min_page->frame_num),min_segment->segment_id);
-	log_info(logger,log_msg);
+	log_info(logger,"Se remueve la key %d del segmento %s \n", get_key_from_memory(min_page->frame_num),min_segment->segment_id);
 
 	remove_page_from_segment(min_page,min_segment);
 	sem_wait(&MUTEX_MEM);
@@ -627,11 +669,12 @@ void execute_replacement(int key, char* value, segment* segment_to_use){
 }
 
 void get_value_size(){
-	int socket = connect_to_FS(config, logger);
+	/*int socket = connect_to_FS(config, logger);
 	send_req_code(socket,REQUEST_VALUESIZE);
 	valueSize = recv_int(socket);
 	close(socket);
-	log_info(logger, "Value Size recibido de FS.");
+	log_info(logger, "Value Size recibido de FS.");  <-- Mockea3*/
+	valueSize = 255;
 }
 
 int get_timestamp(){
