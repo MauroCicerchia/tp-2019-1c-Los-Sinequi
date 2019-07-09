@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<unistd.h>
 #include<string.h>
 #include<time.h>
 #include<semaphore.h>
@@ -31,7 +32,7 @@ void *new_to_ready();
 void add_process_to_ready(t_process*);
 t_process *ready_to_exec(int);
 void *processor_execute(void*);
-void execute_query(t_query*);
+int execute_query(t_query*);
 void setConfigParameter(char*);
 void init_memory();
 int connect_to_memory();

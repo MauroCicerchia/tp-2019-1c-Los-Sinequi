@@ -1,6 +1,6 @@
 #include"QueryExec.h"
 
-void qSelect(char *tableName, uint16_t key, t_log *logger) {
+int qSelect(char *tableName, uint16_t key, t_log *logger) {
 	char *table = string_duplicate(tableName);
 //	Paquetizar
 	t_package *p = create_package(QUERY_SELECT);
@@ -11,9 +11,18 @@ void qSelect(char *tableName, uint16_t key, t_log *logger) {
 	t_table *t = get_table(table);
 	if(t == NULL) {
 		log_error(logger, " >> Error al realizar select (No existe la tabla).");
-		return;
+		delete_package(p);
+		free(table);
+		return 0;
 	}
 	t_memory *mem = get_memory_for_query(t, key);
+
+	if(mem == NULL) {
+		log_error(logger, "No se pudo realizar la query. No hay memorias disponibles para esta consistencia.");
+		delete_package(p);
+		free(table);
+		return 0;
+	}
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
@@ -40,10 +49,10 @@ void qSelect(char *tableName, uint16_t key, t_log *logger) {
 
 	free(table);
 
-	return;
+	return 1;
 }
 
-void qInsert(char* table, uint16_t key, char *value, t_log *logger) {
+int qInsert(char* table, uint16_t key, char *value, t_log *logger) {
 //	Paquetizar
 	t_package *p = create_package(QUERY_INSERT);
 	add_to_package(p, (void*)table, sizeof(char) * (strlen(table) + 1));
@@ -54,9 +63,17 @@ void qInsert(char* table, uint16_t key, char *value, t_log *logger) {
 	t_table *t = get_table(table);
 	if(t == NULL) {
 		log_error(logger, " >> Error al realizar insert (No existe la tabla).");
-		return;
+		delete_package(p);
+		return 0;
 	}
+
 	t_memory *mem = get_memory_for_query(t, key);
+
+	if(mem == NULL) {
+		log_error(logger, "No se pudo realizar la query. No hay memorias disponibles para esta consistencia.");
+		delete_package(p);
+		return 0;
+	}
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
@@ -78,10 +95,10 @@ void qInsert(char* table, uint16_t key, char *value, t_log *logger) {
 
 	mem->totalOperations++;
 
-	return;
+	return 1;
 }
 
-void qCreate(char *table, char *consType, char *part, char *compTime, t_log *logger) {
+int qCreate(char *table, char *consType, char *part, char *compTime, t_log *logger) {
 //	Paquetizar
 	t_package *p = create_package(QUERY_CREATE);
 	add_to_package(p, (void*)table, sizeof(char) * strlen(table) + 1);
@@ -91,6 +108,12 @@ void qCreate(char *table, char *consType, char *part, char *compTime, t_log *log
 
 //	obtener memoria segun criterio
 	t_memory *mem = get_any_memory();
+
+	if(mem == NULL) {
+		log_error(logger, "No se pudo realizar la query. No hay memorias disponibles.");
+		delete_package(p);
+		return 0;
+	}
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
@@ -108,12 +131,17 @@ void qCreate(char *table, char *consType, char *part, char *compTime, t_log *log
 		log_error(logger, " >> Error al realizar create en memoria.");
 	}
 	close(memSocket);
-	return;
+	return 1;
 }
 
-void qDescribe(char* table, t_log *logger) {
+int qDescribe(char* table, t_log *logger) {
 //	obtener memoria segun criterio
 	t_memory *mem = get_any_memory();
+
+	if(mem == NULL) {
+		log_error(logger, "No se pudo realizar la query. No hay memorias disponibles.");
+		return 0;
+	}
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
@@ -142,6 +170,7 @@ void qDescribe(char* table, t_log *logger) {
 			free(sCTime);
 			update_table(tableName, consType, part, compTime);
 			output_describe(tableName, consType, part, compTime);
+			free(tableName);
 			log_info(logger, " >> Metadata de tabla actualizada.");
 		} else {
 			log_error(logger, " >> Error al realizar describe en memoria.");
@@ -176,10 +205,10 @@ void qDescribe(char* table, t_log *logger) {
 		}
 	}
 	close(memSocket);
-	return;
+	return 1;
 }
 
-void qDrop(char *table, t_log *logger) {
+int qDrop(char *table, t_log *logger) {
 //	Paquetizar
 	t_package *p = create_package(QUERY_DROP);
 	add_to_package(p, (void*)table, sizeof(char) * strlen(table) + 1);
@@ -188,10 +217,17 @@ void qDrop(char *table, t_log *logger) {
 	t_table *t = get_table(table);
 	if(t == NULL) {
 		log_error(logger, " >> Error al realizar drop (No existe la tabla).");
-		return;
+		delete_package(p);
+		return 0;
 	}
 
 	t_memory *mem = get_any_memory();
+
+	if(mem == NULL) {
+		log_error(logger, "No se pudo realizar la query. No hay memorias disponibles.");
+		delete_package(p);
+		return 0;
+	}
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
@@ -208,10 +244,10 @@ void qDrop(char *table, t_log *logger) {
 		log_error(logger, " >> Error al realizar drop en memoria.");
 	}
 	close(memSocket);
-	return;
+	return 1;
 }
 
-void qJournal(t_memory *mem, t_log *logger) {
+int qJournal(t_memory *mem, t_log *logger) {
 	int memSocket = connect_to_memory(mem->ip, mem->port);
 
 	send_req_code(memSocket, REQUEST_JOURNAL);
@@ -224,7 +260,7 @@ void qJournal(t_memory *mem, t_log *logger) {
 		log_info(logger, " >> Error al realizar journal en memoria %d.", mem->mid);
 	}
 	close(memSocket);
-	return;
+	return 1;
 }
 
 void output_select(char *table, uint16_t key, char* value) {
