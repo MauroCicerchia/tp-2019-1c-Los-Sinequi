@@ -66,5 +66,6 @@ int get_quantum();
 int get_multiprogramming_degree();
 int get_metadata_refresh_rate();
 int get_execution_delay();
+uint64_t getCurrentTime();
 
 #endif

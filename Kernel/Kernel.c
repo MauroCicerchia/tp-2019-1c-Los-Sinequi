@@ -1,7 +1,7 @@
 #include"Kernel.h"
 
 int server, processNumber = 0, memoryNumber = 0, MP, reads = 0, writes = 0, totalOperations = 0, exitFlag = 0;
-float readsTime = 0.0f, writesTime = 0.0f;
+uint16_t readsTime = 0, writesTime = 0;
 t_list *memories, *tables;
 t_config *config;
 t_queue *new, *ready;
@@ -232,7 +232,7 @@ t_process *ready_to_exec(int processor) {
 
 void *processor_execute(void *p) {
 	int processor = (int)p;
-	time_t startTime, endTime;
+	uint16_t startTime, endTime;
 	if(processor >= MP)
 		return NULL;
 	t_process *exec;
@@ -249,10 +249,10 @@ void *processor_execute(void *p) {
 				exec->pc = process_length(exec);
 				break;
 			} else {
-				time(&startTime);
+				startTime = getCurrentTime();
 				execute_query(nextQuery);
 				sleep(get_execution_delay() / 1000);
-				time(&endTime);
+				endTime = getCurrentTime();
 
 				if(nextQuery->queryType == QUERY_SELECT) metrics_new_select(startTime, endTime);
 				if(nextQuery->queryType == QUERY_INSERT) metrics_new_insert(startTime, endTime);
@@ -541,7 +541,7 @@ void journal(){
 }
 
 void *metrics() {
-	printf("\nR : RL/30s = 0 : 0.00s\nW : WL/30s = 0 : 0.00s\nML = \n\n");
+	printf("\nR : RL/30s = 0 : 0ms\nW : WL/30s = 0 : 0ms\nML = \n\n");
 
 	while(!exitFlag) {
 		sleep(30);
@@ -574,8 +574,8 @@ void log_metrics() {
 	}
 
 	log_info(logger, " >> Metricas >>");
-	log_info(logger, "R : RL/30s = %d : %.2fs", reads, readLatency);
-	log_info(logger, "W : WL/30s = %d : %.2fs", writes, writeLatency);
+	log_info(logger, "R : RL/30s = %d : %dms", reads, readLatency);
+	log_info(logger, "W : WL/30s = %d : %dms", writes, writeLatency);
 	log_info(logger, " << Fin Metricas <<");
 }
 
@@ -586,24 +586,24 @@ void update_screen() {
 		printf("%d : %d%% ", m->mid, mLoad);
 	}
 
-	float readLatency = 0.0f, writeLatency = 0.0f;
+	float readLatency = 0, writeLatency = 0;
 
 	if(reads != 0) {
 		readLatency = readsTime/reads;
 	} else {
-		readLatency = 0.0f;
+		readLatency = 0;
 	}
 	if(writes != 0) {
 		writeLatency = writesTime/writes;
 	} else {
-		writeLatency = 0.0f;
+		writeLatency = 0;
 	}
 
 	system("clear");
 	printf("<LFS Kernel>\n\n");
 	display_memories();
 
-	printf("\nR : RL/30s = %d : %.2fs\nW : WL/30s = %d : %.2fs\nML = ", reads, readLatency, writes, writeLatency);
+	printf("\nR : RL/30s = %d : %dms\nW : WL/30s = %d : %dms\nML = ", reads, readLatency, writes, writeLatency);
 	if(totalOperations != 0) {
 		sem_wait(&MUTEX_MEMORIES);
 		list_iterate(memories, print_m_load);
@@ -615,7 +615,7 @@ void update_screen() {
 void metrics_new_select(int start, int end) {
 	sem_wait(&MUTEX_READS);
 	reads++;
-	readsTime += (float)difftime(end, start);
+	readsTime += end - start;
 	sem_post(&MUTEX_READS);
 	sem_wait(&MUTEX_TOTALOPS);
 	totalOperations++;
@@ -625,7 +625,7 @@ void metrics_new_select(int start, int end) {
 void metrics_new_insert(int start, int end) {
 	sem_wait(&MUTEX_WRITES);
 	writes++;
-	writesTime += (float)difftime(end, start);
+	writesTime += end - start;
 	sem_post(&MUTEX_WRITES);
 	sem_wait(&MUTEX_TOTALOPS);
 	totalOperations++;
@@ -689,4 +689,12 @@ void load_config() {
 		log_error(logger, " >> No se pudo abrir el archivo de configuracion");
 		exit(-1);
 	}
+}
+
+uint64_t getCurrentTime()
+{
+	struct timeval tv;
+	gettimeofday(&tv,NULL);
+	uint64_t  x = (uint64_t)( (tv.tv_sec)*1000 + (tv.tv_usec)/1000 );
+	return x;
 }
