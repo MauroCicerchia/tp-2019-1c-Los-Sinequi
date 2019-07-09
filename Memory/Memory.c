@@ -113,7 +113,6 @@ void THEGREATMALLOC(){
 void* attend_client(void* socket) {
 	int cliSocket = *(int*) socket;
 	e_request_code rc = recv_req_code(cliSocket);
-	sleep(3);
 	switch (rc) {
 	case REQUEST_QUERY:
 		process_query_from_client(cliSocket);

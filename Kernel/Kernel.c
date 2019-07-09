@@ -146,9 +146,7 @@ e_query processQuery(char *query) {
 			return queryError(logger);
 	}
 
-//	printf("\33[2K");
-
-//	log_info(logger, log_msg);
+	printf("\33[2K");
 
 	if(isQuery) {
 		t_query *newQuery = query_create(queryType, args);
@@ -177,7 +175,6 @@ int read_lql_file(char *path) {
 	while(fgets(buffer, sizeof(buffer), lql)) {
 		log_info(logger,buffer);
 		t_list *args = parseQuery(buffer);
-		log_info(logger,"asdasd");
 		e_query queryType = getQueryType(list_get(args, 0));
 		t_query *currentQuery = query_create(queryType, args);
 		list_add(fileQuerys, (void*)currentQuery);
@@ -320,7 +317,7 @@ void init_memory() {
 
 int connect_to_memory(char *IP, int PORT) {
 	int memSocket = connectToServer(IP, PORT);
-	if(memSocket == -1) {
+	if(memSocket <= -1) {
 		log_error(logger, " >> No se pudo conectar a Memoria.");
 		exit(-1);
 	}
@@ -409,9 +406,7 @@ t_list *get_shc_memories() {
 	bool memory_is_shc(void *mem) {
 		return memory_is_cons_type((t_memory*)mem, CONS_SHC);
 	}
-	sem_wait(&MUTEX_MEMORIES);
 	t_list *shc_mem = list_filter(memories, memory_is_shc);
-	sem_post(&MUTEX_MEMORIES);
 	return shc_mem;
 }
 
@@ -687,7 +682,7 @@ void load_logger()
 }
 
 void load_config() {
-	config = config_create("../.config");
+	config = config_create(".config");
 	if(config == NULL) {
 		log_error(logger, " >> No se pudo abrir el archivo de configuracion");
 		exit(-1);
