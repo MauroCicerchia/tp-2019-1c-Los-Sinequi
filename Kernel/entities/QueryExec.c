@@ -1,6 +1,7 @@
 #include"QueryExec.h"
 
-void qSelect(char *table, uint16_t key, t_log *logger) {
+void qSelect(char *tableName, uint16_t key, t_log *logger) {
+	char *table = string_duplicate(tableName);
 //	Paquetizar
 	t_package *p = create_package(QUERY_SELECT);
 	add_to_package(p, (void*)table, sizeof(char) * (strlen(table) + 1));
@@ -23,14 +24,12 @@ void qSelect(char *table, uint16_t key, t_log *logger) {
 	send_package(p, memSocket);
 	delete_package(p);
 
-	log_info(logger, "algo");
-
 	e_response_code r = recv_res_code(memSocket);
 
 	if(r == RESPONSE_SUCCESS) {
 		char *value = recv_str(memSocket);
-		log_info(logger, "algo %s", value);
 		output_select(table, key, value);
+		free(value);
 	} else {
 //		notificar error
 		log_error(logger, " >> Error al realizar select en memoria.");
@@ -38,6 +37,8 @@ void qSelect(char *table, uint16_t key, t_log *logger) {
 	close(memSocket);
 
 	mem->totalOperations++;
+
+	free(table);
 
 	return;
 }
@@ -228,9 +229,6 @@ void qJournal(t_memory *mem, t_log *logger) {
 
 void output_select(char *table, uint16_t key, char* value) {
 	char *sKey = string_itoa(key);
-	string_trim(&table);
-	string_trim(&sKey);
-	string_trim(&value);
 	FILE* output = txt_open_for_append("../select_output.txt");
 	txt_write_in_file(output, "SELECT ");
 	txt_write_in_file(output, table);
