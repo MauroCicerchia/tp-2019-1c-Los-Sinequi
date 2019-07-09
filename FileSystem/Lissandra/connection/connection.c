@@ -49,7 +49,7 @@ void process_query_from_client(int client)
 	recv(client, &opCode, sizeof(opCode), 0);
 
 	char *table, *value;
-	int key, status,timeStamp;
+	int key, status;
 	char *consType;
 	char *sKey, *sTimeStamp, *sPart, *sCTime;
 	metadata *tableMetadata;
@@ -78,9 +78,8 @@ void process_query_from_client(int client)
 			table = recv_str(client);
 			key = recv_int(client);
 			value = recv_str(client);
-			timeStamp = conn_getCurrentTime(); //agregar mi timestamp
 			sKey = string_itoa(key);
-			sTimeStamp = string_itoa(timeStamp);
+			sTimeStamp = string_from_format("%llu",conn_getCurrentTime());
 
 			status = qinsert(table, sKey, value,sTimeStamp);
 			free(sKey); free(sTimeStamp);
@@ -177,7 +176,7 @@ uint64_t conn_getCurrentTime()
 {
 	struct timeval tv;
 	gettimeofday(&tv,NULL);
-
-	return (uint64_t)((tv.tv_sec)*1000 + (tv.tv_usec)/1000);
+	uint64_t  x = (uint64_t)( (tv.tv_sec)*1000 + (tv.tv_usec)/1000 );
+	return x;
 }
 
