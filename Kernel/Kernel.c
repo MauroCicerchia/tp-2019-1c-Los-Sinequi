@@ -16,17 +16,14 @@ int main(int argc, char **argv) {
 
 	display_memories();
 
-	add_table(table_create("T1",CONS_SC,1,10000)); //harcodea3
+//	add_table(table_create("T1",CONS_SC,1,10000)); //harcodea3
 
 	pthread_t threadNewReady, threadsExec[MP], threadMetrics;
 
 	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
-//	pthread_detach(threadNewReady);
-	pthread_create(&threadMetrics, NULL, print_metrics, NULL);
-//	pthread_detach(threadNewReady);
+	pthread_create(&threadMetrics, NULL, metrics, NULL);
 	for(int i = 0; i < MP; i++) {
 		pthread_create(&threadsExec[i], NULL, processor_execute, (void*)i);
-//		pthread_detach(threadsExec[i]);
 	}
 
 	sleep(1);
@@ -34,9 +31,6 @@ int main(int argc, char **argv) {
 	start_API(logger);
 
 	exitFlag = 1;
-
-	printf("\nTerminando kernel, por favor espere...\n");
-	log_info(logger, "Terminando kernel, por favor espere...");
 
 	kill_kernel();
 
@@ -48,7 +42,7 @@ void init_kernel() {
 	printf("<LFS Kernel>\n\n");
 	srandom((int)time(NULL));
 	load_logger();
-	log_info(logger, "Iniciando Kernel");
+	log_info(logger, " >> INICIO KERNEL >>");
 
 	MP = get_multiprogramming_degree();
 
@@ -70,8 +64,10 @@ void init_kernel() {
 }
 
 void kill_kernel() {
-	log_info(logger, "Terminando Kernel");
-	log_info(logger, "------------------------------------------------------------");
+	printf("\nTerminando kernel, por favor espere...\n");
+	log_info(logger, " >> Terminando kernel, por favor espere... >>");
+	log_info(logger, " << FIN KERNEL <<");
+	log_info(logger, "------------------------------------------------------------------------------------------------------------");
 	log_destroy(logger);
 	queue_destroy_and_destroy_elements(new, process_destroy);
 	queue_destroy_and_destroy_elements(ready, process_destroy);
@@ -129,8 +125,9 @@ e_query processQuery(char *query) {
 			log_info(logger, " >> Recibi un ADD MEMORY %s TO %s", (char*)list_get(args, 2), (char*)list_get(args, 4));
 			if(getConsistencyType((char*)list_get(args, 4)) == CONS_SHC) {
 				update_shc();
-				display_memories();
 			}
+			printf("\033[A");
+			update_screen();
 			break;
 
 		case QUERY_RUN:
@@ -142,15 +139,15 @@ e_query processQuery(char *query) {
 		case QUERY_METRICS:
 			log_info(logger, " >> Recibi un METRICS");
 			printf("\033[A");
-			printf_metrics();
-			printf("\n");
+			update_screen();
+			log_metrics();
 			break;
 
 		default:
 			return queryError(logger);
 	}
 
-	printf("\33[2K");
+//	printf("\33[2K");
 
 //	log_info(logger, log_msg);
 
@@ -307,9 +304,14 @@ void execute_query(t_query *query) {
 void init_memory() {
 	char *ip = get_memory_ip();
 	char *port = get_memory_port();
+	log_info(logger, " >> Conectando a primer memoria.");
 	int memSocket = connect_to_memory(ip, port);
+	log_info(logger, " >> Solicitando memorias disponibles.");
 	request_memory_pool(memSocket);
-	//qDescribe(NULL, logger);
+	log_info(logger, " >> Memorias obtenidas correctamente.");
+	log_info(logger, " >> Realizando Describe inicial.");
+	//qDescribe(NULL, logger); TODO
+	log_info(logger, " >> Tablas obtenidas correctamente.");
 	close(memSocket);
 	free(ip);
 	free(port);
@@ -318,7 +320,7 @@ void init_memory() {
 int connect_to_memory(char *IP, int PORT) {
 	int memSocket = connectToServer(IP, PORT);
 	if(memSocket == -1) {
-		log_error(logger, "No se pudo conectar a Memoria.");
+		log_error(logger, " >> No se pudo conectar a Memoria.");
 		exit(-1);
 	}
 	return memSocket;
@@ -538,14 +540,14 @@ void journal(){
 	sem_post(&MUTEX_MEMORIES);
 }
 
-void *print_metrics() {
+void *metrics() {
 	printf("\nR : RL/30s = 0 : 0.00s\nW : WL/30s = 0 : 0.00s\nML = \n\n");
 
 	while(!exitFlag) {
 		sleep(30);
 		sem_wait(&MUTEX_READS);
 		sem_wait(&MUTEX_WRITES);
-		printf_metrics();
+		log_metrics();
 		reads = 0;
 		readsTime = 0.0f;
 		writes = 0;
@@ -558,7 +560,26 @@ void *print_metrics() {
 	return NULL;
 }
 
-void printf_metrics() {
+void log_metrics() {
+	float readLatency = 0.0f, writeLatency = 0.0f;
+	if(reads != 0) {
+		readLatency = readsTime/reads;
+	} else {
+		readLatency = 0.0f;
+	}
+	if(writes != 0) {
+		writeLatency = writesTime/writes;
+	} else {
+		writeLatency = 0.0f;
+	}
+
+	log_info(logger, " >> Metricas >>");
+	log_info(logger, "R : RL/30s = %d : %.2fs", reads, readLatency);
+	log_info(logger, "W : WL/30s = %d : %.2fs", writes, writeLatency);
+	log_info(logger, " << Fin Metricas <<");
+}
+
+void update_screen() {
 	void print_m_load(void *mem) {
 		t_memory *m = (t_memory*)mem;
 		int mLoad = (m->totalOperations * 100) / totalOperations;
@@ -577,15 +598,18 @@ void printf_metrics() {
 	} else {
 		writeLatency = 0.0f;
 	}
-	printf("%c7", 27);
-	printf("\033[A\033[A\033[A\033[A");
-	printf("\33[2K\rR : RL/30s = %d : %.2fs\n\33[2KW : WL/30s = %d : %.2fs\n\33[2KML = ", reads, readLatency, writes, writeLatency);
+
+	system("clear");
+	printf("<LFS Kernel>\n\n");
+	display_memories();
+
+	printf("\nR : RL/30s = %d : %.2fs\nW : WL/30s = %d : %.2fs\nML = ", reads, readLatency, writes, writeLatency);
 	if(totalOperations != 0) {
 		sem_wait(&MUTEX_MEMORIES);
 		list_iterate(memories, print_m_load);
 		sem_post(&MUTEX_MEMORIES);
 	}
-	printf("%c8", 27);
+	printf("\n\n\n");
 }
 
 void metrics_new_select(int start, int end) {
