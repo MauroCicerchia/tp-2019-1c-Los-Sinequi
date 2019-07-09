@@ -173,7 +173,9 @@ void b_saveData(char *url,char *data){
 	else{
 		blockUrl = string_new();
 		string_append(&blockUrl, blocksDirectory);
-		string_append(&blockUrl, string_itoa(b_get_lastBlock(url)));
+		char *x = string_itoa(b_get_lastBlock(url));
+		string_append(&blockUrl, x);
+		free(x);
 		string_append(&blockUrl, ".bin");
 		b_saveIntoBlock(blockUrl,data);
 
@@ -253,7 +255,10 @@ int b_get_lastBlock(char *url){
 	char *lastBlock = string_duplicate(blocksArray[last]);
 	int x = strtol(lastBlock,NULL,10);
 	free(lastBlock);
+
+	for(int i = 0; i < sizeofArray(blocksArray); i++){free(blocksArray[i]);}
 	free(blocksArray);
+
 	return x;
 }
 
@@ -264,11 +269,20 @@ int b_get_lastBlock(char *url){
 int b_get_firstFreeBlock(char *url){
 	char *stringArrayBlocks = getListOfBlocks(url);
 	char **blocksArray = string_get_string_as_array(stringArrayBlocks);
+	int x;
 	free(stringArrayBlocks);
 	for(int i = 0; i < sizeofArray(blocksArray); i++){
-		if(!b_full(strtol(blocksArray[i],NULL,10)))
-			return strtol(blocksArray[i],NULL,10);
+		if(!b_full(strtol(blocksArray[i],NULL,10))){
+			x = strtol(blocksArray[i],NULL,10);
+			for(int j = 0; j < sizeofArray(blocksArray); j++){free(blocksArray[j]);}
+			free(blocksArray);
+			return x;
+		}
 	}
+
+	for(int j = 0; j < sizeofArray(blocksArray); j++){free(blocksArray[j]);}
+	free(blocksArray);
+
 	return -1;
 }
 
@@ -304,6 +318,7 @@ void b_addNewBlock(char *url){
 
 	string_append(&stringArray, "]");
 	b_modifyBlocks(url,stringArray);
+	for(int j = 0; j < sizeofArray(listBlocks);j++){free(listBlocks[j]);}
 	free(listBlocks);
 	free(stringArray);
 }
@@ -381,12 +396,12 @@ void b_saveIntoBlock(char *blockUrl,char *data)
 			f = fopen(blockUrl,"w");
 			fclose(f);
 		}
-		free(pivot);
 	}
 
 	FILE *ff = txt_open_for_append(blockUrl);
 	txt_write_in_file(ff, data);
 	txt_close_file(ff);
+	free(pivot);
 }
 
 //actualiza el tamano

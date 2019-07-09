@@ -84,9 +84,12 @@ void freeBlocks(char *table)
 		}
 
 		free(fileUrl); free(strBlocks);
-		free(blocks);
 	}
 	list_destroy_and_destroy_elements(files, free);
+
+	for(int k = 0; k < sizeofArray(blocks);k++){free(blocks[k]);}
+	free(blocks);
+	free(tableUrl);
 }
 
 //devuelve lista con tmps y las particiones
