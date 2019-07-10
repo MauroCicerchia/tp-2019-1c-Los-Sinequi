@@ -175,7 +175,7 @@ void process_query_from_client(int client) {
 			table = recv_str(client);
 			key = recv_int(client);
 			char *response = selectM(table, key);
-
+			free(table);
 			if(response != NULL) {
 				send_res_code(client, RESPONSE_SUCCESS);
 				send_str(client, response);
@@ -188,6 +188,8 @@ void process_query_from_client(int client) {
 			key = recv_int(client);
 			value = recv_str(client);
 			status = insertM(table, key, value);
+			free(value);
+			free(table);
 			switch(status) {
 				case 0: send_res_code(client, RESPONSE_SUCCESS); break;
 				case 1: send_res_code(client, RESPONSE_ERROR); break;
@@ -201,6 +203,10 @@ void process_query_from_client(int client) {
 			part = recv_str(client);
 			compTime = recv_str(client);
 			status = createM(table, consType, part, compTime);
+			free(table);
+			free(consType);
+			free(part);
+			free(compTime);
 			if(status == 0)
 				send_res_code(client, RESPONSE_SUCCESS);
 			else
@@ -246,6 +252,7 @@ void process_query_from_client(int client) {
 		case QUERY_DROP:
 			table = recv_str(client);
 			status = dropM(table);
+			free(table);
 			if(status == 0)
 				send_res_code(client, RESPONSE_SUCCESS);
 			else
@@ -387,9 +394,9 @@ void insert_in_frame(uint16_t key, int timestamp, char* value, int frame_num){
 	void* base = main_memory + frame_num * get_frame_size();
 	memcpy(base, &key, sizeof(uint16_t));
 	base += sizeof(uint16_t);
-	memcpy(base, &timestamp, sizeof(int));
+	memcpy(base, &timestamp, sizeof(int)); //TODO cambiar ts a uint64_t?
 	base += sizeof(int);
-	memcpy(base, value, valueSize);
+	memcpy(base, value, strlen(value) + 1);
 
 	bitarray_set_bit(bitmap,frame_num);
 
@@ -400,7 +407,7 @@ void modify_in_frame(char* value, int frame_num){
 	int timestamp = get_timestamp();
 	memcpy(base, &timestamp, sizeof(int));
 	base += sizeof(int);
-	memcpy(base, value, valueSize);
+	memcpy(base, value, strlen(value) + 1);
 
 }
 
@@ -464,7 +471,9 @@ void journalM(){
 		void journal_page(void* aPage){
 			page*p = (page*) aPage;
 			if((p)->isModified){
-				send_insert_to_FS(s->segment_id,get_key_from_memory(p->frame_num),get_value_from_memory(p->frame_num),config,logger);
+				char *value = get_value_from_memory(p->frame_num);
+				send_insert_to_FS(s->segment_id,get_key_from_memory(p->frame_num),value,config,logger);
+				free(value);
 				p->isModified = 0;
 			}
 		}
@@ -502,7 +511,7 @@ int insertM(char* segmentID, int key, char* value){
 			}
 		}
 		else{
-			log_info(logger,"No se encontro la tabla buscada, creando nuevo segmento.");
+			log_info(logger,"No se encontro el segmento buscado, creando nuevo segmento.");
 			segment* newSegment = segment_init();
 			newSegment->segment_id = segmentID;
 			sem_wait(&MUTEX_MEM);
@@ -534,7 +543,7 @@ char* selectM(char* segmentID, int key){
 	segment* segmentFound = search_segment(segmentID);
 
 	if(segmentFound != NULL){
-		log_info(logger,"Se encontro la tabla buscada.");
+		log_info(logger,"Se encontro el segmento buscado.");
 		page* pageFound = search_page(segmentFound,key);
 		if(pageFound != NULL){
 			pageFound->last_time_used=get_timestamp();
@@ -558,13 +567,13 @@ char* selectM(char* segmentID, int key){
 				}
 				return value;
 			}else{
-				log_error(logger,"No existe la pagina ingresada en FS");
+				log_error(logger,"No existe la key ingresada en FS");
 				return NULL;
 			}
 		}
 	}
 	else{
-		log_warning(logger,"No existe la tabla ingresada en memoria");
+		log_warning(logger,"No existe el segmento ingresado en memoria");
 		char* value = send_select_to_FS(segmentID,key,config,logger);
 		if(value!=NULL){
 			segment* newSegment = segment_init();
@@ -585,7 +594,7 @@ char* selectM(char* segmentID, int key){
 			}
 			return value;
 		}else{
-			log_error(logger,"No existe la tabla o la pagina ingresada en FS");
+			log_error(logger,"No existe la tabla o la key ingresada en FS");
 		}
 	}
 
@@ -618,7 +627,7 @@ int dropM(char* segment_id){
 		sem_post(&MUTEX_MEM);
 		log_info(logger,"Se elimino el segmento y se libero la memoria");
 	}else{
-		log_info(logger,"No se encontro la tabla a borrar.");
+		log_info(logger,"No se encontro el segmento a borrar.");
 		return -1;
 	}
 

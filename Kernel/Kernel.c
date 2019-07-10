@@ -8,8 +8,6 @@ t_queue *new, *ready;
 sem_t MUTEX_NEW, MUTEX_READY, MUTEX_MEMORIES, MUTEX_TABLES, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY, MUTEX_READS, MUTEX_WRITES, MUTEX_TOTALOPS;
 t_log *logger;
 
-// TODO Validar que haya memoria antes de realizar query
-
 int main(int argc, char **argv) {
 	init_kernel();
 
@@ -472,6 +470,7 @@ void update_shc() {
 
 	if(list_size(shc_mem) > 1)
 		list_iterate(shc_mem, journalMem);
+	list_destroy(shc_mem);
 }
 
 t_table *get_table(char *id) {

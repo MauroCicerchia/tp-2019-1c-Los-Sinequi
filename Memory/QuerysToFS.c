@@ -18,7 +18,7 @@
  *
  */
 
-
+//TODO actualizar key: int -> uint16_t
 
 char* send_select_to_FS(char* segmentID, int key, t_config* config,t_log* logger){
 
@@ -217,5 +217,10 @@ int connect_to_FS(t_config* config, t_log* logger){
 }
 
 void metadata_destroy(void* aMD){
-	free(aMD);
+	metadata *md = (metadata*)aMD;
+	free(md->compTime);
+	free(md->consType);
+	free(md->partNum);
+	free(md->tableName);
+	free(md);
 }

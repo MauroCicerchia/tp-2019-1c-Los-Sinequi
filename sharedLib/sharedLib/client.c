@@ -15,6 +15,7 @@ int connectToServer(char *IP, char *PORT) {
 
 	if(connect(client_socket, server_info->ai_addr, server_info->ai_addrlen) == -1){
 		printf("Error al conectarse al servidor. Try again later.\n");
+		freeaddrinfo(server_info); //ADROINFO
 		close(client_socket);
 		return(-1);
 	}

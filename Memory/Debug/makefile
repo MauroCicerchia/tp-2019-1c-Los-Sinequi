@@ -25,7 +25,7 @@ endif
 all: Memory
 
 dependents:
-	-cd /home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug && $(MAKE) all
+	-cd /home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug && $(MAKE) clean all
 
 # Tool invocations
 Memory: $(OBJS) $(USER_OBJS) /home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug/libsharedLib.so
