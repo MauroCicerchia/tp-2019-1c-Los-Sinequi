@@ -9,17 +9,17 @@ int main(int argc, char **argv) {
 	memory_init();
 
 	pthread_t threadClient;
-	pthread_t threadAutoJournal;
-	pthread_t threadGossip;
+	//pthread_t threadAutoJournal;
+	//pthread_t threadGossip;
 
-	pthread_create(&threadGossip,NULL,auto_gossip,NULL);
-	pthread_detach(threadGossip);
+	//pthread_create(&threadGossip,NULL,auto_gossip,NULL);
+	//pthread_detach(threadGossip);
 
 	pthread_create(&threadClient, NULL, listen_client, NULL);
 	pthread_detach(threadClient);
 
-	pthread_create(&threadAutoJournal, NULL, execute_journal, NULL);
-	pthread_detach(threadAutoJournal);
+	//pthread_create(&threadAutoJournal, NULL, execute_journal, NULL);
+	//pthread_detach(threadAutoJournal);
 
 	start_API(logger);
 
@@ -85,7 +85,7 @@ void create_bitmap(int memSize){
 
 	int bitNumbers = total_frames();
 	char* bitParameter = (char*)malloc(sizeof(char)*(bitNumbers/8 + 1));
-	printf("%d",total_frames());
+	log_error(logger,"Marcos: **%d**",total_frames());
 	for(int i = 0; i<=(bitNumbers/8); i++){
 		bitParameter[i] = '0';
 	}
@@ -128,7 +128,7 @@ char* get_value_from_memory(int frame_num){
 
 
 void insert_in_frame(uint16_t key, uint64_t timestamp, char* value, int frame_num){
-
+	sem_wait(&MUTEX_MEM);
 	void* base = main_memory + frame_num * get_frame_size();
 	memcpy(base, &key, sizeof(uint16_t));
 	base += sizeof(uint16_t);
@@ -137,29 +137,32 @@ void insert_in_frame(uint16_t key, uint64_t timestamp, char* value, int frame_nu
 	memcpy(base, value, strlen(value) + 1);
 
 	bitarray_set_bit(bitmap,frame_num);
-
+	sem_post(&MUTEX_MEM);
 }
 
 void modify_in_frame(char* value, int frame_num){
+	sem_wait(&MUTEX_MEM);
 	void* base = main_memory + frame_num * get_frame_size() + sizeof(uint16_t);
 	uint64_t timestamp = get_timestamp();
 	memcpy(base, &timestamp, sizeof(uint64_t));
 	base += sizeof(int);
 	memcpy(base, value, strlen(value) + 1);
-
+	sem_post(&MUTEX_MEM);
 }
 
 int find_free_frame(){
-	int i=0;
-	while(bitarray_test_bit(bitmap,i) != 0){
-		i++;
+	int i=0,free_frame = -1;
+	for(i=0;i<total_frames();i++){
+		if(bitarray_test_bit(bitmap,i) == 0){
+			free_frame = i;
+			break;
+		}
 	}
-	return i;
+	return free_frame;
 }
 
 int frame_available_in_mem(){
-	int memSize = get_tam_mem();
-	int bitNumbers = total_frames(memSize);
+	int bitNumbers = total_frames();
 	int i=0;
 	for(i=0;i<bitNumbers;i++){
 		if(bitarray_test_bit(bitmap,i) == 0){
@@ -167,6 +170,10 @@ int frame_available_in_mem(){
 		}
 	}
 	return 0;
+}
+
+void free_frame(int frame){
+	bitarray_clean_bit(bitmap,frame);
 }
 
 //************************************ FIN MEMORIA PRINCIPAL *****************************************
@@ -363,7 +370,7 @@ e_query processQuery(char *query, t_log *logger) {
 	int insertResult;
 	e_query queryType;
 
-	t_list *args = parseQuery(query); //guardas en el vecor args la query
+	t_list *args = parseQuery(query); //guardas en el vector args la query
 
 	int invalidQuery = validateQuerySyntax(args); //validamos que sea correcta y sino lanzamos exception
 	if (!invalidQuery)
@@ -433,12 +440,6 @@ e_query processQuery(char *query, t_log *logger) {
 	return queryType;
 }
 
-/*page* search_page(segment* aSegment,int aKey){
-	bool isKey(void* aPage){
-			return ((page*) aPage)->page_data->key == aKey;
-		}
-		return list_find(aSegment->page_list,isKey);
-}*/
 
 page* search_page(segment* aSegment,uint16_t aKey){
 	bool isKey(void* aPage){
@@ -471,7 +472,7 @@ void load_page_to_segment(uint16_t key, segment* segmentFound, char* value, int 
 	int frame_num = find_free_frame();
 	segment_add_page(segmentFound, frame_num, modified);
 	insert_in_frame(key, get_timestamp(), value, frame_num);
-	log_info(logger, "Se agrego la pagina con el nuevo valor a segmento y memoria.");
+	log_info(logger, "Se agrego la pagina con el nuevo valor a segmento y memoria al frame: %d.",frame_num);
 }
 
 void* execute_journal(){
@@ -506,7 +507,7 @@ void journalM(){
 		list_clean_and_destroy_elements(segmentList,segment_destroy);
 		//setear el bitmap en 0 de toda la mem
 		for(int i=0;i<total_frames();i++){
-			bitarray_clean_bit(bitmap,i);
+			free_frame(i);
 		}
 		log_info(logger,"[JOURNAL]: Journal ejecutado");
 	}else{
@@ -523,26 +524,22 @@ int insertM(char* segmentID, uint16_t key, char* value){
 			page* pageFound = search_page(segmentFound,key);
 			if(pageFound != NULL){
 				log_info(logger,"Se encontro la pagina con el key buscado, modificando el valor.");
-				sem_wait(&MUTEX_MEM);
 				modify_in_frame(value,pageFound->frame_num);
-				sem_post(&MUTEX_MEM);
 				pageFound->isModified=1;
 				pageFound->last_time_used=get_timestamp();
 				return 0;
 			}
 			else{
-				log_warning(logger,"No se encontro la pagina con el key buscado,creando pagina.");
+				log_info(logger,"No se encontro la pagina con el key buscado,creando pagina.");
 				load_page_to_segment(key, segmentFound, value, 1);
 				return 0 ;
 			}
 		}
 		else{
-			log_info(logger,"No se encontro el segmento buscado, creando nuevo segmento.");
+			log_warning(logger,"No se encontro el segmento buscado, creando nuevo segmento.");
 			segment* newSegment = segment_init();
 			newSegment->segment_id = string_duplicate(segmentID);
-			sem_wait(&MUTEX_MEM);
 			load_page_to_segment(key, newSegment, value, 1);
-			sem_post(&MUTEX_MEM);
 			return 0;
 			}
 	}
@@ -561,7 +558,7 @@ int insertM(char* segmentID, uint16_t key, char* value){
 			return 0;
 		}
 	}
-return 0;
+	return 0;
 
 }
 
@@ -581,9 +578,7 @@ char* selectM(char* segmentID, uint16_t key){
 
 			if(value!=NULL){
 				if(frame_available_in_mem()){
-					sem_wait(&MUTEX_MEM);
 					load_page_to_segment(key, segmentFound, value, 0);
-					sem_post(&MUTEX_MEM);
 				}else{
 					if(memory_full()){
 						journalM();
@@ -606,15 +601,11 @@ char* selectM(char* segmentID, uint16_t key){
 			segment* newSegment = segment_init();
 			newSegment->segment_id = string_duplicate(segmentID);
 			if(frame_available_in_mem()){
-				sem_wait(&MUTEX_MEM);
 				load_page_to_segment(key, newSegment, value, 0);
-				sem_post(&MUTEX_MEM);
 			}else{
 				if(memory_full()){
 					journalM();
-					sem_wait(&MUTEX_MEM);
 					load_page_to_segment(key, newSegment, value, 0);
-					sem_post(&MUTEX_MEM);
 				}else{
 					execute_replacement(key,value,newSegment);
 				}
@@ -646,10 +637,8 @@ int dropM(char* segment_id){
 	send_drop_to_FS(segment_id, logger);
 
 	if(segmentFound != NULL){
-		sem_wait(&MUTEX_MEM);
 		delete_segment_from_mem(segmentFound);
 		remove_delete_segment(segmentFound);
-		sem_post(&MUTEX_MEM);
 		log_info(logger,"Se elimino el segmento y se libero la memoria");
 	}else{
 		log_info(logger,"No se encontro el segmento a borrar.");
@@ -661,7 +650,7 @@ int dropM(char* segment_id){
 /**************************** FIN QUERYS *********************************************/
 void delete_segment_from_mem(segment* aSegment){
 	void make_frame_available(void* aPage){
-		bitarray_clean_bit(bitmap,((page*) aPage)->frame_num);
+		free_frame(((page*) aPage)->frame_num);
 	}
 	list_iterate(aSegment->page_list, make_frame_available);
 }
@@ -696,10 +685,9 @@ void execute_replacement(uint16_t key, char* value, segment* segment_to_use){
 	if(min_segment != NULL && min_page != NULL) {
 		log_info(logger,"Se remueve la key %d del segmento %s \n", (int)get_key_from_memory(min_page->frame_num), min_segment->segment_id);
 
+		free_frame(min_page->frame_num);
 		remove_page_from_segment(min_page,min_segment);
-		sem_wait(&MUTEX_MEM);
 		load_page_to_segment(key, segment_to_use, value, 0);
-		sem_post(&MUTEX_MEM);
 	} else {
 		log_error(logger, "No se encontro una pagina para reemplazar.");
 	}
@@ -707,7 +695,7 @@ void execute_replacement(uint16_t key, char* value, segment* segment_to_use){
 }
 /******************************** FIN LRU *******************************************/
 void get_value_size(){
-	int socket;
+	/*int socket;
 	do {
 		socket = connect_to_FS(logger);
 		if(socket == -1) {
@@ -718,8 +706,8 @@ void get_value_size(){
 	send_req_code(socket,REQUEST_VALUESIZE);
 	valueSize = recv_int(socket);
 	close(socket);
-	log_info(logger, "Value Size recibido de FS.");
-	//valueSize = 255;
+	log_info(logger, "Value Size recibido de FS.");*/
+	valueSize = 400;
 }
 /******************************* DATOS VARIABLES DEL ARCHIVO CONFIG **********************/
 int get_retardo_journal(){
@@ -810,11 +798,4 @@ char** array_duplicate(char** array){
 
 
 /************************** FIN DATOS VARIABLES DEL ARCHIVO CONFIG *****************************/
-//
-//uint64_t get_timestamp(){
-//	struct timeval tv;
-//	gettimeofday(&tv,NULL);
-//	uint64_t  x = (uint64_t)( (tv.tv_sec)*1000 + (tv.tv_usec)/1000 );
-//	return x;
-//}
 
