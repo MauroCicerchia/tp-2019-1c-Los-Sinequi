@@ -49,7 +49,8 @@ void process_query_from_client(int client)
 	recv(client, &opCode, sizeof(opCode), 0);
 
 	char *table, *value;
-	int key, status;
+	int status;
+	uint16_t key;
 	char *consType;
 	char *sKey, *sTimeStamp, *sPart, *sCTime;
 	metadata *tableMetadata;
@@ -60,7 +61,7 @@ void process_query_from_client(int client)
 
 			table = recv_str(client);
 			key = recv_int(client);
-			sKey = string_itoa(key);
+			sKey = string_itoa((int)key);
 			char *response = qselect(table, sKey);
 			free(sKey);
 			free(table);
@@ -80,7 +81,7 @@ void process_query_from_client(int client)
 			table = recv_str(client);
 			key = recv_int(client);
 			value = recv_str(client);
-			sKey = string_itoa(key);
+			sKey = string_itoa((int)key);
 			sTimeStamp = string_from_format("%llu",conn_getCurrentTime());
 
 			status = qinsert(table, sKey, value,sTimeStamp);
