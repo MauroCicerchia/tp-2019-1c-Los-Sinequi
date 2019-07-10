@@ -21,6 +21,6 @@ int send_create_to_FS(char*,char*,char*,char*,t_log*);
 t_list *send_describe_to_FS(char*,t_log*);
 
 int send_insert_to_FS(char*,uint16_t,char*,t_log*);
-void send_drop_to_FS(char*,t_log*);
+int send_drop_to_FS(char*,t_log*);
 
 int connect_to_FS(t_log*);

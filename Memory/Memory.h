@@ -80,7 +80,7 @@ char* selectM(char*,uint16_t);	   // (nombreTabla,key)
 int insertM(char*,uint16_t,char*); // (nombreTabla,key,value)
 int createM(char*,char*,char*,char*);
 int dropM(char*);
-void journalM(void);
+int journalM(void);
 t_list *describeM(char*);
 
 
