@@ -13,7 +13,7 @@ void *threadCompact(char *tableName)
 			compact(table);
 		sem_post(&table->MUTEX_DROP_TABLE);
 
-			sleep(table->ctime/1000);
+			usleep(table->ctime * 1000);
 		}
 
 	sprintf(log_msg,"[Compactador %s]: Tabla quitada de lista de tablas activas", tableName);
