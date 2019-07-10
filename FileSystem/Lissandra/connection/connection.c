@@ -102,7 +102,7 @@ void process_query_from_client(int client)
 			sPart = recv_str(client);
 			sCTime = recv_str(client);
 			status = qcreate(table, consType, sPart, sCTime);
-			free(table); free(consType); free(sPart); free(sCTime); free();
+			free(table); free(consType); free(sPart); free(sCTime);
 			if(status)
 				send_res_code(client, RESPONSE_SUCCESS);
 
