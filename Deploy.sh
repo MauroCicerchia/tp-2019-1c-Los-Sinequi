@@ -122,19 +122,27 @@ if test ! -d /home/utnso/workspace; then
     mkdir /home/utnso/workspace
 fi
 
+cd
+
 mv /home/utnso/tp-2019-1c-Los-Sinequi/  /home/utnso/workspace
 
 cd /home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug
     make clean
     make all
 
+cd 
+
 cd /home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/Debug
     make clean
     make all
 
+cd
+
 cd /home/utnso/workspace/tp-2019-1c-Los-Sinequi/Kernel/Debug
     make clean
     make all
+
+cd
 
 cd /home/utnso/workspace/tp-2019-1c-Los-Sinequi/Memory/Debug
     make clean
