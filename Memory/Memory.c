@@ -165,7 +165,8 @@ void process_query_from_client(int client) {
 	recv(client, &opCode, sizeof(opCode), 0);
 
   char *table, *value,*part, *compTime;
-	int key, status;
+	int status;
+	uint16_t key;
 	char *consType;
   metadata* aMD;
 	t_list* metadata_list;
@@ -268,7 +269,7 @@ void* auto_gossip(){
 	int delay = config_get_int_value(config,"RETARDO_GOSSIPING");
 	log_info(logger,"Iniciando Gossiping");
 	while(true){
-		execute_gossip_client(config,logger);
+		execute_gossip_client(config,logger,port);
 		//log_info(logger,"************** %d ************",list_size(gossip_table));
 		print_gossip_table();
 		sleep(delay/1000);
@@ -451,7 +452,7 @@ int frame_available_in_mem(){
 	return 0;
 }
 
-void load_page_to_segment(int key, segment* segmentFound, char* value, int modified) {
+void load_page_to_segment(uint16_t key, segment* segmentFound, char* value, int modified) {
 	int frame_num = find_free_frame();
 	segment_add_page(segmentFound, frame_num, modified);
 	insert_in_frame(key, get_timestamp(), value, frame_num);
@@ -489,7 +490,7 @@ void journalM(){
 	}
 }
 
-int insertM(char* segmentID, int key, char* value){
+int insertM(char* segmentID, uint16_t key, char* value){
 
 	if (frame_available_in_mem()){
 		segment* segmentFound = search_segment(segmentID);
@@ -553,6 +554,7 @@ char* selectM(char* segmentID, int key){
 		}else{
 			log_warning(logger,"No se encontro la pagina con el key buscado, consultando a FS.");
 			char* value = send_select_to_FS(segmentID,key,config,logger);
+
 			if(value!=NULL){
 				if(frame_available_in_mem()){
 					sem_wait(&MUTEX_MEM);
@@ -649,7 +651,7 @@ void remove_delete_segment(segment* aSegment){
 	list_remove_and_destroy_by_condition(segmentList,isSegment,segment_destroy);
 }
 
-void execute_replacement(int key, char* value, segment* segment_to_use){
+void execute_replacement(uint16_t key, char* value, segment* segment_to_use){
 	log_info(logger,"Ejecutando algoritmo de reemplazo LRU");
 	int min_time = get_timestamp();
 	page* min_page;

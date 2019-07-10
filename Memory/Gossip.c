@@ -1,34 +1,45 @@
 #include"Gossip.h"
 
-void execute_gossip_client(t_config* config,t_log* logger){
-	char* seed_ip = config_get_string_value(config, "IP_SEED");
-	char* seed_port = config_get_string_value(config, "PUERTO_SEED");
-	log_info(logger,"Intentando conectarse a la seed: %s - %s",seed_ip,seed_port);
-	int seed_socket = connectToServer(seed_ip,seed_port);
+void execute_gossip_client(t_config* config,t_log* logger,char* port){
+	char** seed_ips = config_get_array_value(config, "IP_SEEDS");
+	char** seed_ports = config_get_string_value(config, "PUERTO_SEEDS");
 
-	if(seed_socket == -1){
-		log_warning(logger,"La seed no se ha inicializado aun");
-		return;
-	}
-	else{
-		log_info(logger,"La seed ha sido exitosamente conectada");
-		send_req_code(seed_socket,REQUEST_GOSSIP);
-		//send mi tabla
-		send_gossip_table(seed_socket);
-		e_response_code response = recv_res_code(seed_socket);
-		if(response == RESPONSE_SUCCESS){
-			//recibo mis tablas
-			recv_gossip_table(seed_socket,config,logger);
-		log_info(logger,"Tabla gossip actualizada correctamente");
+	int seeds_amount = 0;
+	seeds_amount = sizeOfArray(seed_ips);
 
+	for(int i=0;i<seeds_amount;i++){
+		char* seed_ip = seed_ips[i];
+		char* seed_port = seed_ports[i];
+		if (seed_port == NULL){
+			seed_port = port; // ????? no sabemos si asumir esto es correcto
+		}
+		log_info(logger,"Intentando conectarse a la seed: %s - %s",seed_ip,seed_port);
+		int seed_socket = connectToServer(seed_ip,seed_port);
+
+		if(seed_socket == -1){
+			log_warning(logger,"La seed no se ha inicializado aun");
 		}
 		else{
-			log_error(logger,"Ha fallado la consulta de gossip table a seed");
+			log_info(logger,"La seed ha sido exitosamente conectada");
+			send_req_code(seed_socket,REQUEST_GOSSIP);
+			//send mi tabla
+			send_gossip_table(seed_socket);
+			e_response_code response = recv_res_code(seed_socket);
+			if(response == RESPONSE_SUCCESS){
+				//recibo mis tablas
+				recv_gossip_table(seed_socket,config,logger);
+			log_info(logger,"Tabla gossip actualizada correctamente");
+
+			}
+			else{
+				log_error(logger,"Ha fallado la consulta de gossip table a seed");
+			}
+			close(seed_socket);
 		}
-		close(seed_socket);
-		return;
 	}
 }
+//TODO eliminar memoria de la tabla gossip si se desconecta
+//TODO tiempos de retardo variables en t de ejecucion
 
 void execute_gossip_server(int socket_gossip,t_config* config,t_log* logger){
 	//llega y actualizo tabla
