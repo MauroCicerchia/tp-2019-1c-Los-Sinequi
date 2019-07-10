@@ -15,8 +15,6 @@ int main(int argc, char **argv) {
 
 	display_memories();
 
-//	add_table(table_create("T1",CONS_SC,1,10000)); //harcodea3
-
 	pthread_t threadNewReady, threadsExec[MP], threadMetrics;
 
 	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
@@ -25,7 +23,7 @@ int main(int argc, char **argv) {
 		pthread_create(&threadsExec[i], NULL, processor_execute, (void*)i);
 	}
 
-	sleep(1);
+	usleep(10000);
 
 	start_API(logger);
 
@@ -248,12 +246,12 @@ void *processor_execute(void *p) {
 				break;
 			} else {
 				startTime = getCurrentTime();
-				execute_query(nextQuery);
-				sleep(get_execution_delay() / 1000);
+				int status = execute_query(nextQuery);
+				usleep(get_execution_delay() * 1000);
 				endTime = getCurrentTime();
 
-				if(nextQuery->queryType == QUERY_SELECT) metrics_new_select(startTime, endTime);
-				if(nextQuery->queryType == QUERY_INSERT) metrics_new_insert(startTime, endTime);
+				if(status && nextQuery->queryType == QUERY_SELECT) metrics_new_select(startTime, endTime);
+				if(status && nextQuery->queryType == QUERY_INSERT) metrics_new_insert(startTime, endTime);
 			}
 		}
 
@@ -268,34 +266,34 @@ void *processor_execute(void *p) {
 	return NULL;
 }
 
-void execute_query(t_query *query) {
+int execute_query(t_query *query) {
 	switch(query->queryType) {
 		case QUERY_SELECT:
 			log_info(logger, " >> Ejecutando un SELECT %s %s", (char*)list_get(query->args, 1), (char*)list_get(query->args, 2));
-			qSelect(list_get(query->args, 1), strtol(list_get(query->args, 2),NULL, 10), logger);
+			return qSelect(list_get(query->args, 1), strtol(list_get(query->args, 2),NULL, 10), logger);
 			break;
 		case QUERY_INSERT:
 			log_info(logger, " >> Ejecutando un INSERT %s %s \"%s\"", (char*)list_get(query->args, 1), (char*)list_get(query->args, 2), (char*)list_get(query->args, 3));
-			qInsert(list_get(query->args, 1), strtol(list_get(query->args, 2),NULL, 10), list_get(query->args, 3), logger);
+			return qInsert(list_get(query->args, 1), strtol(list_get(query->args, 2),NULL, 10), list_get(query->args, 3), logger);
 			break;
 		case QUERY_CREATE:
 			log_info(logger, " >> Ejecutando un CREATE %s %s %s %s", (char*)list_get(query->args, 1), (char*)list_get(query->args, 2), (char*)list_get(query->args, 3), (char*)list_get(query->args, 4));
-			qCreate(list_get(query->args, 1), list_get(query->args, 2), list_get(query->args, 3), list_get(query->args, 4), logger);
+			return qCreate(list_get(query->args, 1), list_get(query->args, 2), list_get(query->args, 3), list_get(query->args, 4), logger);
 			break;
 		case QUERY_DESCRIBE:
 			if(list_get(query->args, 1) != NULL) {
 				log_info(logger, " >> Ejecutando un DESCRIBE %s", (char*)list_get(query->args, 1));
-				qDescribe(list_get(query->args, 1), logger);
+				return qDescribe(list_get(query->args, 1), logger);
 			} else {
 				log_info(logger, " >> Ejecutando un DESCRIBE");
-				qDescribe(NULL, logger);
+				return qDescribe(NULL, logger);
 			}
 			break;
 		case QUERY_DROP:
 			log_info(logger, " >> Ejecutando un DROP %s", (char*)list_get(query->args, 1));
-			qDrop(list_get(query->args, 1), logger);
+			return qDrop(list_get(query->args, 1), logger);
 			break;
-		default: break;
+		default: return 0; break;
 	}
 }
 
@@ -396,8 +394,10 @@ t_memory *get_sc_memory_for_table(t_table* t) {
 }
 
 t_memory *get_random_sc_memory() {
+	t_memory *m = NULL;
 	t_list *sc_mem = get_sc_memories();
-	t_memory *m = (t_memory*)list_get(sc_mem, random() % list_size(sc_mem));
+	if(list_size(sc_mem) > 0)
+		m = (t_memory*)list_get(sc_mem, random() % list_size(sc_mem));
 	list_destroy(sc_mem);
 	return m;
 }
@@ -407,12 +407,15 @@ t_list *get_shc_memories() {
 		return memory_is_cons_type((t_memory*)mem, CONS_SHC);
 	}
 	t_list *shc_mem = list_filter(memories, memory_is_shc);
+	list_destroy(shc_mem);
 	return shc_mem;
 }
 
 t_memory *get_shc_memory_for_table(t_table *t, uint16_t key) {
 	t_list *shc_mem = get_shc_memories();
-	return (t_memory*)list_get(shc_mem, key % list_size(shc_mem));
+	if(list_size(shc_mem) > 0)
+		return (t_memory*)list_get(shc_mem, key % list_size(shc_mem));
+	return NULL;
 }
 
 t_list *get_ec_memories() {
@@ -547,9 +550,9 @@ void *metrics() {
 		sem_wait(&MUTEX_WRITES);
 		log_metrics();
 		reads = 0;
-		readsTime = 0.0f;
+		readsTime = 0;
 		writes = 0;
-		writesTime = 0.0f;
+		writesTime = 0;
 		sem_post(&MUTEX_READS);
 		sem_post(&MUTEX_WRITES);
 
@@ -559,16 +562,12 @@ void *metrics() {
 }
 
 void log_metrics() {
-	float readLatency = 0.0f, writeLatency = 0.0f;
+	int readLatency = 0, writeLatency = 0;
 	if(reads != 0) {
 		readLatency = readsTime/reads;
-	} else {
-		readLatency = 0.0f;
 	}
 	if(writes != 0) {
 		writeLatency = writesTime/writes;
-	} else {
-		writeLatency = 0.0f;
 	}
 
 	log_info(logger, " >> Metricas >>");
@@ -584,17 +583,13 @@ void update_screen() {
 		printf("%d : %d%% ", m->mid, mLoad);
 	}
 
-	float readLatency = 0, writeLatency = 0;
+	int readLatency = 0, writeLatency = 0;
 
 	if(reads != 0) {
 		readLatency = readsTime/reads;
-	} else {
-		readLatency = 0;
 	}
 	if(writes != 0) {
 		writeLatency = writesTime/writes;
-	} else {
-		writeLatency = 0;
 	}
 
 	system("clear");
@@ -693,6 +688,6 @@ uint64_t getCurrentTime()
 {
 	struct timeval tv;
 	gettimeofday(&tv,NULL);
-	uint64_t  x = (uint64_t)( (tv.tv_sec)*1000 + (tv.tv_usec)/1000 );
+	uint64_t x = (uint64_t)( (tv.tv_sec)*1000 + (tv.tv_usec)/1000 );
 	return x;
 }
