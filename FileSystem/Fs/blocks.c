@@ -150,11 +150,6 @@ void b_saveData(char *url,char *data){
 	char *blockUrl;
 	int sizeOfSemiCompleteBlock = b_freeSizeOfLastBlock(url);
 
-//	if(b_full(block)){
-//		b_addNewBlock(url);
-//		block = b_get_lastBlock(url);
-//	}
-
 	//en el ultimo bloque -NO- hay espacio para guardar toda la info
 	if(! (sizeOfSemiCompleteBlock >= strlen(data))){
 		int blocksNeeded;
@@ -167,7 +162,7 @@ void b_saveData(char *url,char *data){
 		}
 
 		//le asigno todos los bloques que necesita
-		for(int i =0; i < blocksNeeded; i++){b_addNewBlock(url);}
+		for(int i = 0; i < blocksNeeded; i++){b_addNewBlock(url);}
 
 	}
 	//en el ultimo bloque hay espacio suficiente para guardar la info completa
@@ -192,8 +187,10 @@ void b_saveData(char *url,char *data){
 
 	blockUrl = string_new();
 	string_append(&blockUrl, blocksDirectory);
-	string_append(&blockUrl, string_itoa(b_get_firstFreeBlock(url)));
+	char *x = string_itoa(b_get_firstFreeBlock(url));
+	string_append(&blockUrl, x);
 	string_append(&blockUrl, ".bin");
+	free(x);
 
 	//lleno el bloque que estaba semicompleto
 	char *toInsert = string_substring(data, lastPosInserted, sizeOfSemiCompleteBlock);
@@ -206,8 +203,7 @@ void b_saveData(char *url,char *data){
 	while(flag){
 		toInsert = string_new();
 		if( (strlen(data)-lastPosInserted) > getSizeOfBlocks() ){ //si lo que queda no entra en un bloque
-			toInsert = string_substring_from(data, lastPosInserted);
-
+			toInsert = string_substring(data, lastPosInserted,getSizeOfBlocks());
 			blockUrl = string_new();
 			string_append(&blockUrl, blocksDirectory);
 			string_append(&blockUrl, string_itoa(b_get_firstFreeBlock(url)));
@@ -216,7 +212,6 @@ void b_saveData(char *url,char *data){
 			b_saveIntoBlock(blockUrl,toInsert);
 
 			lastPosInserted += getSizeOfBlocks();
-
 			free(toInsert); free(blockUrl);
 		}
 		else{// si lo que queda entra en un bloque
@@ -312,13 +307,14 @@ void b_addNewBlock(char *url){
 	}
 	free(arrayBlocks);free(stringArrayBlocks);
 
-	list_add(listBlocks,string_itoa(newBlock));
+	char *x = string_itoa(newBlock);
+	list_add(listBlocks,x);
 
 	char *stringArray = string_new();
 	string_append(&stringArray, "[");
 	for(int k = 0; k < list_size(listBlocks); k++){
 		string_append(&stringArray,list_get(listBlocks,k));
-		if((k + 1) == list_size(listBlocks)) string_append(&stringArray,",");
+		if((k + 1) != list_size(listBlocks)) string_append(&stringArray,",");
 	}
 	string_append(&stringArray, "]");
 
