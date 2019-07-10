@@ -227,7 +227,9 @@ void com_saveInPartition(t_list *keys,t_list *allInserts, activeTable *table)
 
 		string_append(&toInsert,"\n");
 
+
 		b_saveData(partUrl,toInsert);
+
 
 		free(partUrl);
 		free(toInsert);

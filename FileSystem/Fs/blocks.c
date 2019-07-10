@@ -142,6 +142,7 @@ int getSizeOfBlocks(){
 
 //tb_getBlockInserts(block) revisar si es necesaria y donde
 
+// /Tables/T1/1.BIN
 
 //guarda la data en el archivo de la url
 void b_saveData(char *url,char *data){
@@ -302,25 +303,29 @@ bool b_empty(int block){
 void b_addNewBlock(char *url){
 	int newBlock = ba_getNewBlock();
 	char *stringArrayBlocks = getListOfBlocks(url);
-	char **listBlocks = string_get_string_as_array(stringArrayBlocks);
-	free(stringArrayBlocks);
-	int size = sizeofArray(listBlocks);
-	listBlocks[size] = string_itoa(newBlock);
-	listBlocks[size + 1] = NULL;
-	char *stringArray = string_new();
+	char **arrayBlocks = string_get_string_as_array(stringArrayBlocks);
 
-	string_append(&stringArray, "[");
-	int i = 0;
-	while(listBlocks[i] != NULL){
-		string_append(&stringArray,listBlocks[i]);
-		if(listBlocks[i + 1] != NULL) string_append(&stringArray,",");
-		i++;
+	t_list *listBlocks = list_create();
+	for(int j = 0; j < sizeofArray(arrayBlocks); j++){
+		list_add(listBlocks,string_duplicate(arrayBlocks[j]));
+		free(arrayBlocks[j]);
 	}
+	free(arrayBlocks);free(stringArrayBlocks);
 
+	list_add(listBlocks,string_itoa(newBlock));
+
+	char *stringArray = string_new();
+	string_append(&stringArray, "[");
+	for(int k = 0; k < list_size(listBlocks); k++){
+		string_append(&stringArray,list_get(listBlocks,k));
+		if((k + 1) == list_size(listBlocks)) string_append(&stringArray,",");
+	}
 	string_append(&stringArray, "]");
+
 	b_modifyBlocks(url,stringArray);
-	for(int j = 0; j < sizeofArray(listBlocks);j++){free(listBlocks[j]);}
-	free(listBlocks);
+
+	list_destroy_and_destroy_elements(listBlocks,free);
+
 	free(stringArray);
 }
 

@@ -245,6 +245,14 @@ void fs_createBlocks(int blocks)
 	free(url);
 }
 
+activeTable *getActiveTable(char *tableName){
+	bool _tableIsActive(void *table){
+		return !strcmp(tableName,((activeTable*)table)->name);
+	}
+
+	return (activeTable*)list_find(sysTables,_tableIsActive);
+}
+
 t_list *fs_getListOfInserts(char* table,int key)
 {
 	char *tableUrl = makeTableUrl(table);
@@ -268,7 +276,12 @@ t_list *fs_getListOfInserts(char* table,int key)
 	free(partition);
 
 	t_list *partList = list_create();
-	b_getListOfInserts(partUrl,partList); //trae todas los inserts de esa url (la de particion adecuada)
+
+	activeTable *x = getActiveTable(table);
+
+	sem_wait(&x->MUTEX_TABLE_PART);
+		b_getListOfInserts(partUrl,partList); //trae todas los inserts de esa url (la de particion adecuada)
+	sem_post(&x->MUTEX_TABLE_PART);
 
 	t_list *tmps = getAllTmps(tableUrl);
 
