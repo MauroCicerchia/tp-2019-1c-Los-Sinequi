@@ -179,6 +179,7 @@ void process_query_from_client(int client) {
 			if(response != NULL) {
 				send_res_code(client, RESPONSE_SUCCESS);
 				send_str(client, response);
+				free(response);
 			} else {
 				send_res_code(client, RESPONSE_ERROR);
 			}
@@ -305,9 +306,9 @@ e_query processQuery(char *query, t_log *logger) {
 
 			log_info(logger, "Recibi un SELECT %s %s", (char*) list_get(args,1), (char*) list_get(args,2));
 
-//			sendMessage(server,query);
-			printf("%s",selectM( (char*) list_get(args,1), atoi(list_get(args,2))));
-//			queryToFileSystem(*query);
+			char *value = selectM( (char*) list_get(args,1), atoi(list_get(args,2)));
+			printf("%s",value);
+			free(value);
 
 			break;
 
