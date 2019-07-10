@@ -559,7 +559,7 @@ void *metrics() {
 	printf("\nR : RL/30s = 0 : 0ms\nW : WL/30s = 0 : 0ms\nML = \n\n");
 
 	while(!exitFlag) {
-		sleep(30);
+		usleep(30 * 1000 * 1000);
 		sem_wait(&MUTEX_READS);
 		sem_wait(&MUTEX_WRITES);
 		log_metrics();
