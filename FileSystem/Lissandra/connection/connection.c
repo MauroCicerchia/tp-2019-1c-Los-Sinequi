@@ -63,6 +63,7 @@ void process_query_from_client(int client)
 			sKey = string_itoa(key);
 			char *response = qselect(table, sKey);
 			free(sKey);
+			free(table);
 
 			if(response != NULL) {
 				send_res_code(client, RESPONSE_SUCCESS);
@@ -70,6 +71,7 @@ void process_query_from_client(int client)
 			} else {
 				send_res_code(client, RESPONSE_ERROR);
 			}
+			free(response);
 			break;
 
 
@@ -83,6 +85,8 @@ void process_query_from_client(int client)
 
 			status = qinsert(table, sKey, value,sTimeStamp);
 			free(sKey); free(sTimeStamp);
+			free(table); free(value);
+
 			if(status)
 				send_res_code(client, RESPONSE_SUCCESS);
 			else
@@ -98,6 +102,7 @@ void process_query_from_client(int client)
 			sPart = recv_str(client);
 			sCTime = recv_str(client);
 			status = qcreate(table, consType, sPart, sCTime);
+			free(table); free(consType); free(sPart); free(sCTime); free();
 			if(status)
 				send_res_code(client, RESPONSE_SUCCESS);
 
@@ -129,6 +134,7 @@ void process_query_from_client(int client)
 					}
 					else send_res_code(client, RESPONSE_ERROR);
 				}
+				free(table);
 				list_clean_and_destroy_elements(tables, free);
 			}
 			else { //una sola tabla
@@ -154,6 +160,7 @@ void process_query_from_client(int client)
 			table = recv_str(client);
 			printf("%s",table);
 			status = qdrop(table);
+			free(table);
 			if(status)
 				send_res_code(client, RESPONSE_SUCCESS);
 			else

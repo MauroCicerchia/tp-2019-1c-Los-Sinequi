@@ -111,6 +111,7 @@ uint64_t com_timestamp(void *insert)
 	char **args = string_split((char*)insert, ";");
 	char *strTimeStamp = string_duplicate(args[0]);
 	uint64_t timestamp = strtouq(strTimeStamp,NULL,10);
+	for(int i = 0; i < sizeofArray(args); i++){args[i];}
 	free(args);
 	free(strTimeStamp);
 	return timestamp;

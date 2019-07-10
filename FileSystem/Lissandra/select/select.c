@@ -52,6 +52,7 @@ char *getValue(t_list *list,uint16_t key){
 	if(returnValue == NULL){
 		log_error(logger, "[SELECT]: No hay values asociados a esa Key");
 		list_destroy(sortedList);
+		free(value);
 		return NULL;
 	}else strcpy(value,returnValue->value);
 

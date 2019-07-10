@@ -223,7 +223,8 @@ void b_saveData(char *url,char *data){
 
 			blockUrl = string_new();
 			string_append(&blockUrl, blocksDirectory);
-			string_append(&blockUrl, string_itoa(b_get_firstFreeBlock(url)));
+			char *x = string_itoa(b_get_firstFreeBlock(url));
+			string_append(&blockUrl,x);
 			string_append(&blockUrl, ".bin");
 
 			b_saveIntoBlock(blockUrl, toInsert);
