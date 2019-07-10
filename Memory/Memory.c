@@ -72,7 +72,7 @@ int get_frame_size(){
 
 	int frameSize=0;
 	frameSize += sizeof(uint16_t); //key
-	frameSize += sizeof(int); //timestamp
+	frameSize += sizeof(uint64_t); //timestamp
 	frameSize += valueSize;
 	return frameSize;
 }
@@ -383,20 +383,20 @@ uint16_t get_key_from_memory(int frame_num){
 }
 
 int get_timestamp_from_memory(int frame_num){
-	return *((int*) (main_memory + frame_num * get_frame_size() + sizeof(uint16_t)));
+	return *((uint64_t*) (main_memory + frame_num * get_frame_size() + sizeof(uint16_t)));
 }
 
 char* get_value_from_memory(int frame_num){
-	return string_duplicate((char*) (main_memory + frame_num * get_frame_size() + sizeof(uint16_t) + sizeof(int)));
+	return string_duplicate((char*) (main_memory + frame_num * get_frame_size() + sizeof(uint16_t) + sizeof(uint64_t)));
 }
 
 
-void insert_in_frame(uint16_t key, int timestamp, char* value, int frame_num){
+void insert_in_frame(uint16_t key, uint64_t timestamp, char* value, int frame_num){
 
 	void* base = main_memory + frame_num * get_frame_size();
 	memcpy(base, &key, sizeof(uint16_t));
 	base += sizeof(uint16_t);
-	memcpy(base, &timestamp, sizeof(int)); //TODO cambiar ts a uint64_t?
+	memcpy(base, &timestamp, sizeof(uint64_t)); //TODO cambiar ts a uint64_t?
 	base += sizeof(int);
 	memcpy(base, value, strlen(value) + 1);
 
@@ -406,8 +406,8 @@ void insert_in_frame(uint16_t key, int timestamp, char* value, int frame_num){
 
 void modify_in_frame(char* value, int frame_num){
 	void* base = main_memory + frame_num * get_frame_size() + sizeof(uint16_t);
-	int timestamp = get_timestamp();
-	memcpy(base, &timestamp, sizeof(int));
+	uint64_t timestamp = get_timestamp();
+	memcpy(base, &timestamp, sizeof(uint64_t));
 	base += sizeof(int);
 	memcpy(base, value, strlen(value) + 1);
 
@@ -688,9 +688,11 @@ void get_value_size(){
 //	valueSize = 255;
 }
 
-int get_timestamp(){
-	return (int)time(NULL);
-}
+uint64_t get_timestamp(){
+	struct timeval tv;
+	gettimeofday(&tv,NULL);
+	uint64_t  x = (uint64_t)( (tv.tv_sec)*1000 + (tv.tv_usec)/1000 );
+	return x;
 
 
 
