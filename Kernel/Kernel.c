@@ -13,10 +13,11 @@ int main(int argc, char **argv) {
 
 	display_memories();
 
-	pthread_t threadNewReady, threadsExec[MP], threadMetrics;
+	pthread_t threadNewReady, threadsExec[MP], threadMetrics, threadGossip;
 
 	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
 	pthread_create(&threadMetrics, NULL, metrics, NULL);
+	pthread_create(&threadGossip, NULL, gossip, NULL);
 	for(int i = 0; i < MP; i++) {
 		pthread_create(&threadsExec[i], NULL, processor_execute, (void*)i);
 	}
@@ -405,14 +406,16 @@ t_list *get_shc_memories() {
 		return memory_is_cons_type((t_memory*)mem, CONS_SHC);
 	}
 	t_list *shc_mem = list_filter(memories, memory_is_shc);
-	list_destroy(shc_mem);
 	return shc_mem;
 }
 
 t_memory *get_shc_memory_for_table(t_table *t, uint16_t key) {
 	t_list *shc_mem = get_shc_memories();
-	if(list_size(shc_mem) > 0)
-		return (t_memory*)list_get(shc_mem, key % list_size(shc_mem));
+	if(list_size(shc_mem) > 0) {
+		t_memory *mem = list_get(shc_mem, key % list_size(shc_mem));
+		list_destroy(shc_mem);
+		return mem;
+	}
 	return NULL;
 }
 
@@ -429,7 +432,9 @@ t_list *get_ec_memories() {
 t_memory *get_ec_memory() {
 	t_list *ec_mem = get_ec_memories();
 	int index = random() % list_size(ec_mem);
-	return (t_memory*)list_get(ec_mem, index);
+	t_memory *mem = list_get(ec_mem, index);
+	list_destroy(ec_mem);
+	return mem;
 }
 
 t_memory *get_memory_for_query(t_table *t, uint16_t key) {
@@ -470,6 +475,7 @@ void update_shc() {
 
 	if(list_size(shc_mem) > 1)
 		list_iterate(shc_mem, journalMem);
+	list_destroy(shcTables);
 	list_destroy(shc_mem);
 }
 
@@ -524,7 +530,11 @@ void add_memories_to_table(t_table *t) {
 			list_destroy(mems);
 			break;
 		case CONS_SHC:
-			list_iterate(get_shc_memories(), addMemoryToTable);
+			mems = get_shc_memories();
+			list_clean(t->memories);
+			list_iterate(mems, addMemoryToTable);
+			printf("%d", list_size(t->memories));
+			list_destroy(mems);
 			break;
 		default:
 			break;
@@ -591,7 +601,7 @@ void update_screen() {
 		writeLatency = writesTime/writes;
 	}
 
-	system("clear");
+//	system("clear");
 	printf("<LFS Kernel>\n\n");
 	display_memories();
 
