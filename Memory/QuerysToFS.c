@@ -22,6 +22,8 @@
 
 char* send_select_to_FS(char* segmentID, int key, t_config* config,t_log* logger){
 
+	printf("%s, %d", segmentID, key);
+
 	t_package *p = create_package(QUERY_SELECT);
 	add_to_package(p, (void*)segmentID, sizeof(char) * (strlen(segmentID) + 1));
 	add_to_package(p, (void*)&key, sizeof(key));

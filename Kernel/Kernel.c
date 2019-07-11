@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
 
 	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
 	pthread_create(&threadMetrics, NULL, metrics, NULL);
-	pthread_create(&threadGossip, NULL, gossip, NULL);
+//	pthread_create(&threadGossip, NULL, gossip, NULL);
 	for(int i = 0; i < MP; i++) {
 		pthread_create(&threadsExec[i], NULL, processor_execute, (void*)i);
 	}
@@ -430,9 +430,14 @@ t_list *get_ec_memories() {
 }
 
 t_memory *get_ec_memory() {
+	t_memory *mem;
 	t_list *ec_mem = get_ec_memories();
-	int index = random() % list_size(ec_mem);
-	t_memory *mem = list_get(ec_mem, index);
+	if(list_size(ec_mem) > 0) {
+		int index = random() % list_size(ec_mem);
+		mem = list_get(ec_mem, index);
+	} else {
+		mem = NULL;
+	}
 	list_destroy(ec_mem);
 	return mem;
 }
@@ -601,7 +606,7 @@ void update_screen() {
 		writeLatency = writesTime/writes;
 	}
 
-//	system("clear");
+	system("clear");
 	printf("<LFS Kernel>\n\n");
 	display_memories();
 

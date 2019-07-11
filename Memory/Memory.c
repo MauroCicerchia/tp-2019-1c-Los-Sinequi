@@ -164,7 +164,7 @@ void process_query_from_client(int client) {
 	e_query opCode;
 	recv(client, &opCode, sizeof(opCode), 0);
 
-  char *table, *value,*part, *compTime;
+	char *table, *value,*part, *compTime;
 	int key, status;
 	char *consType;
   metadata* aMD;
@@ -553,6 +553,7 @@ char* selectM(char* segmentID, int key){
 		}else{
 			log_warning(logger,"No se encontro la pagina con el key buscado, consultando a FS.");
 			char* value = send_select_to_FS(segmentID,key,config,logger);
+
 			if(value!=NULL){
 				if(frame_available_in_mem()){
 					sem_wait(&MUTEX_MEM);
