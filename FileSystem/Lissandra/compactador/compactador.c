@@ -13,7 +13,7 @@ void *threadCompact(char *tableName)
 			compact(table);
 		sem_post(&table->MUTEX_DROP_TABLE);
 
-			sleep(table->ctime/1000);
+			usleep(table->ctime * 1000);
 		}
 
 	sprintf(log_msg,"[Compactador %s]: Tabla quitada de lista de tablas activas", tableName);
@@ -227,7 +227,9 @@ void com_saveInPartition(t_list *keys,t_list *allInserts, activeTable *table)
 
 		string_append(&toInsert,"\n");
 
+
 		b_saveData(partUrl,toInsert);
+
 
 		free(partUrl);
 		free(toInsert);

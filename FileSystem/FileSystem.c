@@ -190,7 +190,7 @@ void *threadDump()
 		dt = dumpTime;
 		sem_post(&MUTEX_DUMPTIME);
 
-		sleep(dt/1000);
+		usleep(dt * 1000);
 
 		log_info(logger, "[DUMP]: Iniciando Dump");
 		sem_wait(&MUTEX_MEMTABLE);
