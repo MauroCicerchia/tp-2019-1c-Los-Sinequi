@@ -126,7 +126,7 @@ int validateQuerySyntax(t_list *array){
 t_list *parseQuery(char *query){
 	t_list *args = list_create();
 
-	if(!string_starts_with(query,"RUN"))string_to_upper(query);
+	if(!string_starts_with(query,"RUN") && !string_starts_with(query, "run") && !string_starts_with(query, "Run"))string_to_upper(query);
 
 	void add_to_args(char *s) {
 		string_trim(&s);
