@@ -321,6 +321,7 @@ void process_query_from_client(int client) {
 					send_res_code(client, RESPONSE_ERROR);
 				}
 			}
+			free(table);
 			break;
 		case QUERY_DROP:
 			table = recv_str(client);
@@ -351,7 +352,7 @@ void* auto_gossip(){
 }
 void print_mem(void* mem){
 	memory* memo = (memory*) mem;
-	log_info(logger,"[GOSSIPING]: Memoria %d: %s - %s\n",memo->memory_number,memo->memory_ip,memo->memory_port);
+	log_info(logger,"[GOSSIPING]: Memoria %d: %s - %s",memo->memory_number,memo->memory_ip,memo->memory_port);
 }
 void log_gossip_table(){
 	list_iterate(gossip_table,print_mem);
@@ -800,7 +801,8 @@ char* get_port_fs(){
 
 char **get_ip_seeds(){
 	load_config();
-	char** ips = array_duplicate(config_get_array_value(config, "IP_SEEDS"));
+	char** ips = config_get_array_value(config, "IP_SEEDS");
+//			array_duplicate(config_get_array_value(config, "IP_SEEDS"));
 	config_destroy(config);
 	return ips;
 }

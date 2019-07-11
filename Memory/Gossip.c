@@ -47,6 +47,7 @@ void execute_gossip_client(t_log* logger,char* port,sem_t MUTEX_GOSSIP){
 		string_iterate_lines(seed_ips,string_destroy_char);
 		string_iterate_lines(seed_ports,string_destroy_char);
 	}
+
 	free(seed_ips);
 	free(seed_ports);
 
@@ -72,6 +73,8 @@ void recv_gossip_table(int seed_socket,t_log* logger){
 		char* ip_mem = recv_str(seed_socket);
 		char* port_mem = recv_str(seed_socket);
 		add_to_gossip_table(ip_mem,port_mem,num,logger);
+		free(ip_mem);
+		free(port_mem);
 	}
 }
 
