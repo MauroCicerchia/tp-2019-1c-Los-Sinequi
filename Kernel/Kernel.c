@@ -13,10 +13,11 @@ int main(int argc, char **argv) {
 
 	display_memories();
 
-	pthread_t threadNewReady, threadsExec[MP], threadMetrics, threadGossip;
+	pthread_t threadNewReady, threadsExec[MP], threadMetrics, threadGossip, threadRefreshMetadata;
 
 	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
 	pthread_create(&threadMetrics, NULL, metrics, NULL);
+	pthread_create(&threadRefreshMetadata, NULL, refreshMetadata, NULL);
 //	pthread_create(&threadGossip, NULL, gossip, NULL);
 	for(int i = 0; i < MP; i++) {
 		pthread_create(&threadsExec[i], NULL, processor_execute, (void*)i);
@@ -544,6 +545,21 @@ void add_memories_to_table(t_table *t) {
 		default:
 			break;
 	}
+}
+
+void *refreshMetadata() {
+	while(!exitFlag) {
+		usleep(get_metadata_refresh_rate() * 1000);
+		log_info(logger, " >> Actualizando metadata de tablas.");
+		int status = qDescribe(NULL, logger);
+		if(status == 1) {
+			log_info(logger, " >> Metadata actualizada correctamente.");
+		} else {
+			log_info(logger, " >> No se pudo actualizar la metadata las tablas.");
+		}
+
+	}
+	return NULL;
 }
 
 void journal(){

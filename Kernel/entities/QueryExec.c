@@ -174,6 +174,8 @@ int qDescribe(char* table, t_log *logger) {
 			log_info(logger, " >> Metadata de tabla actualizada.");
 		} else {
 			log_error(logger, " >> Error al realizar describe en memoria.");
+			close(memSocket);
+			return 0;
 		}
 	} else {
 		send_req_code(memSocket, REQUEST_QUERY);
@@ -202,6 +204,8 @@ int qDescribe(char* table, t_log *logger) {
 			log_info(logger, " >> Metadata de todas las tablas actualizada.");
 		} else {
 			log_error(logger, " >> Error al realizar describe en memoria.");
+			close(memSocket);
+			return 0;
 		}
 	}
 	close(memSocket);

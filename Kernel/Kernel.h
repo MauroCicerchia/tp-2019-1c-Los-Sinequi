@@ -55,6 +55,7 @@ void add_table(t_table*);
 void update_table(char*, e_cons_type, int, int);
 void drop_table(char*);
 void add_memories_to_table(t_table*);
+void *refreshMetadata();
 void journal();
 void *metrics();
 void log_metrics();
