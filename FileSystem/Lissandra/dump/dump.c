@@ -27,11 +27,11 @@ void dump(){ //averiguar por semaforos
 		}
 		mt_clean();
 		log_info(logger,"[Dump]: Dump exitoso");
+		tmpNo++;
 	}
 	else{
 		log_warning(logger,"[Dump]: No hay nada que dumpear");
 	}
-	tmpNo++;
 }
 
 char *toLFSmode(char *timestamp,char *key,char *value){
