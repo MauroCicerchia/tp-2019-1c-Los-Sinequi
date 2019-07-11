@@ -192,7 +192,9 @@ void* attend_client(void* socket) {
 		execute_gossip_server(cliSocket,logger,MUTEX_GOSSIP);
 		break;
 	case REQUEST_JOURNAL:
+		sem_wait(&MUTEX_JOURNAL);
 		journalM();
+		sem_post(&MUTEX_JOURNAL);
 		send_res_code(cliSocket, RESPONSE_SUCCESS);
 		break;
 	default:
@@ -258,7 +260,9 @@ void process_query_from_client(int client) {
 			table = recv_str(client);
 			key = recv_int(client);
 			value = recv_str(client);
+			sem_wait(&MUTEX_JOURNAL);
 			status = insertM(table, key, value);
+			sem_post(&MUTEX_JOURNAL);
 			free(value);
 			free(table);
 			switch(status) {
@@ -399,9 +403,9 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_INSERT:
 			log_info(logger, "Recibi un INSERT %s %s %s", (char*) list_get(args,1), (char*) list_get(args,2), (char*) list_get(args,3));
-
+			sem_wait(&MUTEX_JOURNAL);
 			insertResult = insertM(list_get(args,1), atoi(list_get(args,2)), list_get(args,3));
-
+			sem_post(&MUTEX_JOURNAL);
 			if(insertResult == -1){
 				log_error(logger,"No se puedo insertar un valor");
 			}else{
@@ -436,8 +440,9 @@ e_query processQuery(char *query, t_log *logger) {
 		case QUERY_JOURNAL:
 
 			log_info(logger, "Recibi un JOURNAL");
+			sem_wait(&MUTEX_JOURNAL);
 			journalM();
-
+			sem_post(&MUTEX_JOURNAL);
 			break;
 
 		default:
@@ -494,12 +499,13 @@ void* execute_journal(){
 	while(true){
 		sleep(get_retardo_journal()/1000);
 		log_info(logger, "[JOURNAL]: Iniciando Journal automatico.");
+		sem_wait(&MUTEX_JOURNAL);
 		journalM();
+		sem_post(&MUTEX_JOURNAL);
 	}
 }
 /*********************************** QUERYS ******************************************/
 int journalM(){
-	sem_wait(&MUTEX_JOURNAL);
 	int errorFS=0;
 	void journal_segment(void* aSegment){
 		segment* s = (segment*) aSegment;
@@ -531,16 +537,12 @@ int journalM(){
 		log_info(logger,"[JOURNAL]: Journal ejecutado");
 	}else{
 		log_error(logger,"[JOURNAL]: Error al conectar a FS, no se realiza el Journal");
-		sem_post(&MUTEX_JOURNAL);
 		return -1;
 	}
-	sem_post(&MUTEX_JOURNAL);
 	return 0;
 }
 
 int insertM(char* segmentID, uint16_t key, char* value){
-
-	sem_wait(&MUTEX_JOURNAL);
 	segment* segmentFound = search_segment(segmentID);
 
 	if(segmentFound == NULL){
@@ -558,7 +560,6 @@ int insertM(char* segmentID, uint16_t key, char* value){
 		modify_in_frame(value,pageFound->frame_num);
 		pageFound->isModified=1;
 		pageFound->last_time_used=get_timestamp();
-		sem_post(&MUTEX_JOURNAL);
 		return 0;
 	}
 	else{
@@ -570,16 +571,13 @@ int insertM(char* segmentID, uint16_t key, char* value){
 				log_info(logger,"La memoria esta full, ejecutando Journal");
 				if(journalM() == -1){
 					log_error(logger,"No se pudo realizar el Journal, cancelando Insert");
-					sem_post(&MUTEX_JOURNAL);
 					return -1;
 				}
-				sem_post(&MUTEX_JOURNAL);
 				return insertM(segmentID, key, value);
 			}else{
 				execute_replacement(key,value,segmentFound);
 			}
 		}
-		sem_post(&MUTEX_JOURNAL);
 		return 0 ;
 	}
 
