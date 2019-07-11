@@ -554,6 +554,7 @@ char* selectM(char* segmentID, int key){
 		}else{
 			log_warning(logger,"No se encontro la pagina con el key buscado, consultando a FS.");
 			char* value = send_select_to_FS(segmentID,key,config,logger);
+
 			if(value!=NULL){
 				if(frame_available_in_mem()){
 					sem_wait(&MUTEX_MEM);
