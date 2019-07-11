@@ -19,7 +19,7 @@ typedef struct{
 
 t_list* gossip_table;
 
-void execute_gossip_client(t_config*,t_log*);
+void execute_gossip_client(t_config*,t_log*,char*);
 void execute_gossip_server(int,t_config*,t_log*);
 void add_to_gossip_table(char*, char*,t_config*,t_log*);
 memory* memory_create(char*,char*);

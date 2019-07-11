@@ -18,9 +18,7 @@
  *
  */
 
-//TODO actualizar key: int -> uint16_t
-
-char* send_select_to_FS(char* segmentID, int key, t_config* config,t_log* logger){
+char* send_select_to_FS(char* segmentID, uint16_t key, t_config* config,t_log* logger){
 
 	printf("%s, %d", segmentID, key);
 
@@ -153,7 +151,7 @@ t_list* send_describe_to_FS(char*table,t_config* config,t_log* logger){
 	return(metadata_list);
 }
 
-void send_insert_to_FS(char* table,int key,char* value,t_config* config,t_log* logger){
+void send_insert_to_FS(char* table,uint16_t key,char* value,t_config* config,t_log* logger){
 
 	//	Paquetizar
 	t_package *p = create_package(QUERY_INSERT);
