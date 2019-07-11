@@ -174,13 +174,16 @@ t_list* send_describe_to_FS(char*table,t_log* logger){
 	return(metadata_list);
 }
 
-int send_insert_to_FS(char* table,uint16_t key,char* value,t_log* logger){
+int send_insert_to_FS(char* table,uint16_t key,uint64_t timestamp,char* value,t_log* logger){
 
 	//	Paquetizar
 	t_package *p = create_package(QUERY_INSERT);
 	add_to_package(p, (void*)table, sizeof(char) * (strlen(table) + 1));
 	add_to_package(p, (void*)&key, sizeof(key));
+	add_to_package(p, (void*)&timestamp, sizeof(timestamp));
 	add_to_package(p, (void*)value, sizeof(char) * (strlen(value) + 1));
+//	printf("\n\n %llu \n\n",timestamp);
+
 
 	int FS_socket = connect_to_FS(logger);
 

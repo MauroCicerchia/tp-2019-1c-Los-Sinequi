@@ -68,6 +68,8 @@ int validateQuerySyntax(t_list *array){
 		case QUERY_CREATE:
 			if(size != 5) return 0; // cantidad de parametros invalidos
 
+			if(getConsistencyType((char*)list_get(array,2)) == CONS_ERROR) return 0;
+
 			if(!isNumeric(list_get(array, 3))) return 0;
 			key = strtol(list_get(array, 3), NULL, 10);
 			if(!key && (errno == EINVAL || errno == ERANGE)) return 0; //particiones o tiempo de compactacion invalidos

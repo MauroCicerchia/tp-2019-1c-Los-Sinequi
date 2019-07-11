@@ -9,17 +9,17 @@ int main(int argc, char **argv) {
 	memory_init();
 
 	pthread_t threadClient;
-	//pthread_t threadAutoJournal;
-	//pthread_t threadGossip;
+	pthread_t threadAutoJournal;
+	pthread_t threadGossip;
 
-	//pthread_create(&threadGossip,NULL,auto_gossip,NULL);
-	//pthread_detach(threadGossip);
+	pthread_create(&threadGossip,NULL,auto_gossip,NULL);
+	pthread_detach(threadGossip);
 
 	pthread_create(&threadClient, NULL, listen_client, NULL);
 	pthread_detach(threadClient);
 
-	//pthread_create(&threadAutoJournal, NULL, execute_journal, NULL);
-	//pthread_detach(threadAutoJournal);
+	pthread_create(&threadAutoJournal, NULL, execute_journal, NULL);
+	pthread_detach(threadAutoJournal);
 
 	start_API(logger);
 
@@ -144,7 +144,7 @@ void modify_in_frame(char* value, int frame_num){
 	void* base = main_memory + frame_num * get_frame_size() + sizeof(uint16_t);
 	uint64_t timestamp = get_timestamp();
 	memcpy(base, &timestamp, sizeof(uint64_t));
-	base += sizeof(int);
+	base += sizeof(uint64_t);
 	memcpy(base, value, strlen(value) + 1);
 	sem_post(&MUTEX_MEM);
 }
@@ -299,18 +299,20 @@ void process_query_from_client(int client) {
 				}
 			}else {
 				t_list *metadata_list = describeM(NULL);
-				int tCount = list_size(metadata_list);
-				if(tCount != 0) {
-					send_res_code(client, RESPONSE_SUCCESS);
-					send_int(client, tCount);
-					for(int i = 0; i<tCount; i++) {
-						aMD = list_get(metadata_list,i);
-						send_str(client,aMD->tableName);
-						send_str(client,aMD->consType);
-						send_str(client,aMD->partNum);
-						send_str(client,aMD->compTime);
+				if(metadata_list != NULL){
+					int tCount = list_size(metadata_list);
+					if(tCount != 0) {
+						send_res_code(client, RESPONSE_SUCCESS);
+						send_int(client, tCount);
+						for(int i = 0; i<tCount; i++) {
+							aMD = list_get(metadata_list,i);
+							send_str(client,aMD->tableName);
+							send_str(client,aMD->consType);
+							send_str(client,aMD->partNum);
+							send_str(client,aMD->compTime);
+						}
+						list_destroy_and_destroy_elements(metadata_list,metadata_destroy);
 					}
-					list_destroy_and_destroy_elements(metadata_list,metadata_destroy);
 				}else {
 					send_res_code(client, RESPONSE_ERROR);
 				}
@@ -499,7 +501,7 @@ int journalM(){
 			page*p = (page*) aPage;
 			if((p)->isModified){
 				char *value = get_value_from_memory(p->frame_num);
-				if(send_insert_to_FS(s->segment_id,get_key_from_memory(p->frame_num),value,logger) == -2){
+				if(send_insert_to_FS(s->segment_id,get_key_from_memory(p->frame_num),get_timestamp_from_memory(p->frame_num),value,logger) == -2){
 					errorFS = 1;
 				}else{
 					p->isModified = 0;
@@ -543,14 +545,14 @@ int insertM(char* segmentID, uint16_t key, char* value){
 	page* pageFound = search_page(segmentFound,key);
 
 	if(pageFound != NULL){
-		log_info(logger,"Se encontro la pagina con la key buscado, modificando el valor en el frame: %d.",pageFound->frame_num);
+		log_info(logger,"Se encontro la pagina con la key buscado, actualizando al valor %s en el frame: %d.",value,pageFound->frame_num);
 		modify_in_frame(value,pageFound->frame_num);
 		pageFound->isModified=1;
 		pageFound->last_time_used=get_timestamp();
 		return 0;
 	}
 	else{
-		log_info(logger,"No se encontro la pagina con la key buscado,creando pagina.");
+		log_info(logger,"No se encontro la pagina con la key buscado,creando pagina con valor %s.", value);
 		if(frame_available_in_mem()){
 			load_page_to_segment(key, segmentFound, value, 1);
 		}else{
@@ -676,7 +678,7 @@ void remove_delete_segment(segment* aSegment){
 /********************************************* LRU ************************************/
 void execute_replacement(uint16_t key, char* value, segment* segment_to_use){
 	log_info(logger,"Ejecutando algoritmo de reemplazo LRU");
-	int min_time = get_timestamp();
+	uint64_t min_time = get_timestamp();
 	page* min_page = NULL;
 	segment* min_segment = NULL;
 	void re_segment(void* aSegment){
@@ -706,7 +708,7 @@ void execute_replacement(uint16_t key, char* value, segment* segment_to_use){
 }
 /******************************** FIN LRU *******************************************/
 void get_value_size(){
-	/*int socket;
+	int socket;
 	do {
 		socket = connect_to_FS(logger);
 		if(socket == -1) {
@@ -717,8 +719,8 @@ void get_value_size(){
 	send_req_code(socket,REQUEST_VALUESIZE);
 	valueSize = recv_int(socket);
 	close(socket);
-	log_info(logger, "Value Size recibido de FS.");*/
-	valueSize = 400;
+	log_info(logger, "Value Size recibido de FS.");
+//	valueSize = 400;
 }
 /******************************* DATOS VARIABLES DEL ARCHIVO CONFIG **********************/
 int get_retardo_journal(){
@@ -800,7 +802,6 @@ char** array_duplicate(char** array){
 	char** arrayDup = (char**) malloc(sizeof(char*)*(sizeofArray(array)+1));
 	int i=0;
 	for(i=0; i< sizeofArray(array);i++){
-		//log_error(logger,"AVERGA:   %s\n",array[i]);
 		arrayDup[i] = string_duplicate(array[i]);
 	}
 	arrayDup[i] = NULL;
