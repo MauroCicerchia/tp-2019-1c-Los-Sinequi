@@ -515,7 +515,7 @@ int insertM(char* segmentID, uint16_t key, char* value){
 		else{
 			log_info(logger,"No se encontro el segmento buscado, creando nuevo segmento.");
 			segment* newSegment = segment_init();
-			newSegment->segment_id = segmentID;
+			newSegment->segment_id = string_duplicate(segmentID);
 			sem_wait(&MUTEX_MEM);
 			load_page_to_segment(key, newSegment, value, 1);
 			sem_post(&MUTEX_MEM);
@@ -530,7 +530,7 @@ int insertM(char* segmentID, uint16_t key, char* value){
 			segment* segmentFound = search_segment(segmentID);
 			if(segmentFound == NULL){
 				segmentFound = segment_init();
-				segmentFound->segment_id = segmentID;
+				segmentFound->segment_id = string_duplicate(segmentID);
 			}
 			execute_replacement(key,value,segmentFound);
 
@@ -541,7 +541,7 @@ return 0;
 
 }
 
-char* selectM(char* segmentID, int key){
+char* selectM(char* segmentID, uint16_t key){
 	segment* segmentFound = search_segment(segmentID);
 
 	if(segmentFound != NULL){
@@ -580,7 +580,7 @@ char* selectM(char* segmentID, int key){
 		char* value = send_select_to_FS(segmentID,key,config,logger);
 		if(value!=NULL){
 			segment* newSegment = segment_init();
-			newSegment->segment_id = segmentID;
+			newSegment->segment_id = string_duplicate(segmentID);
 			if(frame_available_in_mem()){
 				sem_wait(&MUTEX_MEM);
 				load_page_to_segment(key, newSegment, value, 0);
@@ -654,8 +654,8 @@ void remove_delete_segment(segment* aSegment){
 void execute_replacement(uint16_t key, char* value, segment* segment_to_use){
 	log_info(logger,"Ejecutando algoritmo de reemplazo LRU");
 	int min_time = get_timestamp();
-	page* min_page;
-	segment* min_segment;
+	page* min_page = NULL;
+	segment* min_segment = NULL;
 	void re_segment(void* aSegment){
 		segment* s = (segment*) aSegment;
 		void searching_page(void* aPage){
@@ -666,16 +666,22 @@ void execute_replacement(uint16_t key, char* value, segment* segment_to_use){
 				min_segment = s;
 			}
 		}
-		list_iterate(s->page_list,searching_page);
+		if(list_size(s->page_list) > 0)
+			list_iterate(s->page_list,searching_page);
 	}
-	list_iterate(segmentList,re_segment);
+	if(list_size(segmentList) > 0)
+		list_iterate(segmentList,re_segment);
 
-	log_info(logger,"Se remueve la key %d del segmento %s \n", get_key_from_memory(min_page->frame_num),min_segment->segment_id);
+	if(min_segment != NULL && min_page != NULL) {
+		log_info(logger,"Se remueve la key %d del segmento %s \n", (int)get_key_from_memory(min_page->frame_num), min_segment->segment_id);
 
-	remove_page_from_segment(min_page,min_segment);
-	sem_wait(&MUTEX_MEM);
-	load_page_to_segment(key, segment_to_use, value, 0);
-	sem_post(&MUTEX_MEM);
+		remove_page_from_segment(min_page,min_segment);
+		sem_wait(&MUTEX_MEM);
+		load_page_to_segment(key, segment_to_use, value, 0);
+		sem_post(&MUTEX_MEM);
+	} else {
+		log_error(logger, "No se encontro una pagina para reemplazar.");
+	}
 
 }
 

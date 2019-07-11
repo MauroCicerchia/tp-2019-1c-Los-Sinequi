@@ -2,10 +2,10 @@
 
 void execute_gossip_client(t_config* config,t_log* logger,char* port){
 	char** seed_ips = config_get_array_value(config, "IP_SEEDS");
-	char** seed_ports = config_get_string_value(config, "PUERTO_SEEDS");
+	char** seed_ports = config_get_array_value(config, "PUERTO_SEEDS");
 
 	int seeds_amount = 0;
-	seeds_amount = sizeOfArray(seed_ips);
+	seeds_amount = sizeofArray(seed_ips);
 
 	for(int i=0;i<seeds_amount;i++){
 		char* seed_ip = seed_ips[i];

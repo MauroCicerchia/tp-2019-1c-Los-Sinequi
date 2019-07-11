@@ -20,7 +20,7 @@
 
 char* send_select_to_FS(char* segmentID, uint16_t key, t_config* config,t_log* logger){
 
-	printf("%s, %d", segmentID, key);
+	printf("%s, %d", segmentID, (int)key);
 
 	t_package *p = create_package(QUERY_SELECT);
 	add_to_package(p, (void*)segmentID, sizeof(char) * (strlen(segmentID) + 1));

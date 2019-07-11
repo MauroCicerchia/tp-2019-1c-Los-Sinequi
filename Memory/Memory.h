@@ -55,15 +55,15 @@ int get_timestamp();
 void delete_segment_from_mem(segment*);
 void remove_delete_segment(segment*);
 void* execute_journal();
-void load_page_to_segment(int,segment*,char*,int);
-void execute_replacement(int, char*, segment*);
+void load_page_to_segment(uint16_t,segment*,char*,int);
+void execute_replacement(uint16_t, char*, segment*);
 
 void* attend_client(void*);
 
 void* auto_gossip();
 
-char* selectM(char*,int);	   // (nombreTabla,key)
-int insertM(char*,int,char*); // (nombreTabla,key,value)
+char* selectM(char*,uint16_t);	   // (nombreTabla,key)
+int insertM(char*,uint16_t,char*); // (nombreTabla,key,value)
 int createM(char*,char*,char*,char*);
 int dropM(char*);
 void journalM(void);
