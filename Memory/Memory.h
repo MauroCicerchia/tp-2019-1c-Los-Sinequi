@@ -15,7 +15,7 @@
 #include<commons/bitarray.h>
 #include<semaphore.h>
 #include"Segment.h"
-#include<time.h>
+#include<sys/time.h>
 #include"Gossip.h"
 #include"QuerysToFS.h"
 #define max_clients 4

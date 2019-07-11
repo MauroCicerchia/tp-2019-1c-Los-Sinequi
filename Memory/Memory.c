@@ -67,7 +67,7 @@ void load_config() {
 		exit(-1);
 	}
 }
-//********************************** Memoria Principal ***************************
+//********************************** MEMORIA PRINCIPAL ***************************
 int get_frame_size(){
 
 	int frameSize=0;
@@ -109,7 +109,64 @@ void THEGREATMALLOC(){
 
 	log_info(logger,"Memoria principal alocada");
 }
-//*****************************************************************************
+
+uint16_t get_key_from_memory(int frame_num){
+	return *((uint16_t*) (main_memory + frame_num * get_frame_size()));
+}
+
+uint64_t get_timestamp_from_memory(int frame_num){
+	return *((uint64_t*) (main_memory + frame_num * get_frame_size() + sizeof(uint16_t)));
+}
+
+char* get_value_from_memory(int frame_num){
+	return string_duplicate((char*) (main_memory + frame_num * get_frame_size() + sizeof(uint16_t) + sizeof(uint64_t)));
+}
+
+
+void insert_in_frame(uint16_t key, uint64_t timestamp, char* value, int frame_num){
+
+	void* base = main_memory + frame_num * get_frame_size();
+	memcpy(base, &key, sizeof(uint16_t));
+	base += sizeof(uint16_t);
+	memcpy(base, &timestamp, sizeof(uint64_t));
+	base += sizeof(uint64_t);
+	memcpy(base, value, strlen(value) + 1);
+
+	bitarray_set_bit(bitmap,frame_num);
+
+}
+
+void modify_in_frame(char* value, int frame_num){
+	void* base = main_memory + frame_num * get_frame_size() + sizeof(uint16_t);
+	uint64_t timestamp = get_timestamp();
+	memcpy(base, &timestamp, sizeof(uint64_t));
+	base += sizeof(int);
+	memcpy(base, value, strlen(value) + 1);
+
+}
+
+int find_free_frame(){
+	int i=0;
+	while(bitarray_test_bit(bitmap,i) != 0){
+		i++;
+	}
+	return i;
+}
+
+int frame_available_in_mem(){
+	int memSize = config_get_int_value(config, "TAM_MEM");
+	int bitNumbers = total_frames(memSize);
+	int i=0;
+	for(i=0;i<bitNumbers;i++){
+		if(bitarray_test_bit(bitmap,i) == 0){
+			return 1;
+		}
+	}
+	return 0;
+}
+
+//************************************ FIN MEMORIA PRINCIPAL *****************************************
+/************************************** CLIENTE *********************************/
 void* attend_client(void* socket) {
 	int cliSocket = *(int*) socket;
 	e_request_code rc = recv_req_code(cliSocket);
@@ -265,6 +322,8 @@ void process_query_from_client(int client) {
 	}
 }
 
+/************************** FIN CLIENTE ******************************************/
+
 void* auto_gossip(){
 	int delay = config_get_int_value(config,"RETARDO_GOSSIPING");
 	log_info(logger,"Iniciando Gossiping");
@@ -378,41 +437,6 @@ page* search_page(segment* aSegment,uint16_t aKey){
 		return list_find(aSegment->page_list,isKey);
 }
 
-uint16_t get_key_from_memory(int frame_num){
-	return *((uint16_t*) (main_memory + frame_num * get_frame_size()));
-}
-
-int get_timestamp_from_memory(int frame_num){
-	return *((uint64_t*) (main_memory + frame_num * get_frame_size() + sizeof(uint16_t)));
-}
-
-char* get_value_from_memory(int frame_num){
-	return string_duplicate((char*) (main_memory + frame_num * get_frame_size() + sizeof(uint16_t) + sizeof(uint64_t)));
-}
-
-
-void insert_in_frame(uint16_t key, uint64_t timestamp, char* value, int frame_num){
-
-	void* base = main_memory + frame_num * get_frame_size();
-	memcpy(base, &key, sizeof(uint16_t));
-	base += sizeof(uint16_t);
-	memcpy(base, &timestamp, sizeof(uint64_t)); //TODO cambiar ts a uint64_t?
-	base += sizeof(int);
-	memcpy(base, value, strlen(value) + 1);
-
-	bitarray_set_bit(bitmap,frame_num);
-
-}
-
-void modify_in_frame(char* value, int frame_num){
-	void* base = main_memory + frame_num * get_frame_size() + sizeof(uint16_t);
-	uint64_t timestamp = get_timestamp();
-	memcpy(base, &timestamp, sizeof(uint64_t));
-	base += sizeof(int);
-	memcpy(base, value, strlen(value) + 1);
-
-}
-
 segment* search_segment(char* segmentID){
 	bool isId(void* aSegment){
 		return strcasecmp(((segment*) aSegment)->segment_id,segmentID)==0;
@@ -432,25 +456,6 @@ segment* segment_init(){
 	return memorySegment;
 }
 
-int find_free_frame(){
-	int i=0;
-	while(bitarray_test_bit(bitmap,i) != 0){
-		i++;
-	}
-	return i;
-}
-
-int frame_available_in_mem(){
-	int memSize = config_get_int_value(config, "TAM_MEM");
-	int bitNumbers = total_frames(memSize);
-	int i=0;
-	for(i=0;i<bitNumbers;i++){
-		if(bitarray_test_bit(bitmap,i) == 0){
-			return 1;
-		}
-	}
-	return 0;
-}
 
 void load_page_to_segment(uint16_t key, segment* segmentFound, char* value, int modified) {
 	int frame_num = find_free_frame();
@@ -466,7 +471,7 @@ void* execute_journal(){
 		journalM();
 	}
 }
-
+/*********************************** QUERYS ******************************************/
 void journalM(){
 	void journal_segment(void* aSegment){
 		segment* s = (segment*) aSegment;
@@ -604,10 +609,8 @@ char* selectM(char* segmentID, uint16_t key){
 	return NULL;
 }
 
-
 int createM(char* segmentID,char* consistency ,char *partition_num, char *compaction_time){
 	/*ENVIAR AL FS OPERACION PARA CREAR TABLA*/
-
 	int status = send_create_to_FS(segmentID, consistency, partition_num, compaction_time, config, logger);
 	return status;
 }
@@ -636,7 +639,7 @@ int dropM(char* segment_id){
 
 	return 0;
 }
-
+/**************************** FIN QUERYS *********************************************/
 void delete_segment_from_mem(segment* aSegment){
 	void make_frame_available(void* aPage){
 		bitarray_clean_bit(bitmap,((page*) aPage)->frame_num);
@@ -651,6 +654,7 @@ void remove_delete_segment(segment* aSegment){
 	list_remove_and_destroy_by_condition(segmentList,isSegment,segment_destroy);
 }
 
+/********************************************* LRU ************************************/
 void execute_replacement(uint16_t key, char* value, segment* segment_to_use){
 	log_info(logger,"Ejecutando algoritmo de reemplazo LRU");
 	int min_time = get_timestamp();
@@ -684,21 +688,20 @@ void execute_replacement(uint16_t key, char* value, segment* segment_to_use){
 	}
 
 }
-
+/******************************** FIN LRU *******************************************/
 void get_value_size(){
-	int socket = connect_to_FS(config, logger);
+	/*int socket = connect_to_FS(config, logger);
 	send_req_code(socket,REQUEST_VALUESIZE);
 	valueSize = recv_int(socket);
 	close(socket);
 	log_info(logger, "Value Size recibido de FS.");
-//	valueSize = 255;
+*/	valueSize = 255;
 }
-
-uint64_t get_timestamp(){
-	struct timeval tv;
-	gettimeofday(&tv,NULL);
-	uint64_t  x = (uint64_t)( (tv.tv_sec)*1000 + (tv.tv_usec)/1000 );
-	return x;
-
-
+//
+//uint64_t get_timestamp(){
+//	struct timeval tv;
+//	gettimeofday(&tv,NULL);
+//	uint64_t  x = (uint64_t)( (tv.tv_sec)*1000 + (tv.tv_usec)/1000 );
+//	return x;
+//}
 
