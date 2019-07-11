@@ -2,7 +2,7 @@
 #include<stdlib.h>
 #include<unistd.h>
 #include<string.h>
-#include<time.h>
+#include<sys/time.h>
 #include<semaphore.h>
 #include<pthread.h>
 #include<commons/log.h>
@@ -13,6 +13,7 @@
 #include<readline/readline.h>
 #include<sharedLib/console.h>
 #include<sharedLib/client.h>
+#include<sys/inotify.h>
 #include"entities/Process.h"
 #include"entities/Memory.h"
 #include"entities/Table.h"
@@ -31,6 +32,8 @@ void add_process_to_new(t_process*);
 void *new_to_ready();
 void add_process_to_ready(t_process*);
 t_process *ready_to_exec(int);
+void createProcessorThread();
+void deleteProcessorThread();
 void *processor_execute(void*);
 int execute_query(t_query*);
 void setConfigParameter(char*);
@@ -64,9 +67,10 @@ void metrics_new_insert(int, int);
 char *get_memory_ip();
 char *get_memory_port();
 int get_quantum();
-int get_multiprogramming_degree();
+int get_multiprocessing_degree();
 int get_metadata_refresh_rate();
 int get_execution_delay();
+void *threadConfigModify();
 uint64_t getCurrentTime();
 
 #endif

@@ -201,18 +201,18 @@ void b_saveData(char *url,char *data){
 	lastPosInserted = sizeOfSemiCompleteBlock;
 
 	while(flag){
-		toInsert = string_new();
 		if( (strlen(data)-lastPosInserted) > getSizeOfBlocks() ){ //si lo que queda no entra en un bloque
 			toInsert = string_substring(data, lastPosInserted,getSizeOfBlocks());
 			blockUrl = string_new();
 			string_append(&blockUrl, blocksDirectory);
-			string_append(&blockUrl, string_itoa(b_get_firstFreeBlock(url)));
+			char *x = string_itoa(b_get_firstFreeBlock(url));
+			string_append(&blockUrl, x);
 			string_append(&blockUrl, ".bin");
 
 			b_saveIntoBlock(blockUrl,toInsert);
 
 			lastPosInserted += getSizeOfBlocks();
-			free(toInsert); free(blockUrl);
+			free(toInsert); free(blockUrl); free(x);
 		}
 		else{// si lo que queda entra en un bloque
 			toInsert = string_substring_from(data, lastPosInserted);
@@ -225,7 +225,7 @@ void b_saveData(char *url,char *data){
 
 			b_saveIntoBlock(blockUrl, toInsert);
 
-			free(blockUrl); free(toInsert);
+			free(blockUrl); free(toInsert); free(x);
 			flag = 0; //condicion de corte, porque no queda mas nada que agregar
 		}//else
 

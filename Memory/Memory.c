@@ -660,17 +660,21 @@ void execute_replacement(uint16_t key, char* value, segment* segment_to_use){
 		segment* s = (segment*) aSegment;
 		void searching_page(void* aPage){
 			page*p = (page*) aPage;
-			if((p)->last_time_used < min_time && !(p)->isModified){
-				min_time = (p)->last_time_used;
-				min_page = (p);
+			if(p->last_time_used < min_time && !p->isModified){
+				min_time = p->last_time_used;
+				min_page = p;
 				min_segment = s;
 			}
 		}
-		if(list_size(s->page_list) > 0)
-			list_iterate(s->page_list,searching_page);
+		list_iterate(s->page_list,searching_page);
 	}
-	if(list_size(segmentList) > 0)
-		list_iterate(segmentList,re_segment);
+	list_iterate(segmentList,re_segment);
+
+	printf("\n\n%d", list_size(segmentList));
+
+	if(min_page == NULL) {
+//		printf("\n%d\n\n", list_size(min_segment->page_list));
+	}
 
 	if(min_segment != NULL && min_page != NULL) {
 		log_info(logger,"Se remueve la key %d del segmento %s \n", (int)get_key_from_memory(min_page->frame_num), min_segment->segment_id);
