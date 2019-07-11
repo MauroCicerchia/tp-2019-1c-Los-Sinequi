@@ -136,7 +136,7 @@ void process_query_from_client(int client)
 					else send_res_code(client, RESPONSE_ERROR);
 				}
 				free(table);
-				list_clean_and_destroy_elements(tables, free);
+				list_destroy_and_destroy_elements(tables, free);
 			}
 			else { //una sola tabla
 				tableMetadata = qdescribe(table);
@@ -152,6 +152,7 @@ void process_query_from_client(int client)
 				}else{
 					send_res_code(client, RESPONSE_ERROR);
 				}
+				free(table);
 			}
 			break;
 

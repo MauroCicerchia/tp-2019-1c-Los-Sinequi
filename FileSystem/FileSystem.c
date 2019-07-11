@@ -129,6 +129,7 @@ void kill_FileSystem()
 		free(((activeTable*)pivot)->name);
 		sem_destroy(&((activeTable*)pivot)->MUTEX_TABLE_PART);
 		sem_destroy(&((activeTable*)pivot)->MUTEX_DROP_TABLE);
+		free(pivot);
 	}
 
 	list_destroy_and_destroy_elements(sysTables, free_activeTable);
