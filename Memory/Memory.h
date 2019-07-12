@@ -30,11 +30,12 @@ t_list* segmentList;
 e_query processQuery(char *, t_log*);
 t_log *logger;
 t_config *config;
-sem_t MUTEX_MEM,MAX_CONNECTIONS_KERNEL,MUTEX_GOSSIP;;
+sem_t MUTEX_MEM,MAX_CONNECTIONS_KERNEL,MUTEX_GOSSIP,MUTEX_JOURNAL;
 
 void memory_init();
 void kill_memory();
 void load_config();
+void free_frame(int);
 void iniciar_logger();
 segment* segment_init();
 void *listen_client();
@@ -79,7 +80,7 @@ char* selectM(char*,uint16_t);	   // (nombreTabla,key)
 int insertM(char*,uint16_t,char*); // (nombreTabla,key,value)
 int createM(char*,char*,char*,char*);
 int dropM(char*);
-void journalM(void);
+int journalM(void);
 t_list *describeM(char*);
 
 

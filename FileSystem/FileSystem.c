@@ -53,6 +53,8 @@ int main(int argc, char **argv)
 
 void init_FileSystem()
 {
+	system ("clear");
+
 	sem_init(&MUTEX_MEMTABLE,1,1); //inicio los semaforos
 	sem_init(&MUTEX_DUMPTIME,1,1);
 	sem_init(&MUTEX_RETARDTIME,1,1);

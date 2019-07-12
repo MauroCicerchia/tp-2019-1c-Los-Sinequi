@@ -51,6 +51,7 @@ void process_query_from_client(int client)
 	char *table, *value;
 	int status;
 	uint16_t key;
+	uint64_t timestamp;
 	char *consType;
 	char *sKey, *sTimeStamp, *sPart, *sCTime;
 	metadata *tableMetadata;
@@ -80,9 +81,13 @@ void process_query_from_client(int client)
 
 			table = recv_str(client);
 			key = recv_int(client);
+			timestamp = recv_timestamp(client);
 			value = recv_str(client);
 			sKey = string_itoa((int)key);
-			sTimeStamp = string_from_format("%llu",conn_getCurrentTime());
+
+			sTimeStamp = string_from_format("%llu", timestamp);
+			printf("%llu %s", timestamp, sTimeStamp);
+//			string_from_format("%llu",conn_getCurrentTime());
 
 			status = qinsert(table, sKey, value,sTimeStamp);
 			free(sKey); free(sTimeStamp);

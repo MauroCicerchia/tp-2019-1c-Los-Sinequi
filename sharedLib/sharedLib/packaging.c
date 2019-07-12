@@ -97,6 +97,12 @@ void send_int(int socket, int value) {
 	send(socket, &value, size, 0);
 }
 
+void send_timestamp(int socket, uint64_t value) {
+	int size = sizeof(value);
+	send(socket, &size, sizeof(size), 0);
+	send(socket, &value, size, 0);
+}
+
 void send_str(int socket, char *value) {
 	int size = sizeof(char) * (strlen(value) + 1);
 	send(socket, &size, sizeof(size), 0);
@@ -125,6 +131,16 @@ int recv_int(int socket) {
 	recv(socket, &value, size, 0);
 	return value;
 }
+
+uint64_t recv_timestamp(int socket) {
+	uint64_t value;
+	int size;
+	recv(socket, &size, sizeof(size), 0);
+	recv(socket, &value, size, 0);
+	return value;
+}
+
+
 
 char *recv_str(int socket) {
 	int size;

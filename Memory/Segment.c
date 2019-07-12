@@ -31,8 +31,7 @@ void remove_page_from_segment(page* aPage, segment* segment){
 }
 
 void segment_destroy(void* aSegment){
-
-//	free(((segment*) aSegment)->segment_id);
+	free(((segment*) aSegment)->segment_id);
 	list_destroy_and_destroy_elements(((segment*) aSegment)->page_list,page_destroy);
 	free(aSegment);
 

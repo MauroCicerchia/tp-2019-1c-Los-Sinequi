@@ -40,7 +40,7 @@ void memory_init(){
 		sem_init(&MUTEX_MEM,0,1);
 		sem_init(&MAX_CONNECTIONS_KERNEL,0,get_max_conexiones()); //Maximas conexiones kernel
 		sem_init(&MUTEX_GOSSIP,0,1);
-
+		sem_init(&MUTEX_JOURNAL,0,1);
 		THEGREATMALLOC();
 
 }
@@ -50,8 +50,12 @@ void kill_memory(){
 	log_destroy(logger);
 	free(main_memory);
 	bitarray_destroy(bitmap);
+
+	sem_destroy(&MUTEX_GOSSIP);
 	sem_destroy(&MUTEX_MEM);
 	sem_destroy(&MAX_CONNECTIONS_KERNEL);
+	sem_destroy(&MUTEX_JOURNAL);
+
 	free(port);
 	free(ip);
 	gossip_table_destroy();
@@ -85,14 +89,13 @@ void create_bitmap(int memSize){
 
 	int bitNumbers = total_frames();
 	char* bitParameter = (char*)malloc(sizeof(char)*(bitNumbers/8 + 1));
-	printf("%d",total_frames());
+	log_error(logger,"Marcos: **%d**",total_frames());
 	for(int i = 0; i<=(bitNumbers/8); i++){
 		bitParameter[i] = '0';
 	}
 
 	bitParameter[(bitNumbers/8)] = '\0';
 	bitmap = bitarray_create(bitParameter,strlen(bitParameter));
-	//printf("%d",bitNumbers);
 }
 
 int total_frames(){
@@ -128,7 +131,7 @@ char* get_value_from_memory(int frame_num){
 
 
 void insert_in_frame(uint16_t key, uint64_t timestamp, char* value, int frame_num){
-
+	sem_wait(&MUTEX_MEM);
 	void* base = main_memory + frame_num * get_frame_size();
 	memcpy(base, &key, sizeof(uint16_t));
 	base += sizeof(uint16_t);
@@ -137,29 +140,32 @@ void insert_in_frame(uint16_t key, uint64_t timestamp, char* value, int frame_nu
 	memcpy(base, value, strlen(value) + 1);
 
 	bitarray_set_bit(bitmap,frame_num);
-
+	sem_post(&MUTEX_MEM);
 }
 
 void modify_in_frame(char* value, int frame_num){
+	sem_wait(&MUTEX_MEM);
 	void* base = main_memory + frame_num * get_frame_size() + sizeof(uint16_t);
 	uint64_t timestamp = get_timestamp();
 	memcpy(base, &timestamp, sizeof(uint64_t));
-	base += sizeof(int);
+	base += sizeof(uint64_t);
 	memcpy(base, value, strlen(value) + 1);
-
+	sem_post(&MUTEX_MEM);
 }
 
 int find_free_frame(){
-	int i=0;
-	while(bitarray_test_bit(bitmap,i) != 0){
-		i++;
+	int i=0,free_frame = -1;
+	for(i=0;i<total_frames();i++){
+		if(bitarray_test_bit(bitmap,i) == 0){
+			free_frame = i;
+			break;
+		}
 	}
-	return i;
+	return free_frame;
 }
 
 int frame_available_in_mem(){
-	int memSize = get_tam_mem();
-	int bitNumbers = total_frames(memSize);
+	int bitNumbers = total_frames();
 	int i=0;
 	for(i=0;i<bitNumbers;i++){
 		if(bitarray_test_bit(bitmap,i) == 0){
@@ -167,6 +173,10 @@ int frame_available_in_mem(){
 		}
 	}
 	return 0;
+}
+
+void free_frame(int frame){
+	bitarray_clean_bit(bitmap,frame);
 }
 
 //************************************ FIN MEMORIA PRINCIPAL *****************************************
@@ -293,18 +303,20 @@ void process_query_from_client(int client) {
 				}
 			}else {
 				t_list *metadata_list = describeM(NULL);
-				int tCount = list_size(metadata_list);
-				if(tCount != 0) {
-					send_res_code(client, RESPONSE_SUCCESS);
-					send_int(client, tCount);
-					for(int i = 0; i<tCount; i++) {
-						aMD = list_get(metadata_list,i);
-						send_str(client,aMD->tableName);
-						send_str(client,aMD->consType);
-						send_str(client,aMD->partNum);
-						send_str(client,aMD->compTime);
+				if(metadata_list != NULL){
+					int tCount = list_size(metadata_list);
+					if(tCount != 0) {
+						send_res_code(client, RESPONSE_SUCCESS);
+						send_int(client, tCount);
+						for(int i = 0; i<tCount; i++) {
+							aMD = list_get(metadata_list,i);
+							send_str(client,aMD->tableName);
+							send_str(client,aMD->consType);
+							send_str(client,aMD->partNum);
+							send_str(client,aMD->compTime);
+						}
+						list_destroy_and_destroy_elements(metadata_list,metadata_destroy);
 					}
-					list_destroy_and_destroy_elements(metadata_list,metadata_destroy);
 				}else {
 					send_res_code(client, RESPONSE_ERROR);
 				}
@@ -355,19 +367,21 @@ void start_API(t_log *logger){
 		processQuery(input, logger);
 		free(input);
 		input = readline(">");
-
 	}
+	free(input);
 }
 
 e_query processQuery(char *query, t_log *logger) {
 	int insertResult;
 	e_query queryType;
 
-	t_list *args = parseQuery(query); //guardas en el vecor args la query
+	t_list *args = parseQuery(query); //guardas en el vector args la query
 
 	int invalidQuery = validateQuerySyntax(args); //validamos que sea correcta y sino lanzamos exception
-	if (!invalidQuery)
+	if (!invalidQuery){
+		list_destroy_and_destroy_elements(args,string_destroy_char);
 		return queryError();
+	}
 
 	queryType = getQueryType(list_get(args,0));
 	switch(queryType) {
@@ -377,7 +391,7 @@ e_query processQuery(char *query, t_log *logger) {
 			log_info(logger, "Recibi un SELECT %s %s", (char*) list_get(args,1), (char*) list_get(args,2));
 
 			char *value = selectM( (char*) list_get(args,1), atoi(list_get(args,2)));
-			printf("%s",value);
+			log_info(logger,"El valor retornado es: ** %s **",value);
 			free(value);
 
 			break;
@@ -387,10 +401,8 @@ e_query processQuery(char *query, t_log *logger) {
 
 			insertResult = insertM(list_get(args,1), atoi(list_get(args,2)), list_get(args,3));
 
-			if(insertResult == 1){
+			if(insertResult == -1){
 				log_error(logger,"No se puedo insertar un valor");
-			}else if(insertResult == 2){
-				log_info(logger,"No se puedo cargar el valor, pues la memoria se encuentra llena");
 			}else{
 				log_info(logger,"Valor insertado con exito");
 			}
@@ -405,7 +417,10 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_DESCRIBE:
 			log_info(logger, "Recibi un DESCRIBE %s", (char*) list_get(args,1));
-			describeM(list_get(args,1));
+			t_list* md = describeM(list_get(args,1));
+			//TODO Describe por consola
+			if(md!=NULL)
+				list_destroy_and_destroy_elements(md,metadata_destroy);
 
 			break;
 
@@ -429,16 +444,10 @@ e_query processQuery(char *query, t_log *logger) {
 
 	}
 
-	//log_info(logger, log_msg);
+	list_destroy_and_destroy_elements(args,string_destroy_char);
 	return queryType;
 }
 
-/*page* search_page(segment* aSegment,int aKey){
-	bool isKey(void* aPage){
-			return ((page*) aPage)->page_data->key == aKey;
-		}
-		return list_find(aSegment->page_list,isKey);
-}*/
 
 page* search_page(segment* aSegment,uint16_t aKey){
 	bool isKey(void* aPage){
@@ -466,12 +475,18 @@ segment* segment_init(){
 	return memorySegment;
 }
 
+void remove_segment(segment* aSeg){
+	bool isSegment(void* aSegment){
+		return strcasecmp(((segment*) aSegment)->segment_id,aSeg->segment_id)==0;
+	}
+	list_remove_and_destroy_by_condition(segmentList,isSegment,segment_destroy);
+}
 
 void load_page_to_segment(uint16_t key, segment* segmentFound, char* value, int modified) {
 	int frame_num = find_free_frame();
 	segment_add_page(segmentFound, frame_num, modified);
 	insert_in_frame(key, get_timestamp(), value, frame_num);
-	log_info(logger, "Se agrego la pagina con el nuevo valor a segmento y memoria.");
+	log_info(logger, "Se agrego la pagina con el nuevo valor a segmento y memoria al frame: %d.",frame_num);
 }
 
 void* execute_journal(){
@@ -482,186 +497,194 @@ void* execute_journal(){
 	}
 }
 /*********************************** QUERYS ******************************************/
-void journalM(){
-	int errorFS;
+int journalM(){
+	sem_wait(&MUTEX_JOURNAL);
+	int errorFS=0;
 	void journal_segment(void* aSegment){
 		segment* s = (segment*) aSegment;
 		void journal_page(void* aPage){
 			page*p = (page*) aPage;
 			if((p)->isModified){
 				char *value = get_value_from_memory(p->frame_num);
-				if(send_insert_to_FS(s->segment_id,get_key_from_memory(p->frame_num),value,logger) == -2){
+				if(send_insert_to_FS(s->segment_id,get_key_from_memory(p->frame_num),get_timestamp_from_memory(p->frame_num),value,logger) == -2){
 					errorFS = 1;
+				}else{
+					p->isModified = 0;
 				}
 				free(value);
-				p->isModified = 0;
 			}
 		}
 		list_iterate(s->page_list,journal_page);
 	}
 
+
+	list_iterate(segmentList,journal_segment);
+
 	if(errorFS != 1){
-		list_iterate(segmentList,journal_segment);
 		//vaciar segment list
 		list_clean_and_destroy_elements(segmentList,segment_destroy);
 		//setear el bitmap en 0 de toda la mem
 		for(int i=0;i<total_frames();i++){
-			bitarray_clean_bit(bitmap,i);
+			free_frame(i);
 		}
 		log_info(logger,"[JOURNAL]: Journal ejecutado");
 	}else{
 		log_error(logger,"[JOURNAL]: Error al conectar a FS, no se realiza el Journal");
+		sem_post(&MUTEX_JOURNAL);
+		return -1;
 	}
+	sem_post(&MUTEX_JOURNAL);
+	return 0;
 }
 
 int insertM(char* segmentID, uint16_t key, char* value){
 
-	if (frame_available_in_mem()){
-		segment* segmentFound = search_segment(segmentID);
-		if(segmentFound != NULL){
-			log_info(logger,"Se encontro la tabla buscada.");
-			page* pageFound = search_page(segmentFound,key);
-			if(pageFound != NULL){
-				log_info(logger,"Se encontro la pagina con el key buscado, modificando el valor.");
-				sem_wait(&MUTEX_MEM);
-				modify_in_frame(value,pageFound->frame_num);
-				sem_post(&MUTEX_MEM);
-				pageFound->isModified=1;
-				pageFound->last_time_used=get_timestamp();
-				return 0;
-			}
-			else{
-				log_warning(logger,"No se encontro la pagina con el key buscado,creando pagina.");
-				load_page_to_segment(key, segmentFound, value, 1);
-				return 0 ;
-			}
-		}
-		else{
-			log_info(logger,"No se encontro el segmento buscado, creando nuevo segmento.");
-			segment* newSegment = segment_init();
-			newSegment->segment_id = string_duplicate(segmentID);
-			sem_wait(&MUTEX_MEM);
-			load_page_to_segment(key, newSegment, value, 1);
-			sem_post(&MUTEX_MEM);
-			return 0;
-			}
+	sem_wait(&MUTEX_JOURNAL);
+	segment* segmentFound = search_segment(segmentID);
+
+	if(segmentFound == NULL){
+		log_warning(logger,"No se encontro el segmento buscado, creando nuevo segmento.");
+		segmentFound = segment_init();
+		segmentFound->segment_id = string_duplicate(segmentID);
+	}else{
+		log_info(logger,"Se encontro el segmento buscado.");
+	}
+
+	page* pageFound = search_page(segmentFound,key);
+
+	if(pageFound != NULL){
+		log_info(logger,"Se encontro la pagina con la key buscado, actualizando al valor %s en el frame: %d.",value,pageFound->frame_num);
+		modify_in_frame(value,pageFound->frame_num);
+		pageFound->isModified=1;
+		pageFound->last_time_used=get_timestamp();
+		sem_post(&MUTEX_JOURNAL);
+		return 0;
 	}
 	else{
-		if(memory_full()){
-			journalM();
-			return insertM(segmentID, key, value);
+		log_info(logger,"No se encontro la pagina con la key buscado,creando pagina con valor %s.", value);
+		if(frame_available_in_mem()){
+			load_page_to_segment(key, segmentFound, value, 1);
 		}else{
-			segment* segmentFound = search_segment(segmentID);
-			if(segmentFound == NULL){
-				segmentFound = segment_init();
-				segmentFound->segment_id = string_duplicate(segmentID);
+			if(memory_full()){
+				log_info(logger,"La memoria esta full, ejecutando Journal");
+				if(journalM() == -1){
+					log_error(logger,"No se pudo realizar el Journal, cancelando Insert");
+					sem_post(&MUTEX_JOURNAL);
+					return -1;
+				}
+				sem_post(&MUTEX_JOURNAL);
+				return insertM(segmentID, key, value);
+			}else{
+				execute_replacement(key,value,segmentFound);
 			}
-			execute_replacement(key,value,segmentFound);
-
-			return 0;
 		}
+		sem_post(&MUTEX_JOURNAL);
+		return 0 ;
 	}
-return 0;
+
 
 }
 
 char* selectM(char* segmentID, uint16_t key){
+	sem_wait(&MUTEX_JOURNAL);
+	int segmentCreated = 0;
+
 	segment* segmentFound = search_segment(segmentID);
 
-	if(segmentFound != NULL){
+	if(segmentFound == NULL){
+		log_warning(logger,"No se encontro el segmento buscado, creando nuevo segmento.");
+		segmentFound = segment_init();
+		segmentFound->segment_id = string_duplicate(segmentID);
+		segmentCreated = 1;
+	}else{
 		log_info(logger,"Se encontro el segmento buscado.");
-		page* pageFound = search_page(segmentFound,key);
-		if(pageFound != NULL){
-			pageFound->last_time_used=get_timestamp();
-			log_info(logger,"Se encontro la pagina con el key buscado, retornando el valor.");
-			return get_value_from_memory(pageFound->frame_num);
-		}else{
-			log_warning(logger,"No se encontro la pagina con el key buscado, consultando a FS.");
-			char* value = send_select_to_FS(segmentID,key,logger);
-
-			if(value!=NULL){
-				if(frame_available_in_mem()){
-					sem_wait(&MUTEX_MEM);
-					load_page_to_segment(key, segmentFound, value, 0);
-					sem_post(&MUTEX_MEM);
-				}else{
-					if(memory_full()){
-						journalM();
-						load_page_to_segment(key, segmentFound, value, 0);
-					}else{
-						execute_replacement(key,value,segmentFound);
-					}
-				}
-				return value;
-			}else{
-				log_error(logger,"No existe la key ingresada en FS");
-				return NULL;
-			}
-		}
 	}
-	else{
-		log_warning(logger,"No existe el segmento ingresado en memoria");
+
+	page* pageFound = search_page(segmentFound,key);
+
+	if(pageFound != NULL){
+		pageFound->last_time_used=get_timestamp();
+		log_info(logger,"Se encontro la pagina con el key buscado, retornando el valor.");
+		sem_post(&MUTEX_JOURNAL);
+		return get_value_from_memory(pageFound->frame_num);
+	}else{
+		log_warning(logger,"No se encontro la pagina con el key buscado, consultando a FS.");
 		char* value = send_select_to_FS(segmentID,key,logger);
+
 		if(value!=NULL){
-			segment* newSegment = segment_init();
-			newSegment->segment_id = string_duplicate(segmentID);
 			if(frame_available_in_mem()){
-				sem_wait(&MUTEX_MEM);
-				load_page_to_segment(key, newSegment, value, 0);
-				sem_post(&MUTEX_MEM);
+				load_page_to_segment(key, segmentFound, value, 0);
 			}else{
 				if(memory_full()){
-					journalM();
-					sem_wait(&MUTEX_MEM);
-					load_page_to_segment(key, newSegment, value, 0);
-					sem_post(&MUTEX_MEM);
+					log_info(logger,"La memoria esta full, ejecutando Journal");
+					if(journalM() == -1){
+						log_error(logger,"No se pudo realizar el Journal, cancelando Select");
+						if(segmentCreated){
+							remove_segment(segmentFound);
+						}
+						sem_post(&MUTEX_JOURNAL);
+						return NULL;
+					}
+					load_page_to_segment(key, segmentFound, value, 0);
 				}else{
-					execute_replacement(key,value,newSegment);
+					execute_replacement(key,value,segmentFound);
 				}
 			}
+			sem_post(&MUTEX_JOURNAL);
 			return value;
 		}else{
-			log_error(logger,"No existe la tabla o la key ingresada en FS");
+			if(segmentCreated){
+				remove_segment(segmentFound);
+			}
+			sem_post(&MUTEX_JOURNAL);
+			return NULL;
 		}
 	}
 
-	return NULL;
+
 }
 
 int createM(char* segmentID,char* consistency ,char *partition_num, char *compaction_time){
 	/*ENVIAR AL FS OPERACION PARA CREAR TABLA*/
+	sem_wait(&MUTEX_JOURNAL);
 	int status = send_create_to_FS(segmentID, consistency, partition_num, compaction_time, logger);
+	sem_post(&MUTEX_JOURNAL);
 	return status;
 }
 
 t_list* describeM(char *table){
+	sem_wait(&MUTEX_JOURNAL);
 	t_list* md = send_describe_to_FS(table,logger);
+	sem_post(&MUTEX_JOURNAL);
 	return md;
 }
 
 int dropM(char* segment_id){
-
+	sem_wait(&MUTEX_JOURNAL);
 	segment* segmentFound = search_segment(segment_id);
 
-	send_drop_to_FS(segment_id, logger);
+	int FSresult = send_drop_to_FS(segment_id, logger);
 
-	if(segmentFound != NULL){
-		sem_wait(&MUTEX_MEM);
-		delete_segment_from_mem(segmentFound);
-		remove_delete_segment(segmentFound);
-		sem_post(&MUTEX_MEM);
-		log_info(logger,"Se elimino el segmento y se libero la memoria");
+	if(FSresult == 0){
+		if(segmentFound != NULL){
+			delete_segment_from_mem(segmentFound);
+			remove_delete_segment(segmentFound);
+			log_info(logger,"Se elimino el segmento y se libero la memoria");
+		}else{
+			log_info(logger,"No se encontro el segmento a borrar.");
+			sem_post(&MUTEX_JOURNAL);
+			return -1;
+		}
 	}else{
-		log_info(logger,"No se encontro el segmento a borrar.");
-		return -1;
+		log_error(logger,"No se elimina el segmento ni se libera la memoria.");
 	}
-
+	sem_post(&MUTEX_JOURNAL);
 	return 0;
 }
 /**************************** FIN QUERYS *********************************************/
 void delete_segment_from_mem(segment* aSegment){
 	void make_frame_available(void* aPage){
-		bitarray_clean_bit(bitmap,((page*) aPage)->frame_num);
+		free_frame(((page*) aPage)->frame_num);
 	}
 	list_iterate(aSegment->page_list, make_frame_available);
 }
@@ -676,7 +699,7 @@ void remove_delete_segment(segment* aSegment){
 /********************************************* LRU ************************************/
 void execute_replacement(uint16_t key, char* value, segment* segment_to_use){
 	log_info(logger,"Ejecutando algoritmo de reemplazo LRU");
-	int min_time = get_timestamp();
+	uint64_t min_time = get_timestamp();
 	page* min_page = NULL;
 	segment* min_segment = NULL;
 	void re_segment(void* aSegment){
@@ -696,10 +719,9 @@ void execute_replacement(uint16_t key, char* value, segment* segment_to_use){
 	if(min_segment != NULL && min_page != NULL) {
 		log_info(logger,"Se remueve la key %d del segmento %s \n", (int)get_key_from_memory(min_page->frame_num), min_segment->segment_id);
 
+		free_frame(min_page->frame_num);
 		remove_page_from_segment(min_page,min_segment);
-		sem_wait(&MUTEX_MEM);
 		load_page_to_segment(key, segment_to_use, value, 0);
-		sem_post(&MUTEX_MEM);
 	} else {
 		log_error(logger, "No se encontro una pagina para reemplazar.");
 	}
@@ -719,7 +741,7 @@ void get_value_size(){
 	valueSize = recv_int(socket);
 	close(socket);
 	log_info(logger, "Value Size recibido de FS.");
-	//valueSize = 255;
+//	valueSize = 400;
 }
 /******************************* DATOS VARIABLES DEL ARCHIVO CONFIG **********************/
 int get_retardo_journal(){
@@ -801,7 +823,6 @@ char** array_duplicate(char** array){
 	char** arrayDup = (char**) malloc(sizeof(char*)*(sizeofArray(array)+1));
 	int i=0;
 	for(i=0; i< sizeofArray(array);i++){
-		//log_error(logger,"AVERGA:   %s\n",array[i]);
 		arrayDup[i] = string_duplicate(array[i]);
 	}
 	arrayDup[i] = NULL;
@@ -810,11 +831,4 @@ char** array_duplicate(char** array){
 
 
 /************************** FIN DATOS VARIABLES DEL ARCHIVO CONFIG *****************************/
-//
-//uint64_t get_timestamp(){
-//	struct timeval tv;
-//	gettimeofday(&tv,NULL);
-//	uint64_t  x = (uint64_t)( (tv.tv_sec)*1000 + (tv.tv_usec)/1000 );
-//	return x;
-//}
 

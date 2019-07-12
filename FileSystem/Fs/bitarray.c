@@ -65,7 +65,7 @@ int ba_getNewBlock()
 	int aux = lastBlockAssigned;
 	int i;
 
-	for(i = lastBlockAssigned; i <= blocks; i++){
+	for(i = lastBlockAssigned; i < blocks; i++){
 		if(!bitarray_test_bit(bitarray,aux)){
 			bitarray_set_bit(bitarray,aux);
 			lastBlockAssigned = aux;
@@ -78,7 +78,7 @@ int ba_getNewBlock()
 	}
 
 	i=0;
-	while(i <= lastBlockAssigned){
+	while(i < lastBlockAssigned){
 		if(!bitarray_test_bit(bitarray,aux)){
 			bitarray_set_bit(bitarray,aux);
 			lastBlockAssigned = aux;
