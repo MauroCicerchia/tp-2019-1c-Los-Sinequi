@@ -101,7 +101,9 @@ void processQuery(char *query)
 						sprintf(log_msg,"[API]: Tabla: %s -> Cons: %s, Parts: %s, T.Comp: %s",(char*)list_get(tables,i),tableInfo->consistency,tableInfo->partitions,tableInfo->ctime); //retorno contenido
 						log_info(logger,log_msg);
 
-						free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
+						free(tableInfo->consistency);
+						free(tableInfo->ctime);
+						free(tableInfo->partitions);
 						free(tableInfo);
 					}
 				}
@@ -121,7 +123,9 @@ void processQuery(char *query)
 					sprintf(log_msg,"[API]: Consistencia: %s, Particiones: %s, T. Compactacion: %s",cons,parts,ctime); //retorno contenido de metadata
 					log_info(logger,log_msg);
 
-					free(tableInfo->consistency); free(tableInfo->ctime); free(tableInfo->partitions);
+					free(tableInfo->consistency);
+					free(tableInfo->ctime);
+					free(tableInfo->partitions);
 					free(tableInfo);
 					free(cons);
 				}
