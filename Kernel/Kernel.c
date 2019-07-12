@@ -10,9 +10,10 @@ t_log *logger;
 pthread_t threadNewReady, threadMetrics, threadGossip, threadRefreshMetadata;
 
 int main(int argc, char **argv) {
+
 	init_kernel();
 
-	display_memories();
+
 
 	pthread_t threadsExec[MP];
 
@@ -322,6 +323,7 @@ void init_memory() {
 	log_info(logger, " >> Solicitando memorias disponibles.");
 	request_memory_pool(memSocket);
 	log_info(logger, " >> Memorias obtenidas correctamente.");
+	display_memories();
 	log_info(logger, " >> Realizando Describe inicial.");
 	qDescribe(NULL, logger); 
 	log_info(logger, " >> Tablas obtenidas correctamente.");

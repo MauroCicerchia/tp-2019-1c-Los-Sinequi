@@ -28,19 +28,25 @@ int main(int argc, char **argv) {
 }
 
 void memory_init(){
+
+		sem_init(&MUTEX_CONFIG,0,1);
+		sem_init(&MUTEX_MEM,0,1);
+		sem_init(&MUTEX_GOSSIP,0,1);
+		sem_init(&MUTEX_BITMAP,0,1);
+		sem_init(&MUTEX_JOURNAL,0,1);
+		sem_init(&MAX_CONNECTIONS_KERNEL,0,get_max_conexiones());
 		iniciar_logger();
 
 		segmentList = list_create();
 
 		gossip_table = list_create();
+
+
 		ip = get_ip();
 		port = get_port();
+
 		add_to_gossip_table(ip,port,get_mem_number(),logger);
 
-		sem_init(&MUTEX_MEM,0,1);
-		sem_init(&MAX_CONNECTIONS_KERNEL,0,get_max_conexiones()); //Maximas conexiones kernel
-		sem_init(&MUTEX_GOSSIP,0,1);
-		sem_init(&MUTEX_JOURNAL,0,1);
 		THEGREATMALLOC();
 
 }
@@ -53,8 +59,10 @@ void kill_memory(){
 
 	sem_destroy(&MUTEX_GOSSIP);
 	sem_destroy(&MUTEX_MEM);
+	sem_destroy(&MUTEX_BITMAP);
 	sem_destroy(&MAX_CONNECTIONS_KERNEL);
 	sem_destroy(&MUTEX_JOURNAL);
+	sem_destroy(&MUTEX_CONFIG);
 
 	free(port);
 	free(ip);
@@ -86,7 +94,7 @@ int get_frame_size(){
 }
 
 void create_bitmap(int memSize){
-
+	sem_wait(&MUTEX_BITMAP);
 	int bitNumbers = total_frames();
 	char* bitParameter = (char*)malloc(sizeof(char)*(bitNumbers/8 + 1));
 	log_error(logger,"Marcos: **%d**",total_frames());
@@ -96,6 +104,8 @@ void create_bitmap(int memSize){
 
 	bitParameter[(bitNumbers/8)] = '\0';
 	bitmap = bitarray_create(bitParameter,strlen(bitParameter));
+	sem_post(&MUTEX_BITMAP);
+
 }
 
 int total_frames(){
@@ -131,6 +141,11 @@ char* get_value_from_memory(int frame_num){
 
 
 void insert_in_frame(uint16_t key, uint64_t timestamp, char* value, int frame_num){
+
+	sem_wait(&MUTEX_BITMAP);
+	bitarray_set_bit(bitmap,frame_num);
+	sem_post(&MUTEX_BITMAP);
+
 	sem_wait(&MUTEX_MEM);
 	void* base = main_memory + frame_num * get_frame_size();
 	memcpy(base, &key, sizeof(uint16_t));
@@ -138,9 +153,8 @@ void insert_in_frame(uint16_t key, uint64_t timestamp, char* value, int frame_nu
 	memcpy(base, &timestamp, sizeof(uint64_t));
 	base += sizeof(uint64_t);
 	memcpy(base, value, strlen(value) + 1);
-
-	bitarray_set_bit(bitmap,frame_num);
 	sem_post(&MUTEX_MEM);
+
 }
 
 void modify_in_frame(char* value, int frame_num){
@@ -155,28 +169,35 @@ void modify_in_frame(char* value, int frame_num){
 
 int find_free_frame(){
 	int i=0,free_frame = -1;
+	sem_wait(&MUTEX_BITMAP);
 	for(i=0;i<total_frames();i++){
 		if(bitarray_test_bit(bitmap,i) == 0){
 			free_frame = i;
 			break;
 		}
 	}
+	sem_post(&MUTEX_BITMAP);
 	return free_frame;
 }
 
 int frame_available_in_mem(){
 	int bitNumbers = total_frames();
 	int i=0;
+	sem_wait(&MUTEX_BITMAP);
 	for(i=0;i<bitNumbers;i++){
 		if(bitarray_test_bit(bitmap,i) == 0){
+			sem_post(&MUTEX_BITMAP);
 			return 1;
 		}
 	}
+	sem_post(&MUTEX_BITMAP);
 	return 0;
 }
 
 void free_frame(int frame){
+	sem_wait(&MUTEX_BITMAP);
 	bitarray_clean_bit(bitmap,frame);
+	sem_post(&MUTEX_BITMAP);
 }
 
 //************************************ FIN MEMORIA PRINCIPAL *****************************************
@@ -246,6 +267,7 @@ void process_query_from_client(int client) {
 		case QUERY_SELECT:
 			table = recv_str(client);
 			key = recv_int(client);
+			log_info(logger,"Recibi un SELECT de tabla %s y key %d",table,(int)key);
 			char *response = selectM(table, key);
 			free(table);
 			if(response != NULL) {
@@ -260,6 +282,7 @@ void process_query_from_client(int client) {
 			table = recv_str(client);
 			key = recv_int(client);
 			value = recv_str(client);
+			log_info(logger,"Recibi un INSERT de tabla %s, key %d y value %s",table,(int)key,value);
 			sem_wait(&MUTEX_JOURNAL);
 			status = insertM(table, key, value);
 			sem_post(&MUTEX_JOURNAL);
@@ -277,6 +300,7 @@ void process_query_from_client(int client) {
 			consType = recv_str(client);
 			part = recv_str(client);
 			compTime = recv_str(client);
+			log_info(logger,"Recibi un CREATE de tabla %s",table);
 			status = createM(table, consType, part, compTime);
 			free(table);
 			free(consType);
@@ -292,6 +316,7 @@ void process_query_from_client(int client) {
 		case QUERY_DESCRIBE:
 
 			table = recv_str(client);
+			log_info(logger,"Recibi un DESCRIBE");
 			if(strcmp(table, "") != 0) {
 				metadata_list = describeM(table);
 				if(metadata_list != NULL) {
@@ -309,27 +334,28 @@ void process_query_from_client(int client) {
 				t_list *metadata_list = describeM(NULL);
 				if(metadata_list != NULL){
 					int tCount = list_size(metadata_list);
-					if(tCount != 0) {
-						send_res_code(client, RESPONSE_SUCCESS);
-						send_int(client, tCount);
-						for(int i = 0; i<tCount; i++) {
-							aMD = list_get(metadata_list,i);
-							send_str(client,aMD->tableName);
-							send_str(client,aMD->consType);
-							send_str(client,aMD->partNum);
-							send_str(client,aMD->compTime);
-						}
-						list_destroy_and_destroy_elements(metadata_list,metadata_destroy);
+
+					send_res_code(client, RESPONSE_SUCCESS);
+					send_int(client, tCount);
+					for(int i = 0; i<tCount; i++) {
+						aMD = list_get(metadata_list,i);
+						send_str(client,aMD->tableName);
+						send_str(client,aMD->consType);
+						send_str(client,aMD->partNum);
+						send_str(client,aMD->compTime);
 					}
-				}else {
+					list_destroy_and_destroy_elements(metadata_list,metadata_destroy);
+				}
+				else {
 					send_res_code(client, RESPONSE_ERROR);
 				}
 			}
-			free(table);
+			//free(table);
 			break;
 		case QUERY_DROP:
 			table = recv_str(client);
 			status = dropM(table);
+			log_info(logger,"Recibi un DROP de tabla %s,",table);
 			free(table);
 			if(status == 0)
 				send_res_code(client, RESPONSE_SUCCESS);
@@ -398,7 +424,7 @@ e_query processQuery(char *query, t_log *logger) {
 			char *value = selectM( (char*) list_get(args,1), atoi(list_get(args,2)));
 			log_info(logger,"El valor retornado es: ** %s **",value);
 			free(value);
-
+			log_info(logger,"borraresto");
 			break;
 
 		case QUERY_INSERT:
@@ -744,78 +770,100 @@ void get_value_size(){
 }
 /******************************* DATOS VARIABLES DEL ARCHIVO CONFIG **********************/
 int get_retardo_journal(){
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	int retard = config_get_int_value(config,"RETARDO_JOURNAL");
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return retard;
 }
 int get_retardo_gossip(){
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	int retard = config_get_int_value(config,"RETARDO_GOSSIPING");
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return retard;
 }
 int get_max_conexiones(){
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	int amount = config_get_int_value(config,"MAX_CONEXIONES_KERNEL");
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return amount;
 }
 
 int get_tam_mem(){
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	int size = config_get_int_value(config,"TAM_MEM");
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return size;
 }
 
 char* get_ip(){
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	char* ip = string_duplicate(config_get_string_value(config,"IP"));
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return ip;
 }
 
 char* get_port(){
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	char* port = string_duplicate(config_get_string_value(config,"PUERTO"));
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return port;
 }
 
 char* get_ip_fs(){
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	char* ip = string_duplicate(config_get_string_value(config,"IP_FS"));
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return ip;
 }
 
 char* get_port_fs(){
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	char* port = string_duplicate(config_get_string_value(config,"PUERTO_FS"));
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return port;
 }
 
 char **get_ip_seeds(){
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	char** ips = config_get_array_value(config, "IP_SEEDS");
 //			array_duplicate(config_get_array_value(config, "IP_SEEDS"));
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return ips;
 }
 
 char **get_port_seeds(){
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	char** ports = array_duplicate(config_get_array_value(config, "PUERTO_SEEDS"));
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return ports;
 }
 
 int get_mem_number(){
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	int num = config_get_int_value(config,"MEMORY_NUMBER");
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return num;
 }
 
