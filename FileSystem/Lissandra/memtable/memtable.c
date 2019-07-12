@@ -1,22 +1,24 @@
 #include"memtable.h"
 
 void mt_insert(char *table,char* timestamp, char *key,char *value)
-{
+{	//inserto un elemento en la memtable
 	if(!mt_tableExists(table)){
 		Itable *newTable = malloc(sizeof(Itable));
 		newTable->table = string_duplicate(table);
 		newTable->inserts = list_create();
 		list_add(memtable,newTable);
 	}
-	t_list *tableToInsert = mt_getTableToInsert(table);
-	mt_addNewInsert(tableToInsert,timestamp,key,value);
+	t_list *tableToInsert = mt_getTableToInsert(table); //puntero a la lista de "inserts" para agregar uno nuevo
+	mt_addNewInsert(tableToInsert,timestamp,key,value); //agrega el nuevo insert
+
 }
 
 //evalua si la tabla esta en la memtable
 bool mt_tableExists(char *table)
 {
 	Itable *pTable;
-	if(list_size(memtable) == 0)return false;
+	if(list_size(memtable) == 0)return false; //caso de que no exista
+
 	for(int i=0;i<list_size(memtable);i++){
 		pTable = (Itable*)list_get(memtable,i);
 		if(!strcmp(pTable->table,table)){
@@ -47,7 +49,7 @@ void mt_addNewInsert(t_list *tableToInsert, char *timestamp, char *key, char *va
 	pInsert->timestamp = string_duplicate(timestamp);
 	pInsert->value = string_duplicate(value);
 
-	list_add(tableToInsert,pInsert);
+	list_add(tableToInsert,pInsert); //agregar insert
 }
 
 //vacia una tabla tipo memtable
