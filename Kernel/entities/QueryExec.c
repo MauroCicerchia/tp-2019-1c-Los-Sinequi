@@ -245,7 +245,6 @@ int qDescribe(char* table, t_log *logger) {
 		send_req_code(memSocket, REQUEST_QUERY);
 		send_q_type(memSocket, QUERY_DESCRIBE);
 		send_str(memSocket, "");
-
 		e_response_code r = recv_res_code(memSocket);
 
 		if(r == RESPONSE_SUCCESS) {

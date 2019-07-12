@@ -206,7 +206,7 @@ void *threadDump()
 
 
 void iniciar_logger(t_log **logger){
-	*logger = log_create("FileSystem.log", "FileSystem", 1, LOG_LEVEL_INFO);
+	*logger = log_create("FileSystem.log", "FileSystem", 0, LOG_LEVEL_INFO);
 }
 
 void load_config(){
