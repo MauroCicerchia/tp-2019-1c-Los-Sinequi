@@ -18,7 +18,7 @@
  *
  */
 
-char* send_select_to_FS(char* segmentID, uint16_t key, t_config* config,t_log* logger){
+char* send_select_to_FS(char* segmentID, uint16_t key,t_log* logger){
 
 	printf("%s, %d", segmentID, (int)key);
 
@@ -27,7 +27,7 @@ char* send_select_to_FS(char* segmentID, uint16_t key, t_config* config,t_log* l
 	add_to_package(p, (void*)&key, sizeof(key));
 
 
-	int FS_socket = connect_to_FS(config,logger);
+	int FS_socket = connect_to_FS(logger);
 
 	send_req_code(FS_socket, REQUEST_QUERY);
 	send_package(p, FS_socket);
@@ -45,9 +45,9 @@ char* send_select_to_FS(char* segmentID, uint16_t key, t_config* config,t_log* l
 	return NULL;
 }
 
-int request_valuesize_to_FS(t_config* config, t_log* logger){
+int request_valuesize_to_FS(t_log* logger){
 
-	int FS_socket = connect_to_FS(config,logger);
+	int FS_socket = connect_to_FS(logger);
 	send_req_code(FS_socket,REQUEST_VALUESIZE);
 
 	e_response_code r = recv_res_code(FS_socket);
@@ -63,7 +63,7 @@ int request_valuesize_to_FS(t_config* config, t_log* logger){
 	return 0;
 }
 
-int send_create_to_FS(char* table,char* consType, char *part, char *compTime ,t_config* config, t_log* logger){
+int send_create_to_FS(char* table,char* consType, char *part, char *compTime ,t_log* logger){
 
 	//	Paquetizar
 	t_package *p = create_package(QUERY_CREATE);
@@ -72,7 +72,7 @@ int send_create_to_FS(char* table,char* consType, char *part, char *compTime ,t_
 	add_to_package(p, (void*)part, sizeof(char)* strlen(part) + 1);
 	add_to_package(p, (void*)compTime, sizeof(char) * strlen(compTime) + 1);
 
-	int FS_socket = connect_to_FS(config,logger);
+	int FS_socket = connect_to_FS(logger);
 
 	send_req_code(FS_socket, REQUEST_QUERY);
 	send_package(p, FS_socket);
@@ -92,9 +92,9 @@ int send_create_to_FS(char* table,char* consType, char *part, char *compTime ,t_
 
 }
 
-t_list* send_describe_to_FS(char*table,t_config* config,t_log* logger){
+t_list* send_describe_to_FS(char*table,t_log* logger){
 	t_list* metadata_list = list_create();
-	int FS_socket = connect_to_FS(config,logger);
+	int FS_socket = connect_to_FS(logger);
 
 	if(table != NULL) {
 		//Paquetizar
@@ -151,7 +151,7 @@ t_list* send_describe_to_FS(char*table,t_config* config,t_log* logger){
 	return(metadata_list);
 }
 
-void send_insert_to_FS(char* table,uint16_t key,char* value,t_config* config,t_log* logger){
+int send_insert_to_FS(char* table,uint16_t key,char* value,t_log* logger){
 
 	//	Paquetizar
 	t_package *p = create_package(QUERY_INSERT);
@@ -159,8 +159,11 @@ void send_insert_to_FS(char* table,uint16_t key,char* value,t_config* config,t_l
 	add_to_package(p, (void*)&key, sizeof(key));
 	add_to_package(p, (void*)value, sizeof(char) * (strlen(value) + 1));
 
-	int FS_socket = connect_to_FS(config,logger);
+	int FS_socket = connect_to_FS(logger);
 
+	if(FS_socket==-1){
+		return -2;
+	}
 	send_req_code(FS_socket, REQUEST_QUERY);
 	send_package(p, FS_socket);
 
@@ -168,20 +171,22 @@ void send_insert_to_FS(char* table,uint16_t key,char* value,t_config* config,t_l
 
 	if(r == RESPONSE_SUCCESS) {
 		log_info(logger,"Se realizo el insert correctamente en FS");
+		close(FS_socket);
+		return 0;
 	} else {
 		log_error(logger, "Error al realizar insert en FS");
+		close(FS_socket);
+		return -1;
 	}
-	close(FS_socket);
-	return;
 }
 
-void send_drop_to_FS(char* table,t_config* config,t_log* logger){
+void send_drop_to_FS(char* table,t_log* logger){
 
 	//	Paquetizar
 	t_package *p = create_package(QUERY_DROP);
 	add_to_package(p, (void*)table, sizeof(char) * strlen(table) + 1);
 
-	int FS_socket = connect_to_FS(config,logger);
+	int FS_socket = connect_to_FS(logger);
 
 	send_req_code(FS_socket, REQUEST_QUERY);
 	send_package(p, FS_socket);
@@ -200,20 +205,20 @@ void send_drop_to_FS(char* table,t_config* config,t_log* logger){
 
 
 
-int connect_to_FS(t_config* config, t_log* logger){
-	char* FS_ip = config_get_string_value(config, "IP_FS");
-	char* FS_port = config_get_string_value(config, "PUERTO_FS");
-	log_info(logger,FS_ip);
-	log_info(logger,FS_port);
+int connect_to_FS(t_log* logger){
+	char* FS_ip = get_ip_fs();
+	char* FS_port = get_port_fs();
+
 	int socket = connectToServer(FS_ip,FS_port);
+	free(FS_ip);
+	free(FS_port);
 	if(socket == -1){
 		log_error(logger,"La conexion con FS fallo");
-		exit (-1);
 	}
 	else{
 		log_info(logger,"La conexion con FS fue exitosa");
-		return socket;
 	}
+	return socket;
 }
 
 void metadata_destroy(void* aMD){

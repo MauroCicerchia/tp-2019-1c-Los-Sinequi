@@ -37,3 +37,6 @@ void start_API(t_log *logger) {
 void string_destroy(void *str) {
 	free(str);
 }
+void string_destroy_char(char* str){
+	free(str);
+}

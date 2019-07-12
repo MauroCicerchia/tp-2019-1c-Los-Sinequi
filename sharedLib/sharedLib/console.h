@@ -12,5 +12,6 @@ t_list *validate_query_and_return_args(char*);
 int sizeofArray(char**);
 void start_API(t_log *);
 void string_destroy(void*);
+void string_destroy_char(char*);
 
 #endif
