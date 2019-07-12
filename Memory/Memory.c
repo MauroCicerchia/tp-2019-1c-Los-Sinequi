@@ -92,7 +92,6 @@ void create_bitmap(int memSize){
 
 	bitParameter[(bitNumbers/8)] = '\0';
 	bitmap = bitarray_create(bitParameter,strlen(bitParameter));
-	//printf("%d",bitNumbers);
 }
 
 int total_frames(){
@@ -362,8 +361,8 @@ void start_API(t_log *logger){
 		processQuery(input, logger);
 		free(input);
 		input = readline(">");
-
 	}
+	free(input);
 }
 
 e_query processQuery(char *query, t_log *logger) {
@@ -373,8 +372,10 @@ e_query processQuery(char *query, t_log *logger) {
 	t_list *args = parseQuery(query); //guardas en el vector args la query
 
 	int invalidQuery = validateQuerySyntax(args); //validamos que sea correcta y sino lanzamos exception
-	if (!invalidQuery)
+	if (!invalidQuery){
+		list_destroy_and_destroy_elements(args,string_destroy_char);
 		return queryError();
+	}
 
 	queryType = getQueryType(list_get(args,0));
 	switch(queryType) {
@@ -384,7 +385,7 @@ e_query processQuery(char *query, t_log *logger) {
 			log_info(logger, "Recibi un SELECT %s %s", (char*) list_get(args,1), (char*) list_get(args,2));
 
 			char *value = selectM( (char*) list_get(args,1), atoi(list_get(args,2)));
-			printf("%s",value);
+			log_info(logger,"El valor retornado es: ** %s **",value);
 			free(value);
 
 			break;
@@ -394,10 +395,8 @@ e_query processQuery(char *query, t_log *logger) {
 
 			insertResult = insertM(list_get(args,1), atoi(list_get(args,2)), list_get(args,3));
 
-			if(insertResult == 1){
+			if(insertResult == -1){
 				log_error(logger,"No se puedo insertar un valor");
-			}else if(insertResult == 2){
-				log_info(logger,"No se puedo cargar el valor, pues la memoria se encuentra llena");
 			}else{
 				log_info(logger,"Valor insertado con exito");
 			}
@@ -412,7 +411,10 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_DESCRIBE:
 			log_info(logger, "Recibi un DESCRIBE %s", (char*) list_get(args,1));
-			describeM(list_get(args,1));
+			t_list* md = describeM(list_get(args,1));
+			//TODO Describe por consola
+			if(md!=NULL)
+				list_destroy_and_destroy_elements(md,metadata_destroy);
 
 			break;
 
@@ -436,7 +438,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 	}
 
-	//log_info(logger, log_msg);
+	list_destroy_and_destroy_elements(args,string_destroy_char);
 	return queryType;
 }
 
@@ -467,6 +469,12 @@ segment* segment_init(){
 	return memorySegment;
 }
 
+void remove_segment(segment* aSeg){
+	bool isSegment(void* aSegment){
+		return strcasecmp(((segment*) aSegment)->segment_id,aSeg->segment_id)==0;
+	}
+	list_remove_and_destroy_by_condition(segmentList,isSegment,segment_destroy);
+}
 
 void load_page_to_segment(uint16_t key, segment* segmentFound, char* value, int modified) {
 	int frame_num = find_free_frame();
@@ -483,8 +491,8 @@ void* execute_journal(){
 	}
 }
 /*********************************** QUERYS ******************************************/
-void journalM(){
-	int errorFS;
+int journalM(){
+	int errorFS=0;
 	void journal_segment(void* aSegment){
 		segment* s = (segment*) aSegment;
 		void journal_page(void* aPage){
@@ -493,16 +501,19 @@ void journalM(){
 				char *value = get_value_from_memory(p->frame_num);
 				if(send_insert_to_FS(s->segment_id,get_key_from_memory(p->frame_num),value,logger) == -2){
 					errorFS = 1;
+				}else{
+					p->isModified = 0;
 				}
 				free(value);
-				p->isModified = 0;
 			}
 		}
 		list_iterate(s->page_list,journal_page);
 	}
 
+
+	list_iterate(segmentList,journal_segment);
+
 	if(errorFS != 1){
-		list_iterate(segmentList,journal_segment);
 		//vaciar segment list
 		list_clean_and_destroy_elements(segmentList,segment_destroy);
 		//setear el bitmap en 0 de toda la mem
@@ -512,111 +523,107 @@ void journalM(){
 		log_info(logger,"[JOURNAL]: Journal ejecutado");
 	}else{
 		log_error(logger,"[JOURNAL]: Error al conectar a FS, no se realiza el Journal");
+		return -1;
 	}
+	return 0;
 }
 
 int insertM(char* segmentID, uint16_t key, char* value){
 
-	if (frame_available_in_mem()){
-		segment* segmentFound = search_segment(segmentID);
-		if(segmentFound != NULL){
-			log_info(logger,"Se encontro la tabla buscada.");
-			page* pageFound = search_page(segmentFound,key);
-			if(pageFound != NULL){
-				log_info(logger,"Se encontro la pagina con el key buscado, modificando el valor.");
-				modify_in_frame(value,pageFound->frame_num);
-				pageFound->isModified=1;
-				pageFound->last_time_used=get_timestamp();
-				return 0;
-			}
-			else{
-				log_info(logger,"No se encontro la pagina con el key buscado,creando pagina.");
-				load_page_to_segment(key, segmentFound, value, 1);
-				return 0 ;
-			}
-		}
-		else{
-			log_warning(logger,"No se encontro el segmento buscado, creando nuevo segmento.");
-			segment* newSegment = segment_init();
-			newSegment->segment_id = string_duplicate(segmentID);
-			load_page_to_segment(key, newSegment, value, 1);
-			return 0;
-			}
+	segment* segmentFound = search_segment(segmentID);
+
+	if(segmentFound == NULL){
+		log_warning(logger,"No se encontro el segmento buscado, creando nuevo segmento.");
+		segmentFound = segment_init();
+		segmentFound->segment_id = string_duplicate(segmentID);
+	}else{
+		log_info(logger,"Se encontro el segmento buscado.");
+	}
+
+	page* pageFound = search_page(segmentFound,key);
+
+	if(pageFound != NULL){
+		log_info(logger,"Se encontro la pagina con la key buscado, modificando el valor en el frame: %d.",pageFound->frame_num);
+		modify_in_frame(value,pageFound->frame_num);
+		pageFound->isModified=1;
+		pageFound->last_time_used=get_timestamp();
+		return 0;
 	}
 	else{
-		if(memory_full()){
-			journalM();
-			return insertM(segmentID, key, value);
+		log_info(logger,"No se encontro la pagina con la key buscado,creando pagina.");
+		if(frame_available_in_mem()){
+			load_page_to_segment(key, segmentFound, value, 1);
 		}else{
-			segment* segmentFound = search_segment(segmentID);
-			if(segmentFound == NULL){
-				segmentFound = segment_init();
-				segmentFound->segment_id = string_duplicate(segmentID);
+			if(memory_full()){
+				log_info(logger,"La memoria esta full, ejecutando Journal");
+				if(journalM() == -1){
+					log_error(logger,"No se pudo realizar el Journal, cancelando Insert");
+					return -1;
+				}
+				return insertM(segmentID, key, value);
+			}else{
+				execute_replacement(key,value,segmentFound);
 			}
-			execute_replacement(key,value,segmentFound);
-
-			return 0;
 		}
+		return 0 ;
 	}
-	return 0;
+
 
 }
 
 char* selectM(char* segmentID, uint16_t key){
+
+	int segmentCreated = 0;
+
 	segment* segmentFound = search_segment(segmentID);
 
-	if(segmentFound != NULL){
+	if(segmentFound == NULL){
+		log_warning(logger,"No se encontro el segmento buscado, creando nuevo segmento.");
+		segmentFound = segment_init();
+		segmentFound->segment_id = string_duplicate(segmentID);
+		segmentCreated = 1;
+	}else{
 		log_info(logger,"Se encontro el segmento buscado.");
-		page* pageFound = search_page(segmentFound,key);
-		if(pageFound != NULL){
-			pageFound->last_time_used=get_timestamp();
-			log_info(logger,"Se encontro la pagina con el key buscado, retornando el valor.");
-			return get_value_from_memory(pageFound->frame_num);
-		}else{
-			log_warning(logger,"No se encontro la pagina con el key buscado, consultando a FS.");
-			char* value = send_select_to_FS(segmentID,key,logger);
-
-			if(value!=NULL){
-				if(frame_available_in_mem()){
-					load_page_to_segment(key, segmentFound, value, 0);
-				}else{
-					if(memory_full()){
-						journalM();
-						load_page_to_segment(key, segmentFound, value, 0);
-					}else{
-						execute_replacement(key,value,segmentFound);
-					}
-				}
-				return value;
-			}else{
-				log_error(logger,"No existe la key ingresada en FS");
-				return NULL;
-			}
-		}
 	}
-	else{
-		log_warning(logger,"No existe el segmento ingresado en memoria");
+
+	page* pageFound = search_page(segmentFound,key);
+
+	if(pageFound != NULL){
+		pageFound->last_time_used=get_timestamp();
+		log_info(logger,"Se encontro la pagina con el key buscado, retornando el valor.");
+		return get_value_from_memory(pageFound->frame_num);
+	}else{
+		log_warning(logger,"No se encontro la pagina con el key buscado, consultando a FS.");
 		char* value = send_select_to_FS(segmentID,key,logger);
+
 		if(value!=NULL){
-			segment* newSegment = segment_init();
-			newSegment->segment_id = string_duplicate(segmentID);
 			if(frame_available_in_mem()){
-				load_page_to_segment(key, newSegment, value, 0);
+				load_page_to_segment(key, segmentFound, value, 0);
 			}else{
 				if(memory_full()){
-					journalM();
-					load_page_to_segment(key, newSegment, value, 0);
+					log_info(logger,"La memoria esta full, ejecutando Journal");
+					if(journalM() == -1){
+						log_error(logger,"No se pudo realizar el Journal, cancelando Select");
+						if(segmentCreated){
+							remove_segment(segmentFound);
+						}
+						return NULL;
+					}
+					load_page_to_segment(key, segmentFound, value, 0);
 				}else{
-					execute_replacement(key,value,newSegment);
+					execute_replacement(key,value,segmentFound);
 				}
 			}
 			return value;
 		}else{
-			log_error(logger,"No existe la tabla o la key ingresada en FS");
+			if(segmentCreated){
+				remove_segment(segmentFound);
+			}
+			return NULL;
 		}
 	}
 
-	return NULL;
+
 }
 
 int createM(char* segmentID,char* consistency ,char *partition_num, char *compaction_time){
@@ -634,15 +641,19 @@ int dropM(char* segment_id){
 
 	segment* segmentFound = search_segment(segment_id);
 
-	send_drop_to_FS(segment_id, logger);
+	int FSresult = send_drop_to_FS(segment_id, logger);
 
-	if(segmentFound != NULL){
-		delete_segment_from_mem(segmentFound);
-		remove_delete_segment(segmentFound);
-		log_info(logger,"Se elimino el segmento y se libero la memoria");
+	if(FSresult == 0){
+		if(segmentFound != NULL){
+			delete_segment_from_mem(segmentFound);
+			remove_delete_segment(segmentFound);
+			log_info(logger,"Se elimino el segmento y se libero la memoria");
+		}else{
+			log_info(logger,"No se encontro el segmento a borrar.");
+			return -1;
+		}
 	}else{
-		log_info(logger,"No se encontro el segmento a borrar.");
-		return -1;
+		log_error(logger,"No se elimina el segmento ni se libera la memoria.");
 	}
 
 	return 0;

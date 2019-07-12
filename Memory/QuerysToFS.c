@@ -20,8 +20,6 @@
 
 char* send_select_to_FS(char* segmentID, uint16_t key,t_log* logger){
 
-	printf("%s, %d", segmentID, (int)key);
-
 	t_package *p = create_package(QUERY_SELECT);
 	add_to_package(p, (void*)segmentID, sizeof(char) * (strlen(segmentID) + 1));
 	add_to_package(p, (void*)&key, sizeof(key));
@@ -29,8 +27,15 @@ char* send_select_to_FS(char* segmentID, uint16_t key,t_log* logger){
 
 	int FS_socket = connect_to_FS(logger);
 
+	if(FS_socket == -1){
+		delete_package(p);
+		return NULL;
+	}
+
 	send_req_code(FS_socket, REQUEST_QUERY);
 	send_package(p, FS_socket);
+
+	delete_package(p);
 
 	e_response_code r = recv_res_code(FS_socket);
 
@@ -40,7 +45,8 @@ char* send_select_to_FS(char* segmentID, uint16_t key,t_log* logger){
 		return value;
 	} else {
 		log_error(logger, "Error al realizar select en FS");
-		}
+	}
+
 	close(FS_socket);
 	return NULL;
 }
@@ -48,6 +54,11 @@ char* send_select_to_FS(char* segmentID, uint16_t key,t_log* logger){
 int request_valuesize_to_FS(t_log* logger){
 
 	int FS_socket = connect_to_FS(logger);
+
+	if(FS_socket == -1){
+		return -2;
+		}
+
 	send_req_code(FS_socket,REQUEST_VALUESIZE);
 
 	e_response_code r = recv_res_code(FS_socket);
@@ -74,8 +85,15 @@ int send_create_to_FS(char* table,char* consType, char *part, char *compTime ,t_
 
 	int FS_socket = connect_to_FS(logger);
 
+	if(FS_socket == -1){
+		delete_package(p);
+		return -2;
+	}
+
 	send_req_code(FS_socket, REQUEST_QUERY);
 	send_package(p, FS_socket);
+
+	delete_package(p);
 
 	e_response_code r = recv_res_code(FS_socket);
 
@@ -95,7 +113,10 @@ int send_create_to_FS(char* table,char* consType, char *part, char *compTime ,t_
 t_list* send_describe_to_FS(char*table,t_log* logger){
 	t_list* metadata_list = list_create();
 	int FS_socket = connect_to_FS(logger);
-
+	if(FS_socket == -1){
+		list_destroy(metadata_list);
+		return NULL;
+	}
 	if(table != NULL) {
 		//Paquetizar
 		t_package *p = create_package(QUERY_DESCRIBE);
@@ -103,6 +124,8 @@ t_list* send_describe_to_FS(char*table,t_log* logger){
 
 		send_req_code(FS_socket, REQUEST_QUERY);
 		send_package(p, FS_socket);
+
+		delete_package(p);
 
 		e_response_code r = recv_res_code(FS_socket);
 
@@ -162,10 +185,13 @@ int send_insert_to_FS(char* table,uint16_t key,char* value,t_log* logger){
 	int FS_socket = connect_to_FS(logger);
 
 	if(FS_socket==-1){
+		delete_package(p);
 		return -2;
 	}
 	send_req_code(FS_socket, REQUEST_QUERY);
 	send_package(p, FS_socket);
+
+	delete_package(p);
 
 	e_response_code r = recv_res_code(FS_socket);
 
@@ -180,7 +206,7 @@ int send_insert_to_FS(char* table,uint16_t key,char* value,t_log* logger){
 	}
 }
 
-void send_drop_to_FS(char* table,t_log* logger){
+int send_drop_to_FS(char* table,t_log* logger){
 
 	//	Paquetizar
 	t_package *p = create_package(QUERY_DROP);
@@ -188,8 +214,15 @@ void send_drop_to_FS(char* table,t_log* logger){
 
 	int FS_socket = connect_to_FS(logger);
 
+	if(FS_socket == -1){
+		delete_package(p);
+		return -2;
+	}
+
 	send_req_code(FS_socket, REQUEST_QUERY);
 	send_package(p, FS_socket);
+
+	delete_package(p);
 
 	e_response_code r = recv_res_code(FS_socket);
 
@@ -197,13 +230,12 @@ void send_drop_to_FS(char* table,t_log* logger){
 		log_info(logger,"Se realizo drop correctamente en FS");
 	} else {
 		log_error(logger, "Error al realizar drop en FS");
+		close(FS_socket);
+		return -1;
 	}
 	close(FS_socket);
-	return;
+	return 0;
 }
-
-
-
 
 int connect_to_FS(t_log* logger){
 	char* FS_ip = get_ip_fs();
