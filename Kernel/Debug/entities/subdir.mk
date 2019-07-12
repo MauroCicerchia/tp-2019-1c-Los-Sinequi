@@ -5,18 +5,21 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../entities/Memory.c \
+../entities/Operation.c \
 ../entities/Process.c \
 ../entities/QueryExec.c \
 ../entities/Table.c 
 
 OBJS += \
 ./entities/Memory.o \
+./entities/Operation.o \
 ./entities/Process.o \
 ./entities/QueryExec.o \
 ./entities/Table.o 
 
 C_DEPS += \
 ./entities/Memory.d \
+./entities/Operation.d \
 ./entities/Process.d \
 ./entities/QueryExec.d \
 ./entities/Table.d 

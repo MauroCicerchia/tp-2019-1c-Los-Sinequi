@@ -17,6 +17,7 @@
 #include"entities/Memory.h"
 #include"entities/Table.h"
 #include"entities/QueryExec.h"
+#include"entities/Operation.h"
 
 #ifndef KERNEL_H
 #define KERNEL_H
@@ -65,8 +66,13 @@ void journal();
 void *metrics();
 void log_metrics();
 void update_screen();
-void metrics_new_select(int, int);
-void metrics_new_insert(int, int);
+void metrics_new_select(uint64_t, uint64_t);
+void metrics_new_insert(uint64_t, uint64_t);
+void delete_old_ops();
+int get_reads();
+uint64_t get_readsTime();
+int get_writes();
+uint64_t get_writesTime();
 char *get_memory_ip();
 char *get_memory_port();
 int get_quantum();

@@ -26,7 +26,7 @@ endif
 all: Kernel
 
 dependents:
-	-cd /home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug && $(MAKE) clean all
+	-cd /home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug && $(MAKE) all
 
 # Tool invocations
 Kernel: $(OBJS) $(USER_OBJS) /home/utnso/workspace/tp-2019-1c-Los-Sinequi/sharedLib/Debug/libsharedLib.so
