@@ -123,6 +123,9 @@ e_query processQuery(char *query) {
 			if(getConsistencyType((char*)list_get(args, 4)) == CONS_SHC) {
 				update_shc();
 			}
+			if(getConsistencyType((char*)list_get(args, 4)) == CONS_SC) {
+				update_sc();
+			}
 			printf("\033[A");
 			update_screen();
 			break;
@@ -354,6 +357,9 @@ t_memory *memory_search_create(int mem_number, char *ip, char *port) {
 	if(m == NULL) {
 		m = memory_create(mem_number, ip, port);
 		list_add(memories, (void*) m);
+	} else {
+		free(ip);
+		free(port);
 	}
 	sem_post(&MUTEX_MEMORIES);
 	return m;
@@ -435,6 +441,7 @@ t_memory *get_sc_memory_for_table(t_table* t) {
 		return ((t_memory*)mem)->mid == (int)list_get(t->memories, 0);
 	}
 	t_memory *m = (t_memory*)list_find(sc_mem, memByID);
+	if(m==NULL) log_error(logger, "AVERGA");
 	list_destroy(sc_mem);
 	return m;
 }
@@ -539,6 +546,18 @@ void update_sc() {
 	list_destroy(scTables);
 }
 
+void remove_sc(int mid) {
+	void removeMem(void *e) {
+		t_table *t = (t_table*)e;
+		if((int)list_get(t->memories, 0) == mid) {
+			list_remove(t->memories, 0);
+		}
+	}
+	sem_wait(&MUTEX_TABLES);
+	list_iterate(tables, removeMem);
+	sem_post(&MUTEX_TABLES);
+}
+
 t_table *get_table(char *id) {
 	bool table_has_name(void *t) {
 		return strcmp(((t_table*)t)->name, id) == 0;
@@ -584,7 +603,7 @@ void add_memories_to_table(t_table *t) {
 	switch(t->consType) {
 		case CONS_SC:
 			mems = get_sc_memories();
-			if(list_size(mems) > 0) {
+			if(list_size(mems) > 0 && list_size(t->memories) == 0) {
 				table_add_memory_by_id(t, get_random_sc_memory()->mid);
 			}
 			list_destroy(mems);
@@ -753,9 +772,9 @@ int get_execution_delay() {
 
 int get_gossip_delay() {
 	load_config();
-	int ed = config_get_int_value(config, "GOSSIP_DELAY");
+	int gd = config_get_int_value(config, "GOSSIP_DELAY");
 	config_destroy(config);
-	return ed;
+	return gd;
 }
 
 void load_logger()
@@ -768,7 +787,7 @@ void load_logger()
 }
 
 void load_config() {
-	config = config_create(".config");
+	config = config_create("../.config");
 	if(config == NULL) {
 		log_error(logger, " >> No se pudo abrir el archivo de configuracion");
 		exit(-1);

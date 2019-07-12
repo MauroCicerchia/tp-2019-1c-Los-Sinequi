@@ -34,6 +34,7 @@ int qSelect(char *tableName, uint16_t key, t_log *logger) {
 			update_shc();
 		}
 		if(memory_is_sc(mem)) {
+			remove_sc(mem->mid);
 			update_sc();
 		}
 		int status = qSelect(table, key, logger);
@@ -101,6 +102,7 @@ int qInsert(char* table, uint16_t key, char *value, t_log *logger) {
 			update_shc();
 		}
 		if(memory_is_sc(mem)) {
+			remove_sc(mem->mid);
 			update_sc();
 		}
 		int status = qInsert(table, key, value, logger);
@@ -156,6 +158,7 @@ int qCreate(char *table, char *consType, char *part, char *compTime, t_log *logg
 			update_shc();
 		}
 		if(memory_is_sc(mem)) {
+			remove_sc(mem->mid);
 			update_sc();
 		}
 		int status = qCreate(table, consType, part, compTime, logger);
@@ -199,6 +202,7 @@ int qDescribe(char* table, t_log *logger) {
 			update_shc();
 		}
 		if(memory_is_sc(mem)) {
+			remove_sc(mem->mid);
 			update_sc();
 		}
 		int status = qDescribe(table, logger);
@@ -303,6 +307,7 @@ int qDrop(char *table, t_log *logger) {
 			update_shc();
 		}
 		if(memory_is_sc(mem)) {
+			remove_sc(mem->mid);
 			update_sc();
 		}
 		int status = qDrop(table, logger);
@@ -332,6 +337,13 @@ int qJournal(t_memory *mem, t_log *logger) {
 	if(memSocket == -1) {
 		log_warning(logger, "La memoria a la que se envio el journal no responde. Eliminando memoria.");
 		remove_memory(mem->mid);
+		if(memory_is_shc(mem)) {
+			update_shc();
+		}
+		if(memory_is_sc(mem)) {
+			remove_sc(mem->mid);
+			update_sc();
+		}
 		memory_destroy(mem);
 		return 0;
 	}

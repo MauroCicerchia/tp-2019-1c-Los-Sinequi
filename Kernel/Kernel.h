@@ -54,6 +54,7 @@ t_memory *get_memory_for_query(t_table*, uint16_t);
 t_memory *get_any_memory();
 void update_shc();
 void update_sc();
+void remove_sc();
 t_table *get_table(char*);
 void add_table(t_table*);
 void update_table(char*, e_cons_type, int, int);

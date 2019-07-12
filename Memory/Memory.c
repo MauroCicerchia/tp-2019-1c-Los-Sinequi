@@ -18,8 +18,8 @@ int main(int argc, char **argv) {
 	pthread_create(&threadClient, NULL, listen_client, NULL);
 	pthread_detach(threadClient);
 
-//	pthread_create(&threadAutoJournal, NULL, execute_journal, NULL);
-//	pthread_detach(threadAutoJournal);
+	pthread_create(&threadAutoJournal, NULL, execute_journal, NULL);
+	pthread_detach(threadAutoJournal);
 
 	start_API(logger);
 
@@ -707,12 +707,19 @@ void execute_replacement(uint16_t key, char* value, segment* segment_to_use){
 }
 /******************************** FIN LRU *******************************************/
 void get_value_size(){
-	/*int socket = connect_to_FS(config, logger);
+	int socket;
+	do {
+		socket = connect_to_FS(logger);
+		if(socket == -1) {
+			log_warning(logger, "No se pudo obtener el value size del FS. Intentando de nuevo en 10 segundos.");
+			usleep(10 * 1000 * 1000);
+		}
+	} while(socket == -1);
 	send_req_code(socket,REQUEST_VALUESIZE);
 	valueSize = recv_int(socket);
 	close(socket);
 	log_info(logger, "Value Size recibido de FS.");
-*/	valueSize = 255;
+	//valueSize = 255;
 }
 /******************************* DATOS VARIABLES DEL ARCHIVO CONFIG **********************/
 int get_retardo_journal(){

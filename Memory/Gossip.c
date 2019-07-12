@@ -43,8 +43,10 @@ void execute_gossip_client(t_log* logger,char* port,sem_t MUTEX_GOSSIP){
 			close(seed_socket);
 		}
 	}
-	string_iterate_lines(seed_ips,string_destroy_char);
-	string_iterate_lines(seed_ports,string_destroy_char);
+	if(seeds_amount != 0) {
+		string_iterate_lines(seed_ips,string_destroy_char);
+		string_iterate_lines(seed_ports,string_destroy_char);
+	}
 	free(seed_ips);
 	free(seed_ports);
 
