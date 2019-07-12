@@ -410,8 +410,14 @@ void display_memories() {
 		printf("%d	%s	%s	%d - %d - %d\n", ((t_memory*)memory)->mid, ((t_memory*)memory)->ip, ((t_memory*)memory)->port, ((t_memory*)memory)->consTypes[0], ((t_memory*)memory)->consTypes[1], ((t_memory*)memory)->consTypes[2]);
 	}
 
+	bool memCompare(void *m1, void *m2) {
+		return ((t_memory*)m1)->mid < ((t_memory*)m2)->mid;
+	}
+
 	sem_wait(&MUTEX_MEMORIES);
+	t_list *ordered_mems = list_sorted(memories, memCompare);
 	list_iterate(memories, display_memory);
+	list_destroy(ordered_mems);
 	sem_post(&MUTEX_MEMORIES);
 
 }
