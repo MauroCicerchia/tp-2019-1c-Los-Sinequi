@@ -1,11 +1,11 @@
 #include"Kernel.h"
 
-int server, processNumber = 0, memoryNumber = 0, MP, reads = 0, writes = 0, totalOperations = 0, exitFlag = 0;
+int server, processNumber = 0, memoryNumber = 0, MP, totalOperations = 0, exitFlag = 0;
 uint16_t readsTime = 0, writesTime = 0;
-t_list *memories, *tables;
+t_list *memories, *tables, *reads, *writes;
 t_config *config;
 t_queue *new, *ready;
-sem_t MUTEX_NEW, MUTEX_READY, MUTEX_MEMORIES, MUTEX_TABLES, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY, MUTEX_READS, MUTEX_WRITES, MUTEX_TOTALOPS;
+sem_t MUTEX_NEW, MUTEX_READY, MUTEX_MEMORIES, MUTEX_TABLES, MUTEX_CONFIG, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY, MUTEX_READS, MUTEX_WRITES, MUTEX_TOTALOPS;
 t_log *logger;
 pthread_t threadNewReady, threadMetrics, threadGossip, threadRefreshMetadata;
 
@@ -51,12 +51,16 @@ void init_kernel() {
 	load_logger();
 	log_info(logger, " >> INICIO KERNEL >>");
 
+	sem_init(&MUTEX_CONFIG, 0, 1);
+
 	MP = get_multiprogramming_degree();
 
 	new = queue_create();
 	ready = queue_create();
 	memories = list_create();
 	tables = list_create();
+	reads = list_create();
+	writes = list_create();
 	sem_init(&MUTEX_NEW, 0, 1);
 	sem_init(&MUTEX_READY, 0, 1);
 	sem_init(&MUTEX_MEMORIES, 0, 1);
@@ -77,8 +81,11 @@ void kill_kernel() {
 	queue_destroy_and_destroy_elements(new, process_destroy);
 	queue_destroy_and_destroy_elements(ready, process_destroy);
 	list_destroy_and_destroy_elements(memories, memory_destroy);
+	list_destroy_and_destroy_elements(reads, operation_destroy);
+	list_destroy_and_destroy_elements(writes, operation_destroy);
 	sem_destroy(&MUTEX_NEW);
 	sem_destroy(&MUTEX_READY);
+	sem_destroy(&MUTEX_CONFIG);
 	sem_destroy(&PROC_PEND_NEW);
 	sem_destroy(&PROC_PEND_READY);
 	sem_destroy(&MAX_PROC_READY);
@@ -238,7 +245,7 @@ t_process *ready_to_exec(int processor) {
 
 void *processor_execute(void *p) {
 	int processor = (int)p;
-	uint16_t startTime, endTime;
+	uint64_t startTime, endTime;
 	if(processor >= MP)
 		return NULL;
 	t_process *exec;
@@ -684,23 +691,21 @@ void *metrics() {
 			if(exitFlag) break;
 		}
 
-		sem_wait(&MUTEX_READS);
-		sem_wait(&MUTEX_WRITES);
 		log_metrics();
-		reads = 0;
-		readsTime = 0;
-		writes = 0;
-		writesTime = 0;
-		sem_post(&MUTEX_READS);
-		sem_post(&MUTEX_WRITES);
-
+		delete_old_ops();
 	}
 
 	return NULL;
 }
 
 void log_metrics() {
-	int readLatency = 0, writeLatency = 0;
+	uint64_t readLatency = 0, writeLatency = 0;
+
+	int reads = get_reads();
+	uint64_t readsTime = get_readsTime();
+	int writes = get_writes();
+	uint64_t writesTime = get_writesTime();
+
 	if(reads != 0) {
 		readLatency = readsTime/reads;
 	}
@@ -709,8 +714,8 @@ void log_metrics() {
 	}
 
 	log_info(logger, " >> Metricas >>");
-	log_info(logger, "Reads : Read Latency/30s = %d : %dms", reads, readLatency);
-	log_info(logger, "Writes : Writes Latency/30s = %d : %dms", writes, writeLatency);
+	log_info(logger, "Reads : Read Latency/30s = %d : %llums", reads, readLatency);
+	log_info(logger, "Writes : Writes Latency/30s = %d : %llums", writes, writeLatency);
 	log_info(logger, " << Fin Metricas <<");
 }
 
@@ -721,7 +726,14 @@ void update_screen() {
 		printf("%d : %d%% ", m->mid, mLoad);
 	}
 
-	int readLatency = 0, writeLatency = 0;
+	uint64_t readLatency = 0, writeLatency = 0;
+
+	int reads = get_reads();
+	uint64_t readsTime = get_readsTime();
+	int writes = get_writes();
+	uint64_t writesTime = get_writesTime();
+
+	log_info(logger, "%d %llu %d %llu", reads, readsTime, writes, writesTime);
 
 	if(reads != 0) {
 		readLatency = readsTime/reads;
@@ -734,81 +746,155 @@ void update_screen() {
 	printf("<LFS Kernel>\n\n");
 	display_memories();
 
-	printf("\nReads : Read Latency/30s = %d : %dms\nWrites : Write Latency/30s = %d : %dms\nMemory Load = ", reads, readLatency, writes, writeLatency);
+	printf("\nReads : Read Latency/30s = %d : %llums\nWrites : Write Latency/30s = %d : %llums\nMemory Load = ", get_reads(), readLatency, get_writes(), writeLatency);
+
+	sem_wait(&MUTEX_TOTALOPS);
 	if(totalOperations != 0) {
 		sem_wait(&MUTEX_MEMORIES);
 		list_iterate(memories, print_m_load);
 		sem_post(&MUTEX_MEMORIES);
 	}
+	sem_post(&MUTEX_TOTALOPS);
 	printf("\n\n\n");
 }
 
-void metrics_new_select(int start, int end) {
+void metrics_new_select(uint64_t start, uint64_t end) {
+	operation_t *op = new_operation(OP_READ, end - start);
 	sem_wait(&MUTEX_READS);
-	reads++;
-	readsTime += end - start;
+	list_add(reads, op);
 	sem_post(&MUTEX_READS);
 	sem_wait(&MUTEX_TOTALOPS);
 	totalOperations++;
 	sem_post(&MUTEX_TOTALOPS);
 }
 
-void metrics_new_insert(int start, int end) {
+void metrics_new_insert(uint64_t start, uint64_t end) {
+	operation_t *op = new_operation(OP_READ, end - start);
 	sem_wait(&MUTEX_WRITES);
-	writes++;
-	writesTime += end - start;
+	list_add(writes, op);
 	sem_post(&MUTEX_WRITES);
 	sem_wait(&MUTEX_TOTALOPS);
 	totalOperations++;
 	sem_post(&MUTEX_TOTALOPS);
 }
 
+void delete_old_ops() {
+	bool isOldOp(void *op) {
+		return !op_is_recent(op);
+	}
+	sem_wait(&MUTEX_READS);
+	list_remove_and_destroy_by_condition(reads, isOldOp, operation_destroy);
+	sem_post(&MUTEX_READS);
+	sem_wait(&MUTEX_WRITES);
+	list_remove_and_destroy_by_condition(writes, isOldOp, operation_destroy);
+	sem_post(&MUTEX_WRITES);
+}
+
+int get_reads() {
+	sem_wait(&MUTEX_READS);
+	t_list *last_reads = list_filter(reads, op_is_recent);
+	int q = list_size(last_reads);
+	list_destroy(last_reads);
+	sem_post(&MUTEX_READS);
+	return q;
+}
+
+uint64_t get_readsTime() {
+	uint64_t q = 0;
+	void sumReadTime(void *op) {
+		q += ((operation_t*)op)->duration;
+	}
+	sem_wait(&MUTEX_READS);
+	t_list *last_reads = list_filter(reads, op_is_recent);
+	list_iterate(last_reads, sumReadTime);
+	list_destroy(last_reads);
+	sem_post(&MUTEX_READS);
+	return q;
+}
+
+int get_writes() {
+	sem_wait(&MUTEX_WRITES);
+	t_list *last_writes = list_filter(writes, op_is_recent);
+	int q = list_size(last_writes);
+	list_destroy(last_writes);
+	sem_post(&MUTEX_WRITES);
+	return q;
+}
+
+uint64_t get_writesTime() {
+	uint64_t q = 0;
+	void sumWriteTime(void *op) {
+		q += ((operation_t*)op)->duration;
+	}
+	sem_wait(&MUTEX_WRITES);
+	t_list *last_writes = list_filter(writes, op_is_recent);
+	list_iterate(last_writes, sumWriteTime);
+	list_destroy(last_writes);
+	sem_post(&MUTEX_WRITES);
+	log_info(logger, "*********WT:%llu*******************", q);
+	return q;
+}
+
 char *get_memory_ip() {
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	char *ip = string_duplicate(config_get_string_value(config, "MEM_IP"));
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return ip;
 }
 
 char *get_memory_port() {
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	char *port = string_duplicate(config_get_string_value(config, "MEM_PORT"));
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return port;
 }
 
 int get_quantum() {
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	int q = config_get_int_value(config, "QUANTUM");
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return q;
 }
 
 int get_multiprogramming_degree() {
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	int md = config_get_int_value(config, "MULT_DEGREE");
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return md;
 }
 
 int get_metadata_refresh_rate() {
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	int mdr = config_get_int_value(config, "MD_REFRESH_RATE");
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return mdr;
 }
 
 int get_execution_delay() {
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	int ed = config_get_int_value(config, "EXEC_DELAY");
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return ed;
 }
 
 int get_gossip_delay() {
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	int gd = config_get_int_value(config, "GOSSIP_DELAY");
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return gd;
 }
 
