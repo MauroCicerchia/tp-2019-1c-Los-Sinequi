@@ -1,8 +1,9 @@
 #include"Gossip.h"
 
-void execute_gossip_client(t_config* config,t_log* logger,char* port){
-	char** seed_ips = config_get_array_value(config, "IP_SEEDS");
-	char** seed_ports = config_get_array_value(config, "PUERTO_SEEDS");
+void execute_gossip_client(t_log* logger,char* port,sem_t MUTEX_GOSSIP){
+
+	char** seed_ips = get_ip_seeds();
+	char** seed_ports = get_port_seeds();
 
 	int seeds_amount = 0;
 	seeds_amount = sizeofArray(seed_ips);
@@ -11,24 +12,29 @@ void execute_gossip_client(t_config* config,t_log* logger,char* port){
 		char* seed_ip = seed_ips[i];
 		char* seed_port = seed_ports[i];
 		if (seed_port == NULL){
-			seed_port = port; // ????? no sabemos si asumir esto es correcto
+			seed_port = port; // ADRO dijo que siempre vamos a tener puerto, nunca llegariamos aca
 		}
-		log_info(logger,"Intentando conectarse a la seed: %s - %s",seed_ip,seed_port);
+		log_info(logger,"[GOSSIPING]: Intentando conectarse a la seed: %s - %s",seed_ip,seed_port);
 		int seed_socket = connectToServer(seed_ip,seed_port);
 
 		if(seed_socket == -1){
-			log_warning(logger,"La seed no se ha inicializado aun");
+			delete_mem_from_gossip_table(seed_ip,seed_port,logger);
+			log_warning(logger,"[GOSSIPING]: La seed no se encuentra activa");
 		}
 		else{
-			log_info(logger,"La seed ha sido exitosamente conectada");
+			log_info(logger,"[GOSSIPING]: La seed ha sido exitosamente conectada");
 			send_req_code(seed_socket,REQUEST_GOSSIP);
 			//send mi tabla
+			sem_wait(&MUTEX_GOSSIP);
 			send_gossip_table(seed_socket);
+			sem_post(&MUTEX_GOSSIP);
 			e_response_code response = recv_res_code(seed_socket);
 			if(response == RESPONSE_SUCCESS){
 				//recibo mis tablas
-				recv_gossip_table(seed_socket,config,logger);
-			log_info(logger,"Tabla gossip actualizada correctamente");
+				sem_wait(&MUTEX_GOSSIP);
+				recv_gossip_table(seed_socket,logger);
+				sem_post(&MUTEX_GOSSIP);
+			log_info(logger,"[GOSSIPING]: Tabla gossip actualizada correctamente");
 
 			}
 			else{
@@ -37,24 +43,32 @@ void execute_gossip_client(t_config* config,t_log* logger,char* port){
 			close(seed_socket);
 		}
 	}
+	string_iterate_lines(seed_ips,free);
+	string_iterate_lines(seed_ports,free);
+	free(seed_ips);
+	free(seed_ports);
+
 }
 //TODO eliminar memoria de la tabla gossip si se desconecta
-//TODO tiempos de retardo variables en t de ejecucion
 
-void execute_gossip_server(int socket_gossip,t_config* config,t_log* logger){
+void execute_gossip_server(int socket_gossip,t_log* logger,sem_t MUTEX_GOSSIP){
 	//llega y actualizo tabla
-	recv_gossip_table(socket_gossip,config,logger);
+	sem_wait(&MUTEX_GOSSIP);
+	recv_gossip_table(socket_gossip,logger);
+	sem_post(&MUTEX_GOSSIP);
 	send_res_code(socket_gossip,RESPONSE_SUCCESS);
+	sem_wait(&MUTEX_GOSSIP);
 	send_gossip_table(socket_gossip);
+	sem_post(&MUTEX_GOSSIP);
 	//envio mis tablas
 }
 
-void recv_gossip_table(int seed_socket,t_config* config,t_log* logger){
+void recv_gossip_table(int seed_socket,t_log* logger){
 	int mem_count = recv_int(seed_socket);
-		for(int i=0;i<mem_count;i++){
-			char* ip_mem = recv_str(seed_socket);
-			char* port_mem = recv_str(seed_socket);
-			add_to_gossip_table(ip_mem,port_mem,config,logger);
+	for(int i=0;i<mem_count;i++){
+		char* ip_mem = recv_str(seed_socket);
+		char* port_mem = recv_str(seed_socket);
+		add_to_gossip_table(ip_mem,port_mem,logger);
 	}
 }
 
@@ -69,7 +83,7 @@ void send_gossip_table(int socket_gossip){
 	}
 }
 
-void add_to_gossip_table(char* ip_mem, char* port_mem, t_config* config, t_log* logger){
+void add_to_gossip_table(char* ip_mem, char* port_mem, t_log* logger){
 	memory* new_memory = memory_create(ip_mem,port_mem);
 
 	bool isMemory(void* mem){
@@ -91,10 +105,23 @@ void add_to_gossip_table(char* ip_mem, char* port_mem, t_config* config, t_log* 
 memory* memory_create(char* ip,char* port){
 	memory* mem = (memory*)malloc(sizeof(memory));
 
-	mem->memory_ip = ip;
-	mem->memory_port = port;
+	mem->memory_ip = string_duplicate(ip);
+	mem->memory_port = string_duplicate(port);
 
 	return mem;
+}
+
+void delete_mem_from_gossip_table(char*ip, char*port,t_log* logger){
+	bool deleteMem(void* mem){
+		memory* memo = (memory*) mem;
+		if(strcmp(memo->memory_ip,ip)==0 && strcmp(memo->memory_port,port)==0){
+			log_info(logger,"[GOSSIPING]: Se desconecto la seed %s - %s, se elimina de la tabla de gossip",ip,port);
+			return true;
+		}else{
+			return false;
+		}
+	}
+	list_remove_and_destroy_by_condition(gossip_table,deleteMem,memory_destroy);
 }
 
 void memory_destroy(void* mem){
@@ -107,18 +134,6 @@ void memory_destroy(void* mem){
 void gossip_table_destroy(){
 	list_destroy_and_destroy_elements(gossip_table,memory_destroy);
 }
-
-void print_mem(void* mem){
-	memory* memo = (memory*) mem;
-	printf("Memoria: %s - %s\n",memo->memory_ip,memo->memory_port);
-}
-void print_gossip_table(){
-	list_iterate(gossip_table,print_mem);
-}
-
-
-
-
 
 
 

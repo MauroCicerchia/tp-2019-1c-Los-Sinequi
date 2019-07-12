@@ -30,7 +30,7 @@ t_list* segmentList;
 e_query processQuery(char *, t_log*);
 t_log *logger;
 t_config *config;
-sem_t MUTEX_MEM;
+sem_t MUTEX_MEM,MAX_CONNECTIONS_KERNEL,MUTEX_GOSSIP;;
 
 void memory_init();
 void kill_memory();
@@ -58,9 +58,21 @@ void* execute_journal();
 void load_page_to_segment(uint16_t,segment*,char*,int);
 void execute_replacement(uint16_t, char*, segment*);
 
+int get_retardo_gossip();
+int get_retardo_journal();
+int get_max_conexiones();
+int get_tam_mem();
+char* get_ip();
+char* get_port();
+char **get_ip_seeds();
+char **get_port_seeds();
+char** array_duplicate(char**);
+
 void* attend_client(void*);
 
 void* auto_gossip();
+void print_mem(void*);
+void log_gossip_table();
 
 char* selectM(char*,uint16_t);	   // (nombreTabla,key)
 int insertM(char*,uint16_t,char*); // (nombreTabla,key,value)

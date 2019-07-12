@@ -11,6 +11,7 @@
 #include<sharedLib/query.h>
 #include<sharedLib/packaging.h>
 #include<sharedLib/consistency.h>
+#include<semaphore.h>
 
 typedef struct{
 	char* memory_ip;
@@ -19,9 +20,12 @@ typedef struct{
 
 t_list* gossip_table;
 
-void execute_gossip_client(t_config*,t_log*,char*);
-void execute_gossip_server(int,t_config*,t_log*);
-void add_to_gossip_table(char*, char*,t_config*,t_log*);
+void delete_mem_from_gossip_table(char*,char*,t_log*);
+void execute_gossip_client(t_log*,char*,sem_t);
+void execute_gossip_server(int,t_log*,sem_t);
+void add_to_gossip_table(char*, char*,t_log*);
 memory* memory_create(char*,char*);
 void gossip_table_destroy();
 void memory_destroy(void*);
+void recv_gossip_table(int,t_log*);
+void send_gossip_table(int);
