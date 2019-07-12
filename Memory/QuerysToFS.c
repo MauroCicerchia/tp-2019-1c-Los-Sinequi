@@ -1,23 +1,6 @@
 #include"QuerysToFS.h"
 
 
-//void send_frame_to_FS(int frame_num, int socket){
-//
-//	t_package* p = create_package(QUERY_INSERT);
-//
-//}
-
-/*
- * INSERT -> FS responde succes/error
- * SELECT -> FS responde (succes + resultado)/error
- * CREATE -> FS responde succes/error
- * DESCRIBE-> FS responde (succes + cantidad de tablas )/error
- * 			while(cant_tablas)(succes + send_table() )
- *
- * DROP -> FS responde succes/error
- *
- */
-
 char* send_select_to_FS(char* segmentID, uint16_t key,t_log* logger){
 
 	t_package *p = create_package(QUERY_SELECT);
@@ -42,6 +25,7 @@ char* send_select_to_FS(char* segmentID, uint16_t key,t_log* logger){
 	if(r == RESPONSE_SUCCESS) {
 		char *value = recv_str(FS_socket);
 		log_info(logger,"Retorno algo de FS");
+		close(FS_socket);
 		return value;
 	} else {
 		log_error(logger, "Error al realizar select en FS");
@@ -64,13 +48,15 @@ int request_valuesize_to_FS(t_log* logger){
 	e_response_code r = recv_res_code(FS_socket);
 
 	if(r == RESPONSE_SUCCESS) {
-			int valuesize = recv_int(FS_socket);
-			log_info(logger,"Retorno valuesize de FS");
-			return valuesize;
-		} else {
-			log_error(logger, "Error al consultar valuesize a FS");
-			}
+		int valuesize = recv_int(FS_socket);
+		log_info(logger,"Retorno valuesize de FS");
 		close(FS_socket);
+		return valuesize;
+	} else {
+		log_error(logger, "Error al consultar valuesize a FS");
+	}
+
+	close(FS_socket);
 	return 0;
 }
 
@@ -97,7 +83,6 @@ int send_create_to_FS(char* table,char* consType, char *part, char *compTime ,t_
 
 	e_response_code r = recv_res_code(FS_socket);
 
-	printf("responde fs");
 	if(r == RESPONSE_SUCCESS) {
 		log_info(logger,"Se creo la tabla en FS");
 		close(FS_socket);

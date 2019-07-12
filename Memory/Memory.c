@@ -40,7 +40,7 @@ void memory_init(){
 		sem_init(&MUTEX_MEM,0,1);
 		sem_init(&MAX_CONNECTIONS_KERNEL,0,get_max_conexiones()); //Maximas conexiones kernel
 		sem_init(&MUTEX_GOSSIP,0,1);
-
+		sem_init(&MUTEX_JOURNAL,0,1);
 		THEGREATMALLOC();
 
 }
@@ -50,8 +50,12 @@ void kill_memory(){
 	log_destroy(logger);
 	free(main_memory);
 	bitarray_destroy(bitmap);
+
+	sem_destroy(&MUTEX_GOSSIP);
 	sem_destroy(&MUTEX_MEM);
 	sem_destroy(&MAX_CONNECTIONS_KERNEL);
+	sem_destroy(&MUTEX_JOURNAL);
+
 	free(port);
 	free(ip);
 	gossip_table_destroy();
@@ -494,6 +498,7 @@ void* execute_journal(){
 }
 /*********************************** QUERYS ******************************************/
 int journalM(){
+	sem_wait(&MUTEX_JOURNAL);
 	int errorFS=0;
 	void journal_segment(void* aSegment){
 		segment* s = (segment*) aSegment;
@@ -525,13 +530,16 @@ int journalM(){
 		log_info(logger,"[JOURNAL]: Journal ejecutado");
 	}else{
 		log_error(logger,"[JOURNAL]: Error al conectar a FS, no se realiza el Journal");
+		sem_post(&MUTEX_JOURNAL);
 		return -1;
 	}
+	sem_post(&MUTEX_JOURNAL);
 	return 0;
 }
 
 int insertM(char* segmentID, uint16_t key, char* value){
 
+	sem_wait(&MUTEX_JOURNAL);
 	segment* segmentFound = search_segment(segmentID);
 
 	if(segmentFound == NULL){
@@ -549,6 +557,7 @@ int insertM(char* segmentID, uint16_t key, char* value){
 		modify_in_frame(value,pageFound->frame_num);
 		pageFound->isModified=1;
 		pageFound->last_time_used=get_timestamp();
+		sem_post(&MUTEX_JOURNAL);
 		return 0;
 	}
 	else{
@@ -560,13 +569,16 @@ int insertM(char* segmentID, uint16_t key, char* value){
 				log_info(logger,"La memoria esta full, ejecutando Journal");
 				if(journalM() == -1){
 					log_error(logger,"No se pudo realizar el Journal, cancelando Insert");
+					sem_post(&MUTEX_JOURNAL);
 					return -1;
 				}
+				sem_post(&MUTEX_JOURNAL);
 				return insertM(segmentID, key, value);
 			}else{
 				execute_replacement(key,value,segmentFound);
 			}
 		}
+		sem_post(&MUTEX_JOURNAL);
 		return 0 ;
 	}
 
@@ -574,7 +586,7 @@ int insertM(char* segmentID, uint16_t key, char* value){
 }
 
 char* selectM(char* segmentID, uint16_t key){
-
+	sem_wait(&MUTEX_JOURNAL);
 	int segmentCreated = 0;
 
 	segment* segmentFound = search_segment(segmentID);
@@ -593,6 +605,7 @@ char* selectM(char* segmentID, uint16_t key){
 	if(pageFound != NULL){
 		pageFound->last_time_used=get_timestamp();
 		log_info(logger,"Se encontro la pagina con el key buscado, retornando el valor.");
+		sem_post(&MUTEX_JOURNAL);
 		return get_value_from_memory(pageFound->frame_num);
 	}else{
 		log_warning(logger,"No se encontro la pagina con el key buscado, consultando a FS.");
@@ -609,6 +622,7 @@ char* selectM(char* segmentID, uint16_t key){
 						if(segmentCreated){
 							remove_segment(segmentFound);
 						}
+						sem_post(&MUTEX_JOURNAL);
 						return NULL;
 					}
 					load_page_to_segment(key, segmentFound, value, 0);
@@ -616,11 +630,13 @@ char* selectM(char* segmentID, uint16_t key){
 					execute_replacement(key,value,segmentFound);
 				}
 			}
+			sem_post(&MUTEX_JOURNAL);
 			return value;
 		}else{
 			if(segmentCreated){
 				remove_segment(segmentFound);
 			}
+			sem_post(&MUTEX_JOURNAL);
 			return NULL;
 		}
 	}
@@ -630,17 +646,21 @@ char* selectM(char* segmentID, uint16_t key){
 
 int createM(char* segmentID,char* consistency ,char *partition_num, char *compaction_time){
 	/*ENVIAR AL FS OPERACION PARA CREAR TABLA*/
+	sem_wait(&MUTEX_JOURNAL);
 	int status = send_create_to_FS(segmentID, consistency, partition_num, compaction_time, logger);
+	sem_post(&MUTEX_JOURNAL);
 	return status;
 }
 
 t_list* describeM(char *table){
+	sem_wait(&MUTEX_JOURNAL);
 	t_list* md = send_describe_to_FS(table,logger);
+	sem_post(&MUTEX_JOURNAL);
 	return md;
 }
 
 int dropM(char* segment_id){
-
+	sem_wait(&MUTEX_JOURNAL);
 	segment* segmentFound = search_segment(segment_id);
 
 	int FSresult = send_drop_to_FS(segment_id, logger);
@@ -652,12 +672,13 @@ int dropM(char* segment_id){
 			log_info(logger,"Se elimino el segmento y se libero la memoria");
 		}else{
 			log_info(logger,"No se encontro el segmento a borrar.");
+			sem_post(&MUTEX_JOURNAL);
 			return -1;
 		}
 	}else{
 		log_error(logger,"No se elimina el segmento ni se libera la memoria.");
 	}
-
+	sem_post(&MUTEX_JOURNAL);
 	return 0;
 }
 /**************************** FIN QUERYS *********************************************/

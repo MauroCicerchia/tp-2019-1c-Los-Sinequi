@@ -30,7 +30,7 @@ t_list* segmentList;
 e_query processQuery(char *, t_log*);
 t_log *logger;
 t_config *config;
-sem_t MUTEX_MEM,MAX_CONNECTIONS_KERNEL,MUTEX_GOSSIP;;
+sem_t MUTEX_MEM,MAX_CONNECTIONS_KERNEL,MUTEX_GOSSIP,MUTEX_JOURNAL;
 
 void memory_init();
 void kill_memory();
