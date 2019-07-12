@@ -35,6 +35,7 @@ sem_t MUTEX_MEM,MAX_CONNECTIONS_KERNEL,MUTEX_GOSSIP;;
 void memory_init();
 void kill_memory();
 void load_config();
+void free_frame(int);
 void iniciar_logger();
 segment* segment_init();
 void *listen_client();
