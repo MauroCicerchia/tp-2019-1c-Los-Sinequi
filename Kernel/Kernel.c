@@ -7,20 +7,23 @@ t_config *config;
 t_queue *new, *ready;
 sem_t MUTEX_NEW, MUTEX_READY, MUTEX_MEMORIES, MUTEX_TABLES, PROC_PEND_NEW, MAX_PROC_READY, PROC_PEND_READY, MUTEX_READS, MUTEX_WRITES, MUTEX_TOTALOPS;
 t_log *logger;
+pthread_t threadNewReady, threadMetrics, threadGossip, threadRefreshMetadata;
 
 int main(int argc, char **argv) {
 	init_kernel();
 
 	display_memories();
 
-	pthread_t threadNewReady, threadsExec[MP], threadMetrics, threadGossip, threadRefreshMetadata;
+	pthread_t threadsExec[MP];
 
 	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
+	pthread_detach(threadNewReady);
 	pthread_create(&threadMetrics, NULL, metrics, NULL);
 	pthread_create(&threadRefreshMetadata, NULL, refreshMetadata, NULL);
 	pthread_create(&threadGossip, NULL, gossip, NULL);
 	for(int i = 0; i < MP; i++) {
 		pthread_create(&threadsExec[i], NULL, processor_execute, (void*)i);
+		pthread_detach(threadsExec[i]);
 	}
 
 	usleep(10000);
@@ -28,6 +31,13 @@ int main(int argc, char **argv) {
 	start_API(logger);
 
 	exitFlag = 1;
+
+	printf("\n >> Terminando kernel, por favor espere...\n");
+	log_info(logger, " >> Terminando kernel, por favor espere... >>");
+
+	pthread_join(threadMetrics, NULL);
+	pthread_join(threadRefreshMetadata, NULL);
+	pthread_join(threadGossip, NULL);
 
 	kill_kernel();
 
@@ -61,8 +71,6 @@ void init_kernel() {
 }
 
 void kill_kernel() {
-	printf("\nTerminando kernel, por favor espere...\n");
-	log_info(logger, " >> Terminando kernel, por favor espere... >>");
 	log_info(logger, " << FIN KERNEL <<");
 	log_info(logger, "------------------------------------------------------------------------------------------------------------");
 	log_destroy(logger);
@@ -367,22 +375,30 @@ t_memory *memory_search_create(int mem_number, char *ip, char *port) {
 
 void *gossip() {
 	while(!exitFlag) {
-		usleep(get_gossip_delay() * 1000);
-		char *ip = get_memory_ip();
-		char *port = get_memory_port();
-		log_info(logger, " >> Actualizando memorias.");
-		int memSocket;
-		do {
-			memSocket = connect_to_memory(ip, port);
-			if(memSocket == -1) {
-				log_warning(logger, "No se pudo conectar a la memoria principal para actualizar. Intentando de nuevo en 10s.");
-				usleep(10 * 1000 * 1000);
-			}
-		} while(memSocket == -1);
-		request_memory_pool(memSocket);
-		log_info(logger, " >> Memorias actualizadas.");
-		free(ip);
-		free(port);
+
+		int i = 0;
+		for(i = 0; i < 10; i++) {
+			usleep(get_gossip_delay() * 100);
+			if(exitFlag) break;
+		}
+
+		if(!exitFlag) {
+			char *ip = get_memory_ip();
+			char *port = get_memory_port();
+			log_info(logger, " >> Actualizando memorias.");
+			int memSocket;
+			do {
+				memSocket = connect_to_memory(ip, port);
+				if(memSocket == -1) {
+					log_warning(logger, "No se pudo conectar a la memoria principal para actualizar. Intentando de nuevo en 10s.");
+					usleep(10 * 1000 * 1000);
+				}
+			} while(memSocket == -1);
+			request_memory_pool(memSocket);
+			log_info(logger, " >> Memorias actualizadas.");
+			free(ip);
+			free(port);
+		}
 	}
 	return NULL;
 }
@@ -391,7 +407,7 @@ void display_memories() {
 	printf("MID	IP		PORT	SC-SHC-EC\n");
 
 	void display_memory(void *memory) {
-		printf("%d	%s	%s	%d-%d-%d\n", ((t_memory*)memory)->mid, ((t_memory*)memory)->ip, ((t_memory*)memory)->port, ((t_memory*)memory)->consTypes[0], ((t_memory*)memory)->consTypes[1], ((t_memory*)memory)->consTypes[2]);
+		printf("%d	%s	%s	%d - %d - %d\n", ((t_memory*)memory)->mid, ((t_memory*)memory)->ip, ((t_memory*)memory)->port, ((t_memory*)memory)->consTypes[0], ((t_memory*)memory)->consTypes[1], ((t_memory*)memory)->consTypes[2]);
 	}
 
 	sem_wait(&MUTEX_MEMORIES);
@@ -502,8 +518,10 @@ t_memory *get_memory_for_query(t_table *t, uint16_t key) {
 }
 
 t_memory *get_any_memory() {
+	t_memory *m = NULL;
 	sem_wait(&MUTEX_MEMORIES);
-	t_memory *m = list_get(memories, random() % list_size(memories));
+	if(list_size(memories) > 0)
+		m = list_get(memories, random() % list_size(memories));
 	sem_post(&MUTEX_MEMORIES);
 	return m;
 }
@@ -622,13 +640,20 @@ void add_memories_to_table(t_table *t) {
 
 void *refreshMetadata() {
 	while(!exitFlag) {
-		usleep(get_metadata_refresh_rate() * 1000);
-		log_info(logger, " >> Actualizando metadata de tablas.");
-		int status = qDescribe(NULL, logger);
-		if(status == 1) {
-			log_info(logger, " >> Metadata actualizada correctamente.");
-		} else {
-			log_info(logger, " >> No se pudo actualizar la metadata las tablas.");
+		int i = 0;
+		for(i = 0; i < 10; i++) {
+			usleep(get_metadata_refresh_rate() * 100);
+			if(exitFlag) break;
+		}
+
+		if(!exitFlag) {
+			log_info(logger, " >> Actualizando metadata de tablas.");
+			int status = qDescribe(NULL, logger);
+			if(status == 1) {
+				log_info(logger, " >> Metadata actualizada correctamente.");
+			} else {
+				log_info(logger, " >> No se pudo actualizar la metadata las tablas.");
+			}
 		}
 
 	}
@@ -639,16 +664,20 @@ void journal(){
 	void journalMem(void *m) {
 			qJournal((t_memory*)m, logger);
 		}
-	sem_wait(&MUTEX_MEMORIES);
 		list_iterate(memories,journalMem);
-	sem_post(&MUTEX_MEMORIES);
 }
 
 void *metrics() {
-	printf("\nR : RL/30s = 0 : 0ms\nW : WL/30s = 0 : 0ms\nML = \n\n");
+	printf("\nReads : Read Latency/30s = 0 : 0ms\nWrites : WritesLatency/30s = 0 : 0ms\nMemory Load = \n\n");
 
 	while(!exitFlag) {
-		usleep(30 * 1000 * 1000);
+
+		int i = 0;
+		for(i = 0; i < 10; i++) {
+			usleep(3 * 1000 * 1000);
+			if(exitFlag) break;
+		}
+
 		sem_wait(&MUTEX_READS);
 		sem_wait(&MUTEX_WRITES);
 		log_metrics();
@@ -674,8 +703,8 @@ void log_metrics() {
 	}
 
 	log_info(logger, " >> Metricas >>");
-	log_info(logger, "R : RL/30s = %d : %dms", reads, readLatency);
-	log_info(logger, "W : WL/30s = %d : %dms", writes, writeLatency);
+	log_info(logger, "Reads : Read Latency/30s = %d : %dms", reads, readLatency);
+	log_info(logger, "Writes : Writes Latency/30s = %d : %dms", writes, writeLatency);
 	log_info(logger, " << Fin Metricas <<");
 }
 
@@ -699,7 +728,7 @@ void update_screen() {
 	printf("<LFS Kernel>\n\n");
 	display_memories();
 
-	printf("\nR : RL/30s = %d : %dms\nW : WL/30s = %d : %dms\nML = ", reads, readLatency, writes, writeLatency);
+	printf("\nReads : Read Latency/30s = %d : %dms\nWrites : Write Latency/30s = %d : %dms\nMemory Load = ", reads, readLatency, writes, writeLatency);
 	if(totalOperations != 0) {
 		sem_wait(&MUTEX_MEMORIES);
 		list_iterate(memories, print_m_load);
