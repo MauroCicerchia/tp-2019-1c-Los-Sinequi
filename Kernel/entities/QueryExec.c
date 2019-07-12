@@ -27,6 +27,22 @@ int qSelect(char *tableName, uint16_t key, t_log *logger) {
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
 
+	if(memSocket == -1) {
+		log_warning(logger, "La memoria a la que se envio la query no responde. Eliminando memoria e intentando de nuevo.");
+		remove_memory(mem->mid);
+		if(memory_is_shc(mem)) {
+			update_shc();
+		}
+		if(memory_is_sc(mem)) {
+			update_sc();
+		}
+		int status = qSelect(table, key, logger);
+		free(table);
+		memory_destroy(mem);
+		delete_package(p);
+		return status;
+	}
+
 	log_info(logger, " >> Enviando select a memoria %d.", mem->mid);
 
 	send_req_code(memSocket, REQUEST_QUERY);
@@ -78,6 +94,21 @@ int qInsert(char* table, uint16_t key, char *value, t_log *logger) {
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
 
+	if(memSocket == -1) {
+		log_warning(logger, "La memoria a la que se envio la query no responde. Eliminando memoria e intentando de nuevo.");
+		remove_memory(mem->mid);
+		if(memory_is_shc(mem)) {
+			update_shc();
+		}
+		if(memory_is_sc(mem)) {
+			update_sc();
+		}
+		int status = qInsert(table, key, value, logger);
+		memory_destroy(mem);
+		delete_package(p);
+		return status;
+	}
+
 	log_info(logger, " >> Enviando insert a memoria %d.", mem->mid);
 
 	send_req_code(memSocket, REQUEST_QUERY);
@@ -118,6 +149,21 @@ int qCreate(char *table, char *consType, char *part, char *compTime, t_log *logg
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
 
+	if(memSocket == -1) {
+		log_warning(logger, "La memoria a la que se envio la query no responde. Eliminando memoria e intentando de nuevo.");
+		remove_memory(mem->mid);
+		if(memory_is_shc(mem)) {
+			update_shc();
+		}
+		if(memory_is_sc(mem)) {
+			update_sc();
+		}
+		int status = qCreate(table, consType, part, compTime, logger);
+		memory_destroy(mem);
+		delete_package(p);
+		return status;
+	}
+
 	send_req_code(memSocket, REQUEST_QUERY);
 	send_package(p, memSocket);
 	delete_package(p);
@@ -145,6 +191,20 @@ int qDescribe(char* table, t_log *logger) {
 
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
+
+	if(memSocket == -1) {
+		log_warning(logger, "La memoria a la que se envio la query no responde. Eliminando memoria e intentando de nuevo.");
+		remove_memory(mem->mid);
+		if(memory_is_shc(mem)) {
+			update_shc();
+		}
+		if(memory_is_sc(mem)) {
+			update_sc();
+		}
+		int status = qDescribe(table, logger);
+		memory_destroy(mem);
+		return status;
+	}
 
 	if(table != NULL) {
 //		Paquetizar
@@ -236,6 +296,21 @@ int qDrop(char *table, t_log *logger) {
 //	Enviar query a memoria
 	int memSocket = connect_to_memory(mem->ip, mem->port);
 
+	if(memSocket == -1) {
+		log_warning(logger, "La memoria a la que se envio la query no responde. Eliminando memoria e intentando de nuevo.");
+		remove_memory(mem->mid);
+		if(memory_is_shc(mem)) {
+			update_shc();
+		}
+		if(memory_is_sc(mem)) {
+			update_sc();
+		}
+		int status = qDrop(table, logger);
+		delete_package(p);
+		memory_destroy(mem);
+		return status;
+	}
+
 	send_req_code(memSocket, REQUEST_QUERY);
 	send_package(p, memSocket);
 	delete_package(p);
@@ -253,6 +328,13 @@ int qDrop(char *table, t_log *logger) {
 
 int qJournal(t_memory *mem, t_log *logger) {
 	int memSocket = connect_to_memory(mem->ip, mem->port);
+
+	if(memSocket == -1) {
+		log_warning(logger, "La memoria a la que se envio el journal no responde. Eliminando memoria.");
+		remove_memory(mem->mid);
+		memory_destroy(mem);
+		return 0;
+	}
 
 	send_req_code(memSocket, REQUEST_JOURNAL);
 

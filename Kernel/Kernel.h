@@ -2,7 +2,7 @@
 #include<stdlib.h>
 #include<unistd.h>
 #include<string.h>
-#include<time.h>
+#include<sys/time.h>
 #include<semaphore.h>
 #include<pthread.h>
 #include<commons/log.h>
@@ -35,9 +35,12 @@ void *processor_execute(void*);
 int execute_query(t_query*);
 void setConfigParameter(char*);
 void init_memory();
-int connect_to_memory();
+int connect_to_memory(char*, char*);
 void request_memory_pool(int);
+t_memory *memory_search_create(int, char*, char*);
+void *gossip();
 void display_memories();
+t_memory *remove_memory(int);
 void add_memory_to_cons_type(int, e_cons_type);
 t_memory *get_memory_of_cons_type(e_cons_type);
 t_list *get_sc_memories();
@@ -50,6 +53,7 @@ t_memory *get_ec_memory();
 t_memory *get_memory_for_query(t_table*, uint16_t);
 t_memory *get_any_memory();
 void update_shc();
+void update_sc();
 t_table *get_table(char*);
 void add_table(t_table*);
 void update_table(char*, e_cons_type, int, int);
@@ -68,6 +72,7 @@ int get_quantum();
 int get_multiprogramming_degree();
 int get_metadata_refresh_rate();
 int get_execution_delay();
+int get_gossip_delay();
 uint64_t getCurrentTime();
 
 #endif

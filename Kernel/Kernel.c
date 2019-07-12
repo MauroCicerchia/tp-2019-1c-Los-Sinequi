@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
 	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
 	pthread_create(&threadMetrics, NULL, metrics, NULL);
 	pthread_create(&threadRefreshMetadata, NULL, refreshMetadata, NULL);
-//	pthread_create(&threadGossip, NULL, gossip, NULL);
+	pthread_create(&threadGossip, NULL, gossip, NULL);
 	for(int i = 0; i < MP; i++) {
 		pthread_create(&threadsExec[i], NULL, processor_execute, (void*)i);
 	}
@@ -118,8 +118,8 @@ e_query processQuery(char *query) {
 			break;
 
 		case QUERY_ADD:
-			add_memory_to_cons_type(atoi((char*)list_get(args, 2)), getConsistencyType((char*)list_get(args, 4)));
 			log_info(logger, " >> Recibi un ADD MEMORY %s TO %s", (char*)list_get(args, 2), (char*)list_get(args, 4));
+			add_memory_to_cons_type(atoi((char*)list_get(args, 2)), getConsistencyType((char*)list_get(args, 4)));
 			if(getConsistencyType((char*)list_get(args, 4)) == CONS_SHC) {
 				update_shc();
 			}
@@ -128,9 +128,9 @@ e_query processQuery(char *query) {
 			break;
 
 		case QUERY_RUN:
+			log_info(logger, " >> Recibi un RUN %s", (char*)list_get(args, 1));
 			if(!read_lql_file((char*)list_get(args, 1)))
 				return queryError();
-			log_info(logger, " >> Recibi un RUN %s", (char*)list_get(args, 1));
 			break;
 
 		case QUERY_METRICS:
@@ -171,7 +171,6 @@ int read_lql_file(char *path) {
 	t_list *fileQuerys = list_create();
 
 	while(fgets(buffer, sizeof(buffer), lql)) {
-		log_info(logger,buffer);
 		t_list *args = parseQuery(buffer);
 		e_query queryType = getQueryType(list_get(args, 0));
 		t_query *currentQuery = query_create(queryType, args);
@@ -301,7 +300,14 @@ void init_memory() {
 	char *ip = get_memory_ip();
 	char *port = get_memory_port();
 	log_info(logger, " >> Conectando a primer memoria.");
-	int memSocket = connect_to_memory(ip, port);
+	int memSocket;
+	do {
+		memSocket = connect_to_memory(ip, port);
+		if(memSocket == -1) {
+			log_warning(logger, "No se pudo conectar a la memoria principal para obtener las memorias disponibles. Intentando de nuevo en 10s.");
+			usleep(10 *1000 * 1000);
+		}
+	} while(memSocket == -1);
 	log_info(logger, " >> Solicitando memorias disponibles.");
 	request_memory_pool(memSocket);
 	log_info(logger, " >> Memorias obtenidas correctamente.");
@@ -313,11 +319,11 @@ void init_memory() {
 	free(port);
 }
 
-int connect_to_memory(char *IP, int PORT) {
+int connect_to_memory(char *IP, char *PORT) {
 	int memSocket = connectToServer(IP, PORT);
 	if(memSocket <= -1) {
 		log_error(logger, " >> No se pudo conectar a Memoria.");
-		exit(-1);
+		return -1;
 	}
 	return memSocket;
 }
@@ -328,18 +334,51 @@ void request_memory_pool(int memSocket) {
 	e_response_code response = recv_res_code(memSocket);
 	if(response == RESPONSE_SUCCESS) {
 		int q = recv_int(memSocket);
-		int i;
+		int i, mem_number;
 		char *ip, *port;
 		for(i = 0; i < q; i++) {
+			mem_number = recv_int(memSocket);
 			ip = recv_str(memSocket);
 			port = recv_str(memSocket);
-			t_memory *mem = memory_create(memoryNumber, ip, port);
-			memoryNumber++;
-			sem_wait(&MUTEX_MEMORIES);
-			list_add(memories, (void*) mem);
-			sem_post(&MUTEX_MEMORIES);
+			memory_search_create(mem_number, ip, port);
 		}
 	}
+}
+
+t_memory *memory_search_create(int mem_number, char *ip, char *port) {
+	bool isMem(void *mem) {
+		return ((t_memory*)mem)->mid == mem_number;
+	}
+	sem_wait(&MUTEX_MEMORIES);
+	t_memory *m = (t_memory*)list_find(memories, isMem);
+	if(m == NULL) {
+		m = memory_create(mem_number, ip, port);
+		list_add(memories, (void*) m);
+	}
+	sem_post(&MUTEX_MEMORIES);
+	return m;
+}
+
+void *gossip() {
+	while(!exitFlag) {
+		usleep(get_gossip_delay() * 1000);
+		char *ip = get_memory_ip();
+		char *port = get_memory_port();
+		log_info(logger, " >> Actualizando memorias.");
+		int memSocket;
+		do {
+			memSocket = connect_to_memory(ip, port);
+			if(memSocket == -1) {
+				log_warning(logger, "No se pudo conectar a la memoria principal para actualizar. Intentando de nuevo en 10s.");
+				usleep(10 * 1000 * 1000);
+			}
+		} while(memSocket == -1);
+		request_memory_pool(memSocket);
+		log_info(logger, " >> Memorias actualizadas.");
+		free(ip);
+		free(port);
+	}
+	return NULL;
 }
 
 void display_memories() {
@@ -355,12 +394,22 @@ void display_memories() {
 
 }
 
-void add_memory_to_cons_type(int memid, e_cons_type consType) {
-	bool findMemByID(void *mem) {
-		return ((t_memory*) mem)->mid == memid;
+t_memory *remove_memory(int mem_number) {
+	bool isMem(void *mem) {
+		return ((t_memory*) mem)->mid == mem_number;
 	}
 	sem_wait(&MUTEX_MEMORIES);
-	t_memory *selectedMem = list_find(memories, findMemByID);
+	t_memory *m = list_remove_by_condition(memories, isMem);
+	sem_post(&MUTEX_MEMORIES);
+	return m;
+}
+
+void add_memory_to_cons_type(int mem_number, e_cons_type consType) {
+	bool isMem(void *mem) {
+		return ((t_memory*) mem)->mid == mem_number;
+	}
+	sem_wait(&MUTEX_MEMORIES);
+	t_memory *selectedMem = list_find(memories, isMem);
 	sem_post(&MUTEX_MEMORIES);
 	if(selectedMem != NULL)
 		memory_add_cons_type(selectedMem, consType);
@@ -374,9 +423,6 @@ t_memory *get_memory_of_cons_type(e_cons_type consType) {
 }
 
 t_list *get_sc_memories() {
-	bool memory_is_sc(void *mem) {
-		return memory_is_cons_type((t_memory*)mem, CONS_SC);
-	}
 	sem_wait(&MUTEX_MEMORIES);
 	t_list *sc_mem = list_filter(memories, memory_is_sc);
 	sem_post(&MUTEX_MEMORIES);
@@ -403,9 +449,6 @@ t_memory *get_random_sc_memory() {
 }
 
 t_list *get_shc_memories() {
-	bool memory_is_shc(void *mem) {
-		return memory_is_cons_type((t_memory*)mem, CONS_SHC);
-	}
 	t_list *shc_mem = list_filter(memories, memory_is_shc);
 	return shc_mem;
 }
@@ -421,9 +464,6 @@ t_memory *get_shc_memory_for_table(t_table *t, uint16_t key) {
 }
 
 t_list *get_ec_memories() {
-	bool memory_is_ec(void *mem) {
-		return memory_is_cons_type((t_memory*)mem, CONS_EC);
-	}
 	sem_wait(&MUTEX_MEMORIES);
 	t_list *ec_mem = list_filter(memories, memory_is_ec);
 	sem_post(&MUTEX_MEMORIES);
@@ -483,6 +523,20 @@ void update_shc() {
 		list_iterate(shc_mem, journalMem);
 	list_destroy(shcTables);
 	list_destroy(shc_mem);
+}
+
+void update_sc() {
+	bool isSC(void *t) {
+		return ((t_table*)t)->consType == CONS_SC;
+	}
+	void updateMemories(void *t) {
+		add_memories_to_table((t_table*)t);
+	}
+	sem_wait(&MUTEX_TABLES);
+	t_list *scTables = list_filter(tables, isSC);
+	list_iterate(scTables, updateMemories);
+	sem_post(&MUTEX_TABLES);
+	list_destroy(scTables);
 }
 
 t_table *get_table(char *id) {
@@ -693,6 +747,13 @@ int get_metadata_refresh_rate() {
 int get_execution_delay() {
 	load_config();
 	int ed = config_get_int_value(config, "EXEC_DELAY");
+	config_destroy(config);
+	return ed;
+}
+
+int get_gossip_delay() {
+	load_config();
+	int ed = config_get_int_value(config, "GOSSIP_DELAY");
 	config_destroy(config);
 	return ed;
 }

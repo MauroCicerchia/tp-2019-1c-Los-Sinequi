@@ -44,3 +44,15 @@ int memory_is_cons_type(t_memory *memory, e_cons_type consType) {
 		default: return 0; break;
 	}
 }
+
+bool memory_is_sc(void *mem) {
+	return memory_is_cons_type((t_memory*)mem, CONS_SC);
+}
+
+bool memory_is_shc(void *mem) {
+	return memory_is_cons_type((t_memory*)mem, CONS_SHC);
+}
+
+bool memory_is_ec(void *mem) {
+	return memory_is_cons_type((t_memory*)mem, CONS_EC);
+}
