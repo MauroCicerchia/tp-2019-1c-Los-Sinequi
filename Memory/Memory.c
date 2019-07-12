@@ -35,7 +35,7 @@ void memory_init(){
 		gossip_table = list_create();
 		ip = get_ip();
 		port = get_port();
-		add_to_gossip_table(ip,port,logger);
+		add_to_gossip_table(ip,port,get_mem_number(),logger);
 
 		sem_init(&MUTEX_MEM,0,1);
 		sem_init(&MAX_CONNECTIONS_KERNEL,0,get_max_conexiones()); //Maximas conexiones kernel
@@ -339,7 +339,7 @@ void* auto_gossip(){
 }
 void print_mem(void* mem){
 	memory* memo = (memory*) mem;
-	log_info(logger,"[GOSSIPING]: Memoria: %s - %s\n",memo->memory_ip,memo->memory_port);
+	log_info(logger,"[GOSSIPING]: Memoria %d: %s - %s\n",memo->memory_number,memo->memory_ip,memo->memory_port);
 }
 void log_gossip_table(){
 	list_iterate(gossip_table,print_mem);
@@ -783,6 +783,13 @@ char **get_port_seeds(){
 	char** ports = array_duplicate(config_get_array_value(config, "PUERTO_SEEDS"));
 	config_destroy(config);
 	return ports;
+}
+
+int get_mem_number(){
+	load_config();
+	int num = config_get_int_value(config,"MEMORY_NUMBER");
+	config_destroy(config);
+	return num;
 }
 
 char** array_duplicate(char** array){

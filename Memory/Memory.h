@@ -66,6 +66,7 @@ char* get_ip();
 char* get_port();
 char **get_ip_seeds();
 char **get_port_seeds();
+int get_mem_number();
 char** array_duplicate(char**);
 
 void* attend_client(void*);

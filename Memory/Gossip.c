@@ -43,13 +43,13 @@ void execute_gossip_client(t_log* logger,char* port,sem_t MUTEX_GOSSIP){
 			close(seed_socket);
 		}
 	}
-	string_iterate_lines(seed_ips,free);
-	string_iterate_lines(seed_ports,free);
+	string_iterate_lines(seed_ips,string_destroy_char);
+	string_iterate_lines(seed_ports,string_destroy_char);
 	free(seed_ips);
 	free(seed_ports);
 
 }
-//TODO eliminar memoria de la tabla gossip si se desconecta
+
 
 void execute_gossip_server(int socket_gossip,t_log* logger,sem_t MUTEX_GOSSIP){
 	//llega y actualizo tabla
@@ -66,9 +66,10 @@ void execute_gossip_server(int socket_gossip,t_log* logger,sem_t MUTEX_GOSSIP){
 void recv_gossip_table(int seed_socket,t_log* logger){
 	int mem_count = recv_int(seed_socket);
 	for(int i=0;i<mem_count;i++){
+		int num = recv_int(seed_socket);
 		char* ip_mem = recv_str(seed_socket);
 		char* port_mem = recv_str(seed_socket);
-		add_to_gossip_table(ip_mem,port_mem,logger);
+		add_to_gossip_table(ip_mem,port_mem,num,logger);
 	}
 }
 
@@ -78,16 +79,17 @@ void send_gossip_table(int socket_gossip){
 	memory* mem;
 	for(int i=0;i<mem_num;i++){
 		mem = list_get(gossip_table,i);
+		send_int(socket_gossip,mem->memory_number);
 		send_str(socket_gossip,mem->memory_ip);
 		send_str(socket_gossip,mem->memory_port);
 	}
 }
 
-void add_to_gossip_table(char* ip_mem, char* port_mem, t_log* logger){
-	memory* new_memory = memory_create(ip_mem,port_mem);
+void add_to_gossip_table(char* ip_mem, char* port_mem,int num_mem ,t_log* logger){
+	memory* new_memory = memory_create(ip_mem,port_mem,num_mem);
 
 	bool isMemory(void* mem){
-		return((strcasecmp(((memory*) mem)->memory_ip,ip_mem)==0 && strcasecmp(((memory*) mem)->memory_port,port_mem)==0));
+		return(((memory*)mem)->memory_number == num_mem);
 	}
 
 	bool is_already_in = list_any_satisfy(gossip_table, isMemory);
@@ -98,15 +100,17 @@ void add_to_gossip_table(char* ip_mem, char* port_mem, t_log* logger){
 	}
 	else{
 		log_info(logger,"No se agrego la memoria a la tabla gossip, ya estaba cargada");
+		memory_destroy(new_memory);
 	}
 	return;
 }
 
-memory* memory_create(char* ip,char* port){
+memory* memory_create(char* ip,char* port,int number){
 	memory* mem = (memory*)malloc(sizeof(memory));
 
 	mem->memory_ip = string_duplicate(ip);
 	mem->memory_port = string_duplicate(port);
+	mem->memory_number = number;
 
 	return mem;
 }
