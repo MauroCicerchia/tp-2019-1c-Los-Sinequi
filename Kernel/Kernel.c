@@ -272,8 +272,8 @@ void *processor_execute(void *p) {
 					break;
 				}
 
-				if(status != 1 && nextQuery->queryType == QUERY_SELECT) metrics_new_select(startTime, endTime);
-				if(status != 1 && nextQuery->queryType == QUERY_INSERT) metrics_new_insert(startTime, endTime);
+				if(status == 1 && nextQuery->queryType == QUERY_SELECT) metrics_new_select(startTime, endTime);
+				if(status == 1 && nextQuery->queryType == QUERY_INSERT) metrics_new_insert(startTime, endTime);
 			}
 		}
 
