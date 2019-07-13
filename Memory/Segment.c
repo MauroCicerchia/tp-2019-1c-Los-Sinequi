@@ -37,3 +37,10 @@ void segment_destroy(void* aSegment){
 
 }
 
+segment* segment_duplicate(segment* aSegment){
+	segment* segmentDup = (segment*) malloc(sizeof(segment));
+	segmentDup->segment_id = string_duplicate(aSegment->segment_id);
+	segmentDup->page_list = list_create();
+
+}
+

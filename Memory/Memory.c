@@ -234,7 +234,7 @@ void* attend_client(void* socket) {
 	default:
 		break;
 	}
-
+	close(cliSocket);
 	sem_post(&MAX_CONNECTIONS_KERNEL);
 	return NULL;
 
@@ -661,15 +661,15 @@ char* selectM(char* segmentID, uint16_t key){
 				if(memory_full()){
 					log_info(logger,"La memoria esta full, ejecutando Journal");
 					log_info(output,"La memoria esta full");
+					segment* segmentDup = segment_duplicate(segmentFound);
 					if(journalM() == -1){
 						log_error(logger,"No se pudo realizar el Journal, cancelando Select");
-						if(segmentCreated){
-							remove_segment(segmentFound);
-						}
+						segment_destroy(segmentDup);
 						pthread_mutex_unlock(&MUTEX_JOURNAL);
 						return NULL;
 					}
-					load_page_to_segment(key, segmentFound, value, 0);
+					list_add(segmentList,segmentDup);
+					load_page_to_segment(key, segmentDup, value, 0);
 				}else{
 					execute_replacement(key,value,segmentFound,0);
 				}
