@@ -79,11 +79,16 @@ void insertDestroyer(void *insert)
 
 void mt_getListofInserts(char *table, t_list *list)
 {
+	sem_wait(&MUTEX_MEMTABLE);
 	t_list *mtinserts = mt_getTableToInsert(table);
 
-	if(list_size(mtinserts) == 0) {list_destroy(mtinserts); return;}
+	if(list_size(mtinserts) == 0) {
+		list_destroy(mtinserts);
+		sem_post(&MUTEX_MEMTABLE);
+		return;
+	}
 
-	sem_wait(&MUTEX_MEMTABLE); //bloqueo memtable mientras hace la asignacion
+	//bloqueo memtable mientras hace la asignacion
 		for(int i = 0; i < list_size(mtinserts); i++){
 			Iinsert *structInsert = list_get(mtinserts,i);
 			char *pivot = string_new();

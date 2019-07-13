@@ -13,11 +13,12 @@ void *listen_client()
 		int cliSocket = connectToClient(socket);
 
 		if(cliSocket == -1) {
-			printf("[RX/TX]: No se pudo conectar con el cliente\n");
+			log_warning(logger,"[RX/TX]: No se pudo conectar con el cliente\n");
 		}
 		else{
 			pthread_t queryThread;
-			pthread_create(&queryThread, NULL, attendClient, &cliSocket);
+
+			pthread_create(&queryThread, NULL, attendClient, (void*)cliSocket);
 			pthread_detach(queryThread);
 		}
 
@@ -26,7 +27,7 @@ void *listen_client()
 }
 
 void *attendClient(void *socket){
-	int cliSocket = *(int*)socket;
+	int cliSocket = (int)socket;
 	log_info(logger,"[RX/TX]: Recibo request de cliente");
 			e_request_code rc = recv_req_code(cliSocket);
 
@@ -86,7 +87,6 @@ void process_query_from_client(int client)
 			sKey = string_itoa((int)key);
 
 			sTimeStamp = string_from_format("%llu", timestamp);
-			printf("%llu %s", timestamp, sTimeStamp);
 //			string_from_format("%llu",conn_getCurrentTime());
 
 			status = qinsert(table, sKey, value,sTimeStamp);
@@ -165,7 +165,7 @@ void process_query_from_client(int client)
 		case QUERY_DROP:
 
 			table = recv_str(client);
-			printf("%s",table);
+//			printf("%s",table);
 			status = qdrop(table);
 			free(table);
 			if(status)

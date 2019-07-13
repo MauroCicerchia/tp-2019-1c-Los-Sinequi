@@ -250,7 +250,10 @@ activeTable *getActiveTable(char *tableName){
 		return !strcmp(tableName,((activeTable*)table)->name);
 	}
 
-	return (activeTable*)list_find(sysTables,_tableIsActive);
+	sem_wait(&MUTEX_LISTACTIVETABLES);
+	activeTable *x = (activeTable*)list_find(sysTables,_tableIsActive);
+	sem_post(&MUTEX_LISTACTIVETABLES);
+	return x;
 }
 
 t_list *fs_getListOfInserts(char* table,int key)
@@ -281,17 +284,17 @@ t_list *fs_getListOfInserts(char* table,int key)
 
 	sem_wait(&x->MUTEX_TABLE_PART);
 		b_getListOfInserts(partUrl,partList); //trae todas los inserts de esa url (la de particion adecuada)
+
+		t_list *tmps = getAllTmps(tableUrl);
+
+		for(int i= 0; i < list_size(tmps); i++){
+			tmpUrl = string_new();
+			string_append(&tmpUrl,tableUrl);
+			string_append(&tmpUrl,list_get(tmps,i));
+			b_getListOfInserts(tmpUrl,partList);
+			free(tmpUrl);
+		}
 	sem_post(&x->MUTEX_TABLE_PART);
-
-	t_list *tmps = getAllTmps(tableUrl);
-
-	for(int i= 0; i < list_size(tmps); i++){
-		tmpUrl = string_new();
-		string_append(&tmpUrl,tableUrl);
-		string_append(&tmpUrl,list_get(tmps,i));
-		b_getListOfInserts(tmpUrl,partList);
-		free(tmpUrl);
-	}
 
 
 	mt_getListofInserts(table,partList); //toma todos los inserts de la memtable referidos a la tabla

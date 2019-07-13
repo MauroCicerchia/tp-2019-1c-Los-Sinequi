@@ -12,6 +12,7 @@
 
 extern int metadataBlocks;
 extern int metadataSizeBlocks;
+extern sem_t MUTEX_ELSOLUCIONADOR;
 
 #ifndef BLOCKS_H
 #define BLOCKS_H
@@ -42,4 +43,5 @@ void b_writeBlockAssigned(int block);
 void b_freeblock(int block);
 bool b_blocksCreated();
 void b_create();
+
 #endif

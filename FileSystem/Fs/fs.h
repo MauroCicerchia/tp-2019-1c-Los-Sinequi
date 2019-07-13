@@ -28,6 +28,7 @@ extern t_log *logger;
 extern t_config *FsMetadataCfg;
 extern int tmpNo;
 extern t_list *sysTables;
+extern sem_t MUTEX_LISTACTIVETABLES;
 
 typedef struct{
 	char *consistency;

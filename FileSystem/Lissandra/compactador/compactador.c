@@ -135,6 +135,7 @@ char *com_key(char *insert)
 //te devuelve la lista de todos los tmp ahora con la extension .tmpc
 t_list *com_changeTmpsExtension(t_list *tmps, char *tableUrl)
 {
+
 	t_list *tmpsc = list_create();
 	char *tmpcUrl,*tmpUrl, *tmp, *tmpc;
 
@@ -149,7 +150,9 @@ t_list *com_changeTmpsExtension(t_list *tmps, char *tableUrl)
 		string_append(&tmpc,"c");
 		string_append(&tmpcUrl,tmpc);
 
-		rename(tmpUrl,tmpcUrl); //renombras
+		sem_wait(&MUTEX_ELSOLUCIONADOR);
+			rename(tmpUrl,tmpcUrl); //renombras
+		sem_post(&MUTEX_ELSOLUCIONADOR);
 
 		list_add(tmpsc,tmpc); //agregas a la nueva lista
 

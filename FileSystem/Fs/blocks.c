@@ -97,6 +97,7 @@ void insertsToList(char *inserts, t_list *list)
 //abre la particion de la url y le carga un bloque inicial y el size
 void startPartition(char *url, int blockNumber, int size)
 {
+	sem_wait(&MUTEX_ELSOLUCIONADOR);
 	char *toSave = string_new();
 
 	string_append(&toSave,"SIZE=");
@@ -114,24 +115,29 @@ void startPartition(char *url, int blockNumber, int size)
 	txt_close_file(f);
 	free(toSave);
 	free(strSize);
+	sem_post(&MUTEX_ELSOLUCIONADOR);
 }
 
 //toma el array de bloques del ,archivo pasado por url, asociado a BLOCKS=
 char *getListOfBlocks(char *partUrl)
 {
+	sem_wait(&MUTEX_ELSOLUCIONADOR);
 	t_config *partition = config_create(partUrl);
 	char *blocks = string_duplicate(config_get_string_value(partition,"BLOCKS"));
 	config_destroy(partition);
+	sem_post(&MUTEX_ELSOLUCIONADOR);
 	return blocks;
 }
 
 
 //pisa el valor de BLOCKS por el de listBlocks
 void b_modifyBlocks(char *partUrl, char *listBlocks){
+	sem_wait(&MUTEX_ELSOLUCIONADOR);
 	t_config *partition = config_create(partUrl);
 	config_set_value(partition,"BLOCKS",listBlocks);
 	config_save(partition);
 	config_destroy(partition);
+	sem_post(&MUTEX_ELSOLUCIONADOR);
 
 }
 
@@ -425,12 +431,14 @@ void b_updateSize(char *url){
 }
 
 void b_modifySize(char *url,int tam){
+	sem_wait(&MUTEX_ELSOLUCIONADOR);
 	t_config *conf = config_create(url);
 	char *strtam = string_itoa(tam);
 	config_set_value(conf,"SIZE",strtam);
 	config_save(conf);
 	config_destroy(conf);
 	free(strtam);
+	sem_post(&MUTEX_ELSOLUCIONADOR);
 }
 
 //le escribe "&" para saber que tiene algo y que esta incializado

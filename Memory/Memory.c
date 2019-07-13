@@ -213,7 +213,7 @@ void free_frame(int frame){
 //************************************ FIN MEMORIA PRINCIPAL *****************************************
 /************************************** CLIENTE *********************************/
 void* attend_client(void* socket) {
-	int cliSocket = *(int*) socket;
+	int cliSocket = (int)socket;
 	e_request_code rc = recv_req_code(cliSocket);
 	switch (rc) {
 	case REQUEST_QUERY:
@@ -254,7 +254,7 @@ void *listen_client() {
 		}else{
 			sem_wait(&MAX_CONNECTIONS_KERNEL);
 			pthread_t client;
-			pthread_create(&client,NULL,attend_client,&cliSocket);
+			pthread_create(&client,NULL,attend_client,cliSocket);
 			pthread_detach(client);
 		}
 //		e_request_code rc = attend_client(cliSocket);

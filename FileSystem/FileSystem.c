@@ -27,7 +27,7 @@ char *bitarrayContent;
 int lastBlockAssigned;
 int flagBloquesLibres;
 
-sem_t MUTEX_MEMTABLE, MUTEX_RETARDTIME, MUTEX_DUMPTIME, MUTEX_BITARRAY;
+sem_t MUTEX_MEMTABLE, MUTEX_RETARDTIME, MUTEX_DUMPTIME, MUTEX_BITARRAY, MUTEX_CONFIG,MUTEX_ELSOLUCIONADOR,MUTEX_LISTACTIVETABLES;
 /*GLOBALES*/
 
 int main(int argc, char **argv)
@@ -55,6 +55,9 @@ void init_FileSystem()
 {
 	system ("clear");
 
+	sem_init(&MUTEX_LISTACTIVETABLES,1,1);
+	sem_init(&MUTEX_ELSOLUCIONADOR,1,1);
+	sem_init(&MUTEX_CONFIG,1,1);
 	sem_init(&MUTEX_MEMTABLE,1,1); //inicio los semaforos
 	sem_init(&MUTEX_DUMPTIME,1,1);
 	sem_init(&MUTEX_RETARDTIME,1,1);
@@ -69,15 +72,17 @@ void init_FileSystem()
 	memtable = list_create(); //creo memtable
 	sysTables = list_create();
 	log_info(logger,"[Lissandra]: Leyendo variables...");
-	fd = inotify_init(); //arranco monitoreo en el archivo de config
-	wd = inotify_add_watch(fd,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/Config/",IN_MODIFY);
+//	fd = inotify_init(); //arranco monitoreo en el archivo de config
+//	wd = inotify_add_watch(fd,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/Config/",IN_MODIFY);
 
-	load_config();
-	absoluto = string_duplicate(get_fs_route());
-	ip = string_duplicate(get_ip());
-	port = string_duplicate(get_port());
-	valueSize = get_valueSize();
-	config_destroy(config);
+	sem_wait(&MUTEX_CONFIG);
+		load_config();
+		absoluto = string_duplicate(get_fs_route());
+		ip = string_duplicate(get_ip());
+		port = string_duplicate(get_port());
+		valueSize = get_valueSize();
+		config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 
 	t_config *metadata = load_lfsMetadata();
 	metadataBlocks = get_blocks_cuantityy(metadata);
@@ -140,8 +145,9 @@ void kill_FileSystem()
 	ba_bitarrayDestroy(); //mato el bitarray
 	log_info(logger, "[Lissandra]: Destruido!");
 
-
-
+	sem_destroy(&MUTEX_LISTACTIVETABLES);
+	sem_destroy(&MUTEX_ELSOLUCIONADOR);
+	sem_destroy(&MUTEX_CONFIG);
 	sem_destroy(&MUTEX_MEMTABLE);//mato semaforos
 	sem_destroy(&MUTEX_DUMPTIME);
 	sem_destroy(&MUTEX_RETARDTIME);
@@ -204,7 +210,7 @@ void *threadDump()
 
 
 void iniciar_logger(t_log **logger){
-	*logger = log_create("FileSystem.log", "FileSystem", 0, LOG_LEVEL_INFO);
+	*logger = log_create("FileSystem.log", "FileSystem", 1, LOG_LEVEL_INFO);
 }
 
 void load_config(){
@@ -215,15 +221,19 @@ void load_config(){
 }
 
 int get_dump_time(){
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	int dt = config_get_int_value(config,"TIEMPO_DUMP");
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return dt;
 }
 int get_retard_time(){
+	sem_wait(&MUTEX_CONFIG);
 	load_config();
 	int r = config_get_int_value(config,"RETARDO");
 	config_destroy(config);
+	sem_post(&MUTEX_CONFIG);
 	return r;
 }
 char *get_fs_route(){

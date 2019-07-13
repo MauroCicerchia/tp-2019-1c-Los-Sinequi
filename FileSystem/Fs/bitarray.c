@@ -77,8 +77,9 @@ int ba_getNewBlock()
 		else aux++;//vas al proximo bloque
 	}
 
-	i=0;
-	while(i < lastBlockAssigned){
+	aux = 0;
+//	i=0;
+	while(aux < lastBlockAssigned){
 		if(!bitarray_test_bit(bitarray,aux)){
 			bitarray_set_bit(bitarray,aux);
 			lastBlockAssigned = aux;
@@ -87,7 +88,7 @@ int ba_getNewBlock()
 			return aux;
 		}
 		else aux++;
-		i++;
+//		i++;
 	}
 	flagBloquesLibres = 0; // 0 si no hay libres, 1 si los hay
 	sem_post(&MUTEX_BITARRAY);
