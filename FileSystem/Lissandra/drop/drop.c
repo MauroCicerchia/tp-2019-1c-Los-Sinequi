@@ -14,14 +14,14 @@ int qdrop(char *table) //agregar semaforo de drop para que nadie toque las tabla
 	activeTable *acTable = com_getActiveTable(table);
 
 	log_info(logger,"[DROP]: Inicia borrado...");
-	sem_wait(&acTable->MUTEX_DROP_TABLE);
+	pthread_mutex_lock(&acTable->MUTEX_DROP_TABLE);
 		log_info(logger,"[DROP]: Liberando bloques...");
 		freeBlocks(table);
 
 		log_info(logger,"[DROP]: Borrando directorios...");
 		deleteDirectoriesAndFiles(table);
 
-	sem_post(&acTable->MUTEX_DROP_TABLE);
+	pthread_mutex_unlock(&acTable->MUTEX_DROP_TABLE);
 
 	deleteTableFromMemory(table);
 
@@ -120,8 +120,8 @@ void deleteTableFromMemory(char *table){
 
 	void _activeTableDestroyer(void *tableToDestroy){
 		free(((activeTable*)tableToDestroy)->name);
-		sem_destroy(&((activeTable*)tableToDestroy)->MUTEX_DROP_TABLE);
-		sem_destroy(&((activeTable*)tableToDestroy)->MUTEX_TABLE_PART);
+		pthread_mutex_destroy(&((activeTable*)tableToDestroy)->MUTEX_DROP_TABLE);
+		pthread_mutex_destroy(&((activeTable*)tableToDestroy)->MUTEX_TABLE_PART);
 		free(tableToDestroy);
 	}
 

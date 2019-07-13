@@ -3,7 +3,7 @@
 
 extern int retardTime;
 
-extern sem_t MUTEX_RETARDTIME;
+extern pthread_mutex_t MUTEX_RETARDTIME;
 
 #ifndef DELAYER_H
 #define DELAYER_H

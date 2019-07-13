@@ -13,6 +13,7 @@
 #include"commons/config.h"
 #include"commons/txt.h"
 #include"commons/log.h"
+#include<pthread.h>
 #include"fs.h"
 
 extern char *absoluto;
@@ -25,7 +26,7 @@ extern char *bitarrayContent;
 extern int lastBlockAssigned;
 extern int flagBloquesLibres;
 
-extern sem_t MUTEX_BITARRAY;
+extern pthread_mutex_t MUTEX_BITARRAY;
 
 
 #ifndef BITARRAY_H

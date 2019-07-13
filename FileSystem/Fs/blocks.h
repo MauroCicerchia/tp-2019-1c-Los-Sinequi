@@ -12,7 +12,7 @@
 
 extern int metadataBlocks;
 extern int metadataSizeBlocks;
-extern sem_t MUTEX_ELSOLUCIONADOR;
+extern pthread_mutex_t MUTEX_ELSOLUCIONADOR;
 
 #ifndef BLOCKS_H
 #define BLOCKS_H

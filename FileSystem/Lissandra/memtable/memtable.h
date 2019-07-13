@@ -11,7 +11,7 @@
 
 extern t_list *memtable;
 extern t_log *logger;
-extern sem_t MUTEX_MEMTABLE;
+extern pthread_mutex_t MUTEX_MEMTABLE;
 
 #ifndef MEMTABLE_H
 #define MEMTABLE_H

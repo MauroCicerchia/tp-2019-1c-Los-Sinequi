@@ -79,12 +79,12 @@ void insertDestroyer(void *insert)
 
 void mt_getListofInserts(char *table, t_list *list)
 {
-	sem_wait(&MUTEX_MEMTABLE);
+	pthread_mutex_lock(&MUTEX_MEMTABLE);
 	t_list *mtinserts = mt_getTableToInsert(table);
 
 	if(list_size(mtinserts) == 0) {
 		list_destroy(mtinserts);
-		sem_post(&MUTEX_MEMTABLE);
+		pthread_mutex_unlock(&MUTEX_MEMTABLE);
 		return;
 	}
 
@@ -102,6 +102,6 @@ void mt_getListofInserts(char *table, t_list *list)
 			list_add(list,string_duplicate(pivot));
 			free(pivot);
 		}
-	sem_post(&MUTEX_MEMTABLE);
+	pthread_mutex_unlock(&MUTEX_MEMTABLE);
 }
 

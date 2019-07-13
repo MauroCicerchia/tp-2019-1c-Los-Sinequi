@@ -27,8 +27,9 @@ char *bitarrayContent;
 int lastBlockAssigned;
 int flagBloquesLibres;
 
-sem_t MUTEX_MEMTABLE, MUTEX_RETARDTIME, MUTEX_DUMPTIME, MUTEX_BITARRAY, MUTEX_CONFIG,MUTEX_ELSOLUCIONADOR,MUTEX_LISTACTIVETABLES;
-sem_t MUTEX_STR_ARRAY,MAX_CLIENTS;
+
+pthread_mutex_t MUTEX_MEMTABLE, MUTEX_RETARDTIME, MUTEX_DUMPTIME, MUTEX_BITARRAY, MUTEX_CONFIG,MUTEX_ELSOLUCIONADOR,MUTEX_LISTACTIVETABLES;
+sem_t MAX_CLIENTS;
 /*GLOBALES*/
 
 int main(int argc, char **argv)
@@ -56,15 +57,15 @@ void init_FileSystem()
 {
 	system ("clear");
 
-	sem_init(&MUTEX_LISTACTIVETABLES,1,1);
-	sem_init(&MUTEX_ELSOLUCIONADOR,1,1);
-	sem_init(&MUTEX_CONFIG,1,1);
-	sem_init(&MUTEX_MEMTABLE,1,1); //inicio los semaforos
-	sem_init(&MUTEX_DUMPTIME,1,1);
-	sem_init(&MUTEX_RETARDTIME,1,1);
-	sem_init(&MUTEX_BITARRAY,1,1);
-	sem_init(&MUTEX_STR_ARRAY,1,1);
-	sem_init(&MAX_CLIENTS,1,30); //Max connections
+	pthread_mutex_init(&MUTEX_LISTACTIVETABLES,NULL);
+	pthread_mutex_init(&MUTEX_ELSOLUCIONADOR,NULL);
+	pthread_mutex_init(&MUTEX_CONFIG,NULL);
+	pthread_mutex_init(&MUTEX_MEMTABLE,NULL); //inicio los semaforos
+	pthread_mutex_init(&MUTEX_DUMPTIME,NULL);
+	pthread_mutex_init(&MUTEX_RETARDTIME,NULL);
+	pthread_mutex_init(&MUTEX_BITARRAY,NULL);
+//	pthread_mutex_init(&MUTEX_STR_ARRAY,NULL);
+	sem_init(&MAX_CLIENTS,1,1); //Max connections
 
 	logger = NULL;
 	iniciar_logger(&logger); //arranco logger
@@ -78,7 +79,7 @@ void init_FileSystem()
 	fd = inotify_init(); //arranco monitoreo en el archivo de config
 	wd = inotify_add_watch(fd,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/Config/",IN_MODIFY);
 
-	sem_wait(&MUTEX_CONFIG);
+	pthread_mutex_lock(&MUTEX_CONFIG);
 		load_config();
 		absoluto = string_duplicate(get_fs_route());
 		ip = string_duplicate(get_ip());
@@ -87,7 +88,7 @@ void init_FileSystem()
 		dumpTime = get_dump_time();
 		retardTime = get_retard_time();
 		config_destroy(config);
-	sem_post(&MUTEX_CONFIG);
+	pthread_mutex_unlock(&MUTEX_CONFIG);
 
 	t_config *metadata = load_lfsMetadata();
 	metadataBlocks = get_blocks_cuantityy(metadata);
@@ -125,9 +126,9 @@ void kill_FileSystem()
 	log_info(logger,"[Lissandra]: Terminando FS");
 	log_info(logger, "[Lissandra]: Iniciando DUMP de seguridad...");
 
-	sem_wait(&MUTEX_MEMTABLE);
+	pthread_mutex_lock(&MUTEX_MEMTABLE);
 	dump(); //dump de cierre
-	sem_post(&MUTEX_MEMTABLE);
+	pthread_mutex_unlock(&MUTEX_MEMTABLE);
 	log_info(logger, "[Lissandra]: Dump dump terminado!");
 
 	log_info(logger, "[Lissandra]: Destruyendo MEMTABLE...");
@@ -137,8 +138,8 @@ void kill_FileSystem()
 	log_info(logger, "[Lissandra]: Liberando lista de tablas activas...");
 	void free_activeTable(void *pivot){
 		free(((activeTable*)pivot)->name);
-		sem_destroy(&((activeTable*)pivot)->MUTEX_TABLE_PART);
-		sem_destroy(&((activeTable*)pivot)->MUTEX_DROP_TABLE);
+		pthread_mutex_destroy(&((activeTable*)pivot)->MUTEX_TABLE_PART);
+		pthread_mutex_destroy(&((activeTable*)pivot)->MUTEX_DROP_TABLE);
 		free(pivot);
 	}
 
@@ -150,13 +151,13 @@ void kill_FileSystem()
 	ba_bitarrayDestroy(); //mato el bitarray
 	log_info(logger, "[Lissandra]: Destruido!");
 
-	sem_destroy(&MUTEX_LISTACTIVETABLES);
-	sem_destroy(&MUTEX_ELSOLUCIONADOR);
-	sem_destroy(&MUTEX_CONFIG);
-	sem_destroy(&MUTEX_MEMTABLE);//mato semaforos
-	sem_destroy(&MUTEX_DUMPTIME);
-	sem_destroy(&MUTEX_RETARDTIME);
-	sem_destroy(&MUTEX_BITARRAY);
+	pthread_mutex_destroy(&MUTEX_LISTACTIVETABLES);
+	pthread_mutex_destroy(&MUTEX_ELSOLUCIONADOR);
+	pthread_mutex_destroy(&MUTEX_CONFIG);
+	pthread_mutex_destroy(&MUTEX_MEMTABLE);//mato semaforos
+	pthread_mutex_destroy(&MUTEX_DUMPTIME);
+	pthread_mutex_destroy(&MUTEX_RETARDTIME);
+	pthread_mutex_destroy(&MUTEX_BITARRAY);
 	sem_destroy(&MAX_CLIENTS);
 
 	log_info(logger, "[Lissandra]: Termina FS.");
@@ -180,13 +181,13 @@ void *threadConfigModify()
 
 		load_config();
 
-		sem_wait(&MUTEX_DUMPTIME);
+		pthread_mutex_lock(&MUTEX_DUMPTIME);
 		dumpTime = get_dump_time();
-		sem_post(&MUTEX_DUMPTIME);
+		pthread_mutex_unlock(&MUTEX_DUMPTIME);
 
-		sem_wait(&MUTEX_RETARDTIME);
+		pthread_mutex_lock(&MUTEX_RETARDTIME);
 		retardTime = get_retard_time();
-		sem_post(&MUTEX_RETARDTIME);
+		pthread_mutex_unlock(&MUTEX_RETARDTIME);
 
 		config_destroy(config);
 
@@ -199,17 +200,17 @@ void *threadDump()
 {
 	int dt;
 	while(1){
-		sem_wait(&MUTEX_DUMPTIME);
+		pthread_mutex_lock(&MUTEX_DUMPTIME);
 //		dt = get_dump_time();
 		dt=dumpTime;
-		sem_post(&MUTEX_DUMPTIME);
+		pthread_mutex_unlock(&MUTEX_DUMPTIME);
 
 		usleep(dt * 1000);
 
 		log_info(logger, "[DUMP]: Iniciando Dump");
-		sem_wait(&MUTEX_MEMTABLE);
+		pthread_mutex_lock(&MUTEX_MEMTABLE);
 		dump();
-		sem_post(&MUTEX_MEMTABLE);
+		pthread_mutex_unlock(&MUTEX_MEMTABLE);
 		log_info(logger, "[DUMP]: Fin Dump");
 	}
 	return NULL;
@@ -228,20 +229,20 @@ void load_config(){
 }
 
 int get_dump_time(){
-//	sem_wait(&MUTEX_CONFIG);
+//	pthread_mutex_lock(&MUTEX_CONFIG);
 //	load_config();
 	int dt = config_get_int_value(config,"TIEMPO_DUMP");
 //	config_destroy(config);
-//	sem_post(&MUTEX_CONFIG);
+//	pthread_mutex_unlock(&MUTEX_CONFIG);
 	log_error(logger,"**%d**",dt);
 	return dt;
 }
 int get_retard_time(){
-//	sem_wait(&MUTEX_CONFIG);
+//	pthread_mutex_lock(&MUTEX_CONFIG);
 //	load_config();
 	int r = config_get_int_value(config,"RETARDO");
 //	config_destroy(config);
-//	sem_post(&MUTEX_CONFIG);
+//	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return r;
 }
 char *get_fs_route(){

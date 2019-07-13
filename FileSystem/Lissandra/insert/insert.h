@@ -13,7 +13,7 @@
 #include"../delayer/delayer.h"
 
 extern t_log *logger;
-extern sem_t MUTEX_MEMTABLE;
+extern pthread_mutex_t MUTEX_MEMTABLE;
 extern int valueSize;
 
 int qinsert(char*, char*, char*, char*);

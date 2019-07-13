@@ -47,8 +47,8 @@ activeTable *addToActiveTables(char *table, int parts, int ctime)
 	newTable->name = string_duplicate(table);
 	newTable->ctime = ctime;
 	newTable->parts = parts;
-	sem_init(&newTable->MUTEX_DROP_TABLE,1,1);
-	sem_init(&newTable->MUTEX_TABLE_PART,1,1);
+	pthread_mutex_init(&newTable->MUTEX_DROP_TABLE,NULL);
+	pthread_mutex_init(&newTable->MUTEX_TABLE_PART,NULL);
 
 	list_add(sysTables,newTable);
 	return newTable;

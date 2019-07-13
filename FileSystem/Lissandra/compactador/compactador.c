@@ -8,10 +8,10 @@ void *threadCompact(char *tableName)
 
 		table = com_getActiveTable(tableName);
 
-		sem_wait(&table->MUTEX_DROP_TABLE);
+		pthread_mutex_lock(&table->MUTEX_DROP_TABLE);
 			table->ctime = com_getCTime(table->name); //actualiza cambios en el tiempo de compactacion
 			compact(table);
-		sem_post(&table->MUTEX_DROP_TABLE);
+		pthread_mutex_unlock(&table->MUTEX_DROP_TABLE);
 
 			usleep(table->ctime * 1000);
 		}
@@ -91,9 +91,9 @@ void com_compactTmpsC(t_list *tmpsC,char *tableUrl, activeTable *table)
 
 	list_sort(allInserts,com_biggerTimeStamp); //ordeno la lista por timestamp de mayor a menor
 
-	sem_wait(&table->MUTEX_TABLE_PART);
+	pthread_mutex_lock(&table->MUTEX_TABLE_PART);
 	com_saveInPartition(keys,allInserts,table); //tomo la primera de cada key y la guardo en la particion
-	sem_post(&table->MUTEX_TABLE_PART);
+	pthread_mutex_unlock(&table->MUTEX_TABLE_PART);
 
 	list_destroy_and_destroy_elements(keys,free);
 	list_destroy_and_destroy_elements(allInserts,free);
@@ -150,9 +150,9 @@ t_list *com_changeTmpsExtension(t_list *tmps, char *tableUrl)
 		string_append(&tmpc,"c");
 		string_append(&tmpcUrl,tmpc);
 
-		sem_wait(&MUTEX_ELSOLUCIONADOR);
+		pthread_mutex_lock(&MUTEX_ELSOLUCIONADOR);
 			rename(tmpUrl,tmpcUrl); //renombras
-		sem_post(&MUTEX_ELSOLUCIONADOR);
+		pthread_mutex_unlock(&MUTEX_ELSOLUCIONADOR);
 
 		list_add(tmpsc,tmpc); //agregas a la nueva lista
 

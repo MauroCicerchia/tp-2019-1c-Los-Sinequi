@@ -4,15 +4,15 @@
 int fs_tableExists(char* table)
 {
 	char *tableUrl = makeUrlForPartition(table,"0");
-	sem_wait(&MUTEX_ELSOLUCIONADOR);
+	pthread_mutex_lock(&MUTEX_ELSOLUCIONADOR);
 	if(access(tableUrl,F_OK) != -1){
 		free(tableUrl);
-		sem_post(&MUTEX_ELSOLUCIONADOR);
+		pthread_mutex_unlock(&MUTEX_ELSOLUCIONADOR);
 		return 1;
 	}
 	else {
 		free(tableUrl);
-		sem_post(&MUTEX_ELSOLUCIONADOR);
+		pthread_mutex_unlock(&MUTEX_ELSOLUCIONADOR);
 		return 0;
 	}
 }
@@ -136,7 +136,7 @@ void loadMetadata(char *table,char *consistency,int parts,int ctime)
 void fs_toDump(char *table,char *toDump)
 {
 	activeTable* t = getActiveTable(table);
-	sem_wait(&t->MUTEX_TABLE_PART);
+	pthread_mutex_lock(&t->MUTEX_TABLE_PART);
 	char *tmpUrl = makeTableUrl(table);
 	char *x = string_itoa(tmpNo);
 	string_append(&tmpUrl,x);
@@ -151,7 +151,7 @@ void fs_toDump(char *table,char *toDump)
 	b_saveData(tmpUrl,toDump); //guarda en la url tableUrl el char* que se le pasa
 
 	free(tmpUrl);
-	sem_post(&t->MUTEX_TABLE_PART);
+	pthread_mutex_unlock(&t->MUTEX_TABLE_PART);
 }
 
 
@@ -256,9 +256,9 @@ activeTable *getActiveTable(char *tableName){
 		return !strcmp(tableName,((activeTable*)table)->name);
 	}
 
-	sem_wait(&MUTEX_LISTACTIVETABLES);
+	pthread_mutex_lock(&MUTEX_LISTACTIVETABLES);
 	activeTable *x = (activeTable*)list_find(sysTables,_tableIsActive);
-	sem_post(&MUTEX_LISTACTIVETABLES);
+	pthread_mutex_unlock(&MUTEX_LISTACTIVETABLES);
 	return x;
 }
 
@@ -288,7 +288,7 @@ t_list *fs_getListOfInserts(char* table,int key)
 
 	activeTable *x = getActiveTable(table);
 
-	sem_wait(&x->MUTEX_TABLE_PART);
+	pthread_mutex_lock(&x->MUTEX_TABLE_PART);
 		b_getListOfInserts(partUrl,partList); //trae todas los inserts de esa url (la de particion adecuada)
 
 		t_list *tmps = getAllTmps(tableUrl);
@@ -300,7 +300,7 @@ t_list *fs_getListOfInserts(char* table,int key)
 			b_getListOfInserts(tmpUrl,partList);
 			free(tmpUrl);
 		}
-	sem_post(&x->MUTEX_TABLE_PART);
+	pthread_mutex_unlock(&x->MUTEX_TABLE_PART);
 
 
 	mt_getListofInserts(table,partList); //toma todos los inserts de la memtable referidos a la tabla
@@ -457,8 +457,8 @@ void fs_setActiveTables()
 		cfg = load_metadataConfig(configUrl);
 
 		pivot->name = string_duplicate(list_get(tables,i));
-		sem_init(&(pivot->MUTEX_DROP_TABLE),1,1);
-		sem_init(&(pivot->MUTEX_TABLE_PART),1,1);
+		pthread_mutex_init(&(pivot->MUTEX_DROP_TABLE),NULL);
+		pthread_mutex_init(&(pivot->MUTEX_TABLE_PART),NULL);
 		char *strCtime = getCTime(cfg);
 		char *strParts = getPartitions(cfg);
 		pivot->ctime = strtol(strCtime,NULL,10);

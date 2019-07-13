@@ -24,7 +24,7 @@
 extern t_log *logger;
 extern t_config *config;
 extern t_config *metadataCfg;
-extern sem_t MUTEX_RETARDTIME;
+extern pthread_mutex_t MUTEX_RETARDTIME;
 
 void *start_Api();
 void processQuery(char *);

@@ -22,9 +22,9 @@ int qinsert(char *table, char* key, char *value, char* timeStamp){
 		log_info(logger,"[INSERT]: Insertando en memtable..");
 
 		//inserto en la memetable
-		sem_wait(&MUTEX_MEMTABLE); //bloqueo memtable mientras hace la asignacion
+		pthread_mutex_lock(&MUTEX_MEMTABLE); //bloqueo memtable mientras hace la asignacion
 		mt_insert(table,timeStamp,key,value);
-		sem_post(&MUTEX_MEMTABLE);
+		pthread_mutex_unlock(&MUTEX_MEMTABLE);
 
 		log_info(logger, "[INSERT]: Insert Exitoso");
 

@@ -9,13 +9,13 @@ void ba_bitarrayDestroy(){
 
 void ba_create()
 {
-	sem_wait(&MUTEX_BITARRAY);
+	pthread_mutex_lock(&MUTEX_BITARRAY);
 
 	int blocks = get_blocks_cuantity();
 
 	if(blocks == 0){
 		log_error(logger,"No puede haber 0 bloques");
-		sem_post(&MUTEX_BITARRAY);
+		pthread_mutex_unlock(&MUTEX_BITARRAY);
 		return;
 	}
 
@@ -26,7 +26,7 @@ void ba_create()
 		log_error(logger,"error al abrir el bitarray, abortando sistema");
 		close(bitarrayfd);
 		free(url);
-		sem_post(&MUTEX_BITARRAY);
+		pthread_mutex_unlock(&MUTEX_BITARRAY);
 		return;
 	}
 
@@ -43,7 +43,7 @@ void ba_create()
 		}
 	}
 	msync(bitarray->bitarray, bitarrayfd, MS_SYNC);
-	sem_post(&MUTEX_BITARRAY);
+	pthread_mutex_unlock(&MUTEX_BITARRAY);
 }
 
 
@@ -61,7 +61,7 @@ int ba_getNewBlock()
 		return -1;
 	}
 
-	sem_wait(&MUTEX_BITARRAY);
+	pthread_mutex_lock(&MUTEX_BITARRAY);
 
 	int blocks = get_blocks_cuantity();
 	int aux = lastBlockAssigned;
@@ -73,7 +73,7 @@ int ba_getNewBlock()
 			lastBlockAssigned = aux;
 			b_writeBlockAssigned(aux);
 			msync(bitarray->bitarray, bitarrayfd, MS_SYNC);
-			sem_post(&MUTEX_BITARRAY);
+			pthread_mutex_unlock(&MUTEX_BITARRAY);
 			return aux;
 		}
 		else aux++;//vas al proximo bloque
@@ -86,26 +86,26 @@ int ba_getNewBlock()
 			bitarray_set_bit(bitarray,aux);
 			lastBlockAssigned = aux;
 			msync(bitarray->bitarray, bitarrayfd, MS_SYNC);
-			sem_post(&MUTEX_BITARRAY);
+			pthread_mutex_unlock(&MUTEX_BITARRAY);
 			return aux;
 		}
 		else aux++;
 //		i++;
 	}
 	flagBloquesLibres = 0; // 0 si no hay libres, 1 si los hay
-	sem_post(&MUTEX_BITARRAY);
+	pthread_mutex_unlock(&MUTEX_BITARRAY);
 	return -1; // salio del while, por lo que no hay bloque libres/
 }
 
 //libera el bloque "block"
 void ba_freeBlock(int block)
 {
-	sem_wait(&MUTEX_BITARRAY);
+	pthread_mutex_lock(&MUTEX_BITARRAY);
 
 	bitarray_clean_bit(bitarray,block);
 	flagBloquesLibres = 1;
 
-	sem_post(&MUTEX_BITARRAY);
+	pthread_mutex_unlock(&MUTEX_BITARRAY);
 }
 
 
