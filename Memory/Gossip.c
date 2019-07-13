@@ -1,6 +1,6 @@
 #include"Gossip.h"
 
-void execute_gossip_client(t_log* logger,char* port,sem_t MUTEX_GOSSIP){
+void execute_gossip_client(t_log* logger,char* port,pthread_mutex_t MUTEX_GOSSIP){
 
 	char** seed_ips = get_ip_seeds();
 	char** seed_ports = get_port_seeds();
@@ -25,15 +25,15 @@ void execute_gossip_client(t_log* logger,char* port,sem_t MUTEX_GOSSIP){
 			log_info(logger,"[GOSSIPING]: La seed ha sido exitosamente conectada");
 			send_req_code(seed_socket,REQUEST_GOSSIP);
 			//send mi tabla
-			sem_wait(&MUTEX_GOSSIP);
+			pthread_mutex_lock(&MUTEX_GOSSIP);
 			send_gossip_table(seed_socket);
-			sem_post(&MUTEX_GOSSIP);
+			pthread_mutex_unlock(&MUTEX_GOSSIP);
 			e_response_code response = recv_res_code(seed_socket);
 			if(response == RESPONSE_SUCCESS){
 				//recibo mis tablas
-				sem_wait(&MUTEX_GOSSIP);
+				pthread_mutex_lock(&MUTEX_GOSSIP);
 				recv_gossip_table(seed_socket,logger);
-				sem_post(&MUTEX_GOSSIP);
+				pthread_mutex_unlock(&MUTEX_GOSSIP);
 			log_info(logger,"[GOSSIPING]: Tabla gossip actualizada correctamente");
 
 			}
@@ -54,15 +54,15 @@ void execute_gossip_client(t_log* logger,char* port,sem_t MUTEX_GOSSIP){
 }
 
 
-void execute_gossip_server(int socket_gossip,t_log* logger,sem_t MUTEX_GOSSIP){
+void execute_gossip_server(int socket_gossip,t_log* logger,pthread_mutex_t MUTEX_GOSSIP){
 	//llega y actualizo tabla
-	sem_wait(&MUTEX_GOSSIP);
+	pthread_mutex_lock(&MUTEX_GOSSIP);
 	recv_gossip_table(socket_gossip,logger);
-	sem_post(&MUTEX_GOSSIP);
+	pthread_mutex_unlock(&MUTEX_GOSSIP);
 	send_res_code(socket_gossip,RESPONSE_SUCCESS);
-	sem_wait(&MUTEX_GOSSIP);
+	pthread_mutex_lock(&MUTEX_GOSSIP);
 	send_gossip_table(socket_gossip);
-	sem_post(&MUTEX_GOSSIP);
+	pthread_mutex_unlock(&MUTEX_GOSSIP);
 	//envio mis tablas
 }
 

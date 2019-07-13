@@ -22,8 +22,8 @@ typedef struct{
 t_list* gossip_table;
 
 void delete_mem_from_gossip_table(char*,char*,t_log*);
-void execute_gossip_client(t_log*,char*,sem_t);
-void execute_gossip_server(int,t_log*,sem_t);
+void execute_gossip_client(t_log*,char*,pthread_mutex_t);
+void execute_gossip_server(int,t_log*,pthread_mutex_t);
 void add_to_gossip_table(char*, char*,int,t_log*);
 memory* memory_create(char*,char*,int);
 void gossip_table_destroy();

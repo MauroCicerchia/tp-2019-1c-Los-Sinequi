@@ -29,11 +29,11 @@ int main(int argc, char **argv) {
 
 void memory_init(){
 
-		sem_init(&MUTEX_CONFIG,0,1);
-		sem_init(&MUTEX_MEM,0,1);
-		sem_init(&MUTEX_GOSSIP,0,1);
-		sem_init(&MUTEX_BITMAP,0,1);
-		sem_init(&MUTEX_JOURNAL,0,1);
+		pthread_mutex_init(&MUTEX_CONFIG,NULL);
+		pthread_mutex_init(&MUTEX_MEM,NULL);
+		pthread_mutex_init(&MUTEX_GOSSIP,NULL);
+		pthread_mutex_init(&MUTEX_BITMAP,NULL);
+		pthread_mutex_init(&MUTEX_JOURNAL,NULL);
 		sem_init(&MAX_CONNECTIONS_KERNEL,0,get_max_conexiones());
 		iniciar_logger();
 		iniciar_logger_output();
@@ -58,12 +58,12 @@ void kill_memory(){
 	free(main_memory);
 	bitarray_destroy(bitmap);
 
-	sem_destroy(&MUTEX_GOSSIP);
-	sem_destroy(&MUTEX_MEM);
-	sem_destroy(&MUTEX_BITMAP);
+	pthread_mutex_destroy(&MUTEX_GOSSIP);
+	pthread_mutex_destroy(&MUTEX_MEM);
+	pthread_mutex_destroy(&MUTEX_BITMAP);
 	sem_destroy(&MAX_CONNECTIONS_KERNEL);
-	sem_destroy(&MUTEX_JOURNAL);
-	sem_destroy(&MUTEX_CONFIG);
+	pthread_mutex_destroy(&MUTEX_JOURNAL);
+	pthread_mutex_destroy(&MUTEX_CONFIG);
 
 	free(port);
 	free(ip);
@@ -99,7 +99,7 @@ int get_frame_size(){
 }
 
 void create_bitmap(int memSize){
-	sem_wait(&MUTEX_BITMAP);
+	pthread_mutex_lock(&MUTEX_BITMAP);
 	int bitNumbers = total_frames();
 	char* bitParameter = (char*)malloc(sizeof(char)*(bitNumbers/8 + 1));
 	log_info(logger,"Marcos: **%d**",total_frames());
@@ -109,7 +109,7 @@ void create_bitmap(int memSize){
 
 	bitParameter[(bitNumbers/8)] = '\0';
 	bitmap = bitarray_create(bitParameter,strlen(bitParameter));
-	sem_post(&MUTEX_BITMAP);
+	pthread_mutex_unlock(&MUTEX_BITMAP);
 
 }
 
@@ -147,31 +147,31 @@ char* get_value_from_memory(int frame_num){
 
 void insert_in_frame(uint16_t key, uint64_t timestamp, char* value, int frame_num){
 
-	sem_wait(&MUTEX_BITMAP);
+	pthread_mutex_lock(&MUTEX_BITMAP);
 	bitarray_set_bit(bitmap,frame_num);
-	sem_post(&MUTEX_BITMAP);
+	pthread_mutex_unlock(&MUTEX_BITMAP);
 
-	sem_wait(&MUTEX_MEM);
+	pthread_mutex_lock(&MUTEX_MEM);
 	void* base = main_memory + frame_num * get_frame_size();
 	memcpy(base, &key, sizeof(uint16_t));
 	base += sizeof(uint16_t);
 	memcpy(base, &timestamp, sizeof(uint64_t));
 	base += sizeof(uint64_t);
 	memcpy(base, value, strlen(value) + 1);
-	sem_post(&MUTEX_MEM);
+	pthread_mutex_unlock(&MUTEX_MEM);
 
 	log_info(output,"Se inserto el value: **%s** con la key: **%d** en el frame: **%d**",value,(int)key,frame_num);
 
 }
 
 void modify_in_frame(char* value, int frame_num){
-	sem_wait(&MUTEX_MEM);
+	pthread_mutex_lock(&MUTEX_MEM);
 	void* base = main_memory + frame_num * get_frame_size() + sizeof(uint16_t);
 	uint64_t timestamp = get_timestamp();
 	memcpy(base, &timestamp, sizeof(uint64_t));
 	base += sizeof(uint64_t);
 	memcpy(base, value, strlen(value) + 1);
-	sem_post(&MUTEX_MEM);
+	pthread_mutex_unlock(&MUTEX_MEM);
 
 	log_info(output,"Se atcualizo el marco **%d** al value: **%s**",frame_num,value);
 
@@ -179,35 +179,35 @@ void modify_in_frame(char* value, int frame_num){
 
 int find_free_frame(){
 	int i=0,free_frame = -1;
-	sem_wait(&MUTEX_BITMAP);
+	pthread_mutex_lock(&MUTEX_BITMAP);
 	for(i=0;i<total_frames();i++){
 		if(bitarray_test_bit(bitmap,i) == 0){
 			free_frame = i;
 			break;
 		}
 	}
-	sem_post(&MUTEX_BITMAP);
+	pthread_mutex_unlock(&MUTEX_BITMAP);
 	return free_frame;
 }
 
 int frame_available_in_mem(){
 	int bitNumbers = total_frames();
 	int i=0;
-	sem_wait(&MUTEX_BITMAP);
+	pthread_mutex_lock(&MUTEX_BITMAP);
 	for(i=0;i<bitNumbers;i++){
 		if(bitarray_test_bit(bitmap,i) == 0){
-			sem_post(&MUTEX_BITMAP);
+			pthread_mutex_unlock(&MUTEX_BITMAP);
 			return 1;
 		}
 	}
-	sem_post(&MUTEX_BITMAP);
+	pthread_mutex_unlock(&MUTEX_BITMAP);
 	return 0;
 }
 
 void free_frame(int frame){
-	sem_wait(&MUTEX_BITMAP);
+	pthread_mutex_lock(&MUTEX_BITMAP);
 	bitarray_clean_bit(bitmap,frame);
-	sem_post(&MUTEX_BITMAP);
+	pthread_mutex_unlock(&MUTEX_BITMAP);
 }
 
 //************************************ FIN MEMORIA PRINCIPAL *****************************************
@@ -223,9 +223,9 @@ void* attend_client(void* socket) {
 		execute_gossip_server(cliSocket,logger,MUTEX_GOSSIP);
 		break;
 	case REQUEST_JOURNAL:
-		sem_wait(&MUTEX_JOURNAL);
+		pthread_mutex_lock(&MUTEX_JOURNAL);
 		journalM();
-		sem_post(&MUTEX_JOURNAL);
+		pthread_mutex_unlock(&MUTEX_JOURNAL);
 		send_res_code(cliSocket, RESPONSE_SUCCESS);
 		break;
 	default:
@@ -295,9 +295,9 @@ void process_query_from_client(int client) {
 			value = recv_str(client);
 			log_info(logger,"Recibi un INSERT de tabla %s, key %d y value %s",table,(int)key,value);
 			log_info(output,"Recibi un INSERT de tabla %s, key %d y value %s",table,(int)key,value);
-			sem_wait(&MUTEX_JOURNAL);
+			pthread_mutex_lock(&MUTEX_JOURNAL);
 			status = insertM(table, key, value);
-			sem_post(&MUTEX_JOURNAL);
+			pthread_mutex_unlock(&MUTEX_JOURNAL);
 			free(value);
 			free(table);
 			switch(status) {
@@ -442,9 +442,9 @@ e_query processQuery(char *query, t_log *logger) {
 
 		case QUERY_INSERT:
 			log_info(logger, "Recibi un INSERT %s %s %s", (char*) list_get(args,1), (char*) list_get(args,2), (char*) list_get(args,3));
-			sem_wait(&MUTEX_JOURNAL);
+			pthread_mutex_lock(&MUTEX_JOURNAL);
 			insertResult = insertM(list_get(args,1), atoi(list_get(args,2)), list_get(args,3));
-			sem_post(&MUTEX_JOURNAL);
+			pthread_mutex_unlock(&MUTEX_JOURNAL);
 			if(insertResult == -1){
 				log_error(logger,"No se puedo insertar un valor");
 			}else{
@@ -479,9 +479,9 @@ e_query processQuery(char *query, t_log *logger) {
 		case QUERY_JOURNAL:
 
 			log_info(logger, "Recibi un JOURNAL");
-			sem_wait(&MUTEX_JOURNAL);
+			pthread_mutex_lock(&MUTEX_JOURNAL);
 			journalM();
-			sem_post(&MUTEX_JOURNAL);
+			pthread_mutex_unlock(&MUTEX_JOURNAL);
 			break;
 
 		default:
@@ -538,9 +538,9 @@ void* execute_journal(){
 	while(true){
 		sleep(get_retardo_journal()/1000);
 		log_info(logger, "[JOURNAL]: Iniciando Journal automatico.");
-		sem_wait(&MUTEX_JOURNAL);
+		pthread_mutex_lock(&MUTEX_JOURNAL);
 		journalM();
-		sem_post(&MUTEX_JOURNAL);
+		pthread_mutex_unlock(&MUTEX_JOURNAL);
 	}
 }
 /*********************************** QUERYS ******************************************/
@@ -626,7 +626,7 @@ int insertM(char* segmentID, uint16_t key, char* value){
 }
 
 char* selectM(char* segmentID, uint16_t key){
-	sem_wait(&MUTEX_JOURNAL);
+	pthread_mutex_lock(&MUTEX_JOURNAL);
 	int segmentCreated = 0;
 
 	segment* segmentFound = search_segment(segmentID);
@@ -645,7 +645,7 @@ char* selectM(char* segmentID, uint16_t key){
 	if(pageFound != NULL){
 		pageFound->last_time_used=get_timestamp();
 		log_info(logger,"Se encontro la pagina con el key buscado, retornando el valor.");
-		sem_post(&MUTEX_JOURNAL);
+		pthread_mutex_unlock(&MUTEX_JOURNAL);
 		return get_value_from_memory(pageFound->frame_num);
 	}else{
 		log_warning(logger,"No se encontro la pagina con el key buscado, consultando a FS.");
@@ -663,7 +663,7 @@ char* selectM(char* segmentID, uint16_t key){
 						if(segmentCreated){
 							remove_segment(segmentFound);
 						}
-						sem_post(&MUTEX_JOURNAL);
+						pthread_mutex_unlock(&MUTEX_JOURNAL);
 						return NULL;
 					}
 					load_page_to_segment(key, segmentFound, value, 0);
@@ -671,13 +671,13 @@ char* selectM(char* segmentID, uint16_t key){
 					execute_replacement(key,value,segmentFound,0);
 				}
 			}
-			sem_post(&MUTEX_JOURNAL);
+			pthread_mutex_unlock(&MUTEX_JOURNAL);
 			return value;
 		}else{
 			if(segmentCreated){
 				remove_segment(segmentFound);
 			}
-			sem_post(&MUTEX_JOURNAL);
+			pthread_mutex_unlock(&MUTEX_JOURNAL);
 			return NULL;
 		}
 	}
@@ -687,21 +687,21 @@ char* selectM(char* segmentID, uint16_t key){
 
 int createM(char* segmentID,char* consistency ,char *partition_num, char *compaction_time){
 	/*ENVIAR AL FS OPERACION PARA CREAR TABLA*/
-	sem_wait(&MUTEX_JOURNAL);
+	pthread_mutex_lock(&MUTEX_JOURNAL);
 	int status = send_create_to_FS(segmentID, consistency, partition_num, compaction_time, logger);
-	sem_post(&MUTEX_JOURNAL);
+	pthread_mutex_unlock(&MUTEX_JOURNAL);
 	return status;
 }
 
 t_list* describeM(char *table){
-	sem_wait(&MUTEX_JOURNAL);
+	pthread_mutex_lock(&MUTEX_JOURNAL);
 	t_list* md = send_describe_to_FS(table,logger);
-	sem_post(&MUTEX_JOURNAL);
+	pthread_mutex_unlock(&MUTEX_JOURNAL);
 	return md;
 }
 
 int dropM(char* segment_id){
-	sem_wait(&MUTEX_JOURNAL);
+	pthread_mutex_lock(&MUTEX_JOURNAL);
 	segment* segmentFound = search_segment(segment_id);
 
 	int FSresult = send_drop_to_FS(segment_id, logger);
@@ -713,13 +713,13 @@ int dropM(char* segment_id){
 			log_info(logger,"Se elimino el segmento y se libero la memoria");
 		}else{
 			log_info(logger,"No se encontro el segmento a borrar.");
-			sem_post(&MUTEX_JOURNAL);
+			pthread_mutex_unlock(&MUTEX_JOURNAL);
 			return -1;
 		}
 	}else{
 		log_error(logger,"No se elimina el segmento ni se libera la memoria.");
 	}
-	sem_post(&MUTEX_JOURNAL);
+	pthread_mutex_unlock(&MUTEX_JOURNAL);
 	return 0;
 }
 /**************************** FIN QUERYS *********************************************/
@@ -786,100 +786,100 @@ void get_value_size(){
 }
 /******************************* DATOS VARIABLES DEL ARCHIVO CONFIG **********************/
 int get_retardo_journal(){
-	sem_wait(&MUTEX_CONFIG);
+	pthread_mutex_lock(&MUTEX_CONFIG);
 	load_config();
 	int retard = config_get_int_value(config,"RETARDO_JOURNAL");
 	config_destroy(config);
-	sem_post(&MUTEX_CONFIG);
+	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return retard;
 }
 int get_retardo_gossip(){
-	sem_wait(&MUTEX_CONFIG);
+	pthread_mutex_lock(&MUTEX_CONFIG);
 	load_config();
 	int retard = config_get_int_value(config,"RETARDO_GOSSIPING");
 	config_destroy(config);
-	sem_post(&MUTEX_CONFIG);
+	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return retard;
 }
 int get_max_conexiones(){
-	sem_wait(&MUTEX_CONFIG);
+	pthread_mutex_lock(&MUTEX_CONFIG);
 	load_config();
 	int amount = config_get_int_value(config,"MAX_CONEXIONES_KERNEL");
 	config_destroy(config);
-	sem_post(&MUTEX_CONFIG);
+	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return amount;
 }
 
 int get_tam_mem(){
-	sem_wait(&MUTEX_CONFIG);
+	pthread_mutex_lock(&MUTEX_CONFIG);
 	load_config();
 	int size = config_get_int_value(config,"TAM_MEM");
 	config_destroy(config);
-	sem_post(&MUTEX_CONFIG);
+	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return size;
 }
 
 char* get_ip(){
-	sem_wait(&MUTEX_CONFIG);
+	pthread_mutex_lock(&MUTEX_CONFIG);
 	load_config();
 	char* ip = string_duplicate(config_get_string_value(config,"IP"));
 	config_destroy(config);
-	sem_post(&MUTEX_CONFIG);
+	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return ip;
 }
 
 char* get_port(){
-	sem_wait(&MUTEX_CONFIG);
+	pthread_mutex_lock(&MUTEX_CONFIG);
 	load_config();
 	char* port = string_duplicate(config_get_string_value(config,"PUERTO"));
 	config_destroy(config);
-	sem_post(&MUTEX_CONFIG);
+	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return port;
 }
 
 char* get_ip_fs(){
-	sem_wait(&MUTEX_CONFIG);
+	pthread_mutex_lock(&MUTEX_CONFIG);
 	load_config();
 	char* ip = string_duplicate(config_get_string_value(config,"IP_FS"));
 	config_destroy(config);
-	sem_post(&MUTEX_CONFIG);
+	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return ip;
 }
 
 char* get_port_fs(){
-	sem_wait(&MUTEX_CONFIG);
+	pthread_mutex_lock(&MUTEX_CONFIG);
 	load_config();
 	char* port = string_duplicate(config_get_string_value(config,"PUERTO_FS"));
 	config_destroy(config);
-	sem_post(&MUTEX_CONFIG);
+	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return port;
 }
 
 char **get_ip_seeds(){
-	sem_wait(&MUTEX_CONFIG);
+	pthread_mutex_lock(&MUTEX_CONFIG);
 	load_config();
 	char** ips = config_get_array_value(config, "IP_SEEDS");
 //			array_duplicate(config_get_array_value(config, "IP_SEEDS"));
 	config_destroy(config);
-	sem_post(&MUTEX_CONFIG);
+	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return ips;
 }
 
 char **get_port_seeds(){
-	sem_wait(&MUTEX_CONFIG);
+	pthread_mutex_lock(&MUTEX_CONFIG);
 	load_config();
 	char** ports = array_duplicate(config_get_array_value(config, "PUERTO_SEEDS"));
 	config_destroy(config);
-	sem_post(&MUTEX_CONFIG);
+	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return ports;
 }
 
 int get_mem_number(){
-	sem_wait(&MUTEX_CONFIG);
+	pthread_mutex_lock(&MUTEX_CONFIG);
 	load_config();
 	int num = config_get_int_value(config,"MEMORY_NUMBER");
 	config_destroy(config);
-	sem_post(&MUTEX_CONFIG);
+	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return num;
 }
 
