@@ -9,7 +9,7 @@ char *absoluto, *port, *ip;
 
 t_log *logger;
 
-int fd,wd,dumpTime,retardTime,tmpNo,valueSize, exitFlag;
+int fd,wd,tmpNo,valueSize, exitFlag;
 
 pthread_t tApi,tDump,tListenCfg, tLisentClient;
 
@@ -35,8 +35,8 @@ int main(int argc, char **argv)
 
 	init_FileSystem();
 
-	pthread_create(&tListenCfg,NULL,threadConfigModify,NULL);
-	pthread_detach(tListenCfg);
+//	pthread_create(&tListenCfg,NULL,threadConfigModify,NULL);
+//	pthread_detach(tListenCfg);
 
 	pthread_create(&tLisentClient,NULL,threadListenToClient,NULL);
 	pthread_detach(tLisentClient);
@@ -70,11 +70,9 @@ void init_FileSystem()
 	sysTables = list_create();
 	log_info(logger,"[Lissandra]: Leyendo variables...");
 	fd = inotify_init(); //arranco monitoreo en el archivo de config
-	wd = inotify_add_watch(fd,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/Config",IN_MODIFY);
+	wd = inotify_add_watch(fd,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/Config/",IN_MODIFY);
 
 	load_config();
-	dumpTime = get_dump_time();
-	retardTime = get_retard_time();
 	absoluto = string_duplicate(get_fs_route());
 	ip = string_duplicate(get_ip());
 	port = string_duplicate(get_port());
@@ -170,12 +168,12 @@ void *threadConfigModify()
 
 		load_config();
 
-		sem_wait(&MUTEX_DUMPTIME);
-		dumpTime = get_dump_time();
-		sem_post(&MUTEX_DUMPTIME);
-
-		sem_wait(&MUTEX_RETARDTIME);
-		retardTime = get_retard_time();
+//		sem_wait(&MUTEX_DUMPTIME);
+//		dumpTime = get_dump_time();
+//		sem_post(&MUTEX_DUMPTIME);
+//
+//		sem_wait(&MUTEX_RETARDTIME);
+//		retardTime = get_retard_time();
 		sem_post(&MUTEX_RETARDTIME);
 
 		config_destroy(config);
@@ -190,7 +188,7 @@ void *threadDump()
 	int dt;
 	while(1){
 		sem_wait(&MUTEX_DUMPTIME);
-		dt = dumpTime;
+		dt = get_dump_time();
 		sem_post(&MUTEX_DUMPTIME);
 
 		usleep(dt * 1000);
@@ -206,7 +204,7 @@ void *threadDump()
 
 
 void iniciar_logger(t_log **logger){
-	*logger = log_create("FileSystem.log", "FileSystem", 0, LOG_LEVEL_INFO);
+	*logger = log_create("FileSystem.log", "FileSystem", 1, LOG_LEVEL_INFO);
 }
 
 void load_config(){
@@ -217,10 +215,16 @@ void load_config(){
 }
 
 int get_dump_time(){
-	return config_get_int_value(config,"TIEMPO_DUMP");
+	load_config();
+	int dt = config_get_int_value(config,"TIEMPO_DUMP");
+	config_destroy(config);
+	return dt;
 }
 int get_retard_time(){
-	return config_get_int_value(config,"RETARDO");
+	load_config();
+	int r = config_get_int_value(config,"RETARDO");
+	config_destroy(config);
+	return r;
 }
 char *get_fs_route(){
 	return config_get_string_value(config,"PUNTO_MONTAJE");
