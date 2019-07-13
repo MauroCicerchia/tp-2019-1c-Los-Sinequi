@@ -279,7 +279,6 @@ void *processor_execute(void *p) {
 
 		if(process_finished(exec)) {
 			log_info(logger, " >> Terminando proceso %d", exec->pid);
-			printf("AVERGA");
 			process_destroy(exec);
 			sem_post(&MAX_PROC_READY);
 		} else {
@@ -477,7 +476,6 @@ t_memory *get_sc_memory_for_table(t_table* t) {
 		return ((t_memory*)mem)->mid == (int)list_get(t->memories, 0);
 	}
 	t_memory *m = (t_memory*)list_find(sc_mem, memByID);
-	if(m==NULL) log_error(logger, "AVERGA");
 	list_destroy(sc_mem);
 	return m;
 }
@@ -838,7 +836,6 @@ uint64_t get_writesTime() {
 	list_iterate(last_writes, sumWriteTime);
 	list_destroy(last_writes);
 	sem_post(&MUTEX_WRITES);
-	log_info(logger, "*********WT:%llu*******************", q);
 	return q;
 }
 
