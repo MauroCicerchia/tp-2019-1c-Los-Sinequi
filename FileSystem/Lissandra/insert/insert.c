@@ -1,4 +1,4 @@
-#include"inse|rt.h"
+#include"insert.h"
 
 int qinsert(char *table, char* key, char *value, char* timeStamp){
 	delayer();

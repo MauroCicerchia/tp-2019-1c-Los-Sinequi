@@ -57,8 +57,10 @@ int qSelect(char *tableName, uint16_t key, t_log *logger) {
 		output_select(table, key, value);
 		free(value);
 	} else {
-//		notificar error
 		log_error(logger, " >> Error al realizar select en memoria.");
+		close(memSocket);
+		free(table);
+		return 0;
 	}
 	close(memSocket);
 
@@ -123,6 +125,8 @@ int qInsert(char* table, uint16_t key, char *value, t_log *logger) {
 		log_info(logger, " >> Insert Realizado correctamente en memoria.");
 	} else {
 		log_error(logger, " >> Error al realizar insert en memoria.");
+		close(memSocket);
+		return 0;
 	}
 	close(memSocket);
 
@@ -178,6 +182,8 @@ int qCreate(char *table, char *consType, char *part, char *compTime, t_log *logg
 		log_info(logger, " >> Tabla nueva agregada.");
 	} else {
 		log_error(logger, " >> Error al realizar create en memoria.");
+		close(memSocket);
+		return 1;
 	}
 	close(memSocket);
 	return 1;
