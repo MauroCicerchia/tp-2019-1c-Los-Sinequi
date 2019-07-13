@@ -13,8 +13,6 @@ int main(int argc, char **argv) {
 
 	init_kernel();
 
-
-
 	pthread_t threadsExec[MP];
 
 	pthread_create(&threadNewReady, NULL, new_to_ready, NULL);
@@ -268,13 +266,14 @@ void *processor_execute(void *p) {
 				usleep(get_execution_delay() * 1000);
 				endTime = getCurrentTime();
 
-				if(status == 0) {
+				if(status == -1) {
 					exec->pc = process_length(exec);
+					log_error(logger, " >> Abortando proceso %d", exec->pid);
 					break;
 				}
 
-				if(status && nextQuery->queryType == QUERY_SELECT) metrics_new_select(startTime, endTime);
-				if(status && nextQuery->queryType == QUERY_INSERT) metrics_new_insert(startTime, endTime);
+				if(status != 1 && nextQuery->queryType == QUERY_SELECT) metrics_new_select(startTime, endTime);
+				if(status != 1 && nextQuery->queryType == QUERY_INSERT) metrics_new_insert(startTime, endTime);
 			}
 		}
 

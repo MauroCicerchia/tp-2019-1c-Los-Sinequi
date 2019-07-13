@@ -13,7 +13,7 @@ int qSelect(char *tableName, uint16_t key, t_log *logger) {
 		log_error(logger, " >> Error al realizar select (No existe la tabla).");
 		delete_package(p);
 		free(table);
-		return 0;
+		return -1;
 	}
 	t_memory *mem = get_memory_for_query(t, key);
 
@@ -21,7 +21,7 @@ int qSelect(char *tableName, uint16_t key, t_log *logger) {
 		log_error(logger, "No se pudo realizar la query. No hay memorias disponibles para esta consistencia.");
 		delete_package(p);
 		free(table);
-		return 0;
+		return -1;
 	}
 
 //	Enviar query a memoria
@@ -83,7 +83,7 @@ int qInsert(char* table, uint16_t key, char *value, t_log *logger) {
 	if(t == NULL) {
 		log_error(logger, " >> Error al realizar insert (No existe la tabla).");
 		delete_package(p);
-		return 0;
+		return -1;
 	}
 
 	t_memory *mem = get_memory_for_query(t, key);
@@ -91,7 +91,7 @@ int qInsert(char* table, uint16_t key, char *value, t_log *logger) {
 	if(mem == NULL) {
 		log_error(logger, "No se pudo realizar la query. No hay memorias disponibles para esta consistencia.");
 		delete_package(p);
-		return 0;
+		return -1;
 	}
 
 //	Enviar query a memoria
@@ -149,7 +149,7 @@ int qCreate(char *table, char *consType, char *part, char *compTime, t_log *logg
 	if(mem == NULL) {
 		log_error(logger, "No se pudo realizar la query. No hay memorias disponibles.");
 		delete_package(p);
-		return 0;
+		return -1;
 	}
 
 //	Enviar query a memoria
@@ -195,7 +195,7 @@ int qDescribe(char* table, t_log *logger) {
 
 	if(mem == NULL) {
 		log_error(logger, "No se pudo realizar la query. No hay memorias disponibles.");
-		return 0;
+		return -1;
 	}
 
 //	Enviar query a memoria
@@ -291,7 +291,7 @@ int qDrop(char *table, t_log *logger) {
 	if(t == NULL) {
 		log_error(logger, " >> Error al realizar drop (No existe la tabla).");
 		delete_package(p);
-		return 0;
+		return -1;
 	}
 
 	t_memory *mem = get_any_memory();
@@ -299,7 +299,7 @@ int qDrop(char *table, t_log *logger) {
 	if(mem == NULL) {
 		log_error(logger, "No se pudo realizar la query. No hay memorias disponibles.");
 		delete_package(p);
-		return 0;
+		return -1;
 	}
 
 //	Enviar query a memoria
