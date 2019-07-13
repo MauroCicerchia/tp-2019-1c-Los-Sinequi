@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
 }
 
 void memory_init(){
+		load_config();
 
 		pthread_mutex_init(&MUTEX_CONFIG,NULL);
 		pthread_mutex_init(&MUTEX_MEM,NULL);
@@ -57,6 +58,8 @@ void kill_memory(){
 	log_destroy(logger);
 	free(main_memory);
 	bitarray_destroy(bitmap);
+
+	config_destroy(config);
 
 	pthread_mutex_destroy(&MUTEX_GOSSIP);
 	pthread_mutex_destroy(&MUTEX_MEM);
@@ -786,100 +789,78 @@ void get_value_size(){
 }
 /******************************* DATOS VARIABLES DEL ARCHIVO CONFIG **********************/
 int get_retardo_journal(){
-	pthread_mutex_lock(&MUTEX_CONFIG);
-	load_config();
+//	pthread_mutex_lock(&MUTEX_CONFIG);
 	int retard = config_get_int_value(config,"RETARDO_JOURNAL");
-	config_destroy(config);
-	pthread_mutex_unlock(&MUTEX_CONFIG);
+//	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return retard;
 }
 int get_retardo_gossip(){
-	pthread_mutex_lock(&MUTEX_CONFIG);
-	load_config();
+//	pthread_mutex_lock(&MUTEX_CONFIG);
 	int retard = config_get_int_value(config,"RETARDO_GOSSIPING");
-	config_destroy(config);
-	pthread_mutex_unlock(&MUTEX_CONFIG);
+//	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return retard;
 }
 int get_max_conexiones(){
-	pthread_mutex_lock(&MUTEX_CONFIG);
-	load_config();
+//	pthread_mutex_lock(&MUTEX_CONFIG);
 	int amount = config_get_int_value(config,"MAX_CONEXIONES_KERNEL");
-	config_destroy(config);
-	pthread_mutex_unlock(&MUTEX_CONFIG);
+//	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return amount;
 }
 
 int get_tam_mem(){
-	pthread_mutex_lock(&MUTEX_CONFIG);
-	load_config();
+//	pthread_mutex_lock(&MUTEX_CONFIG);
 	int size = config_get_int_value(config,"TAM_MEM");
-	config_destroy(config);
-	pthread_mutex_unlock(&MUTEX_CONFIG);
+//	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return size;
 }
 
 char* get_ip(){
-	pthread_mutex_lock(&MUTEX_CONFIG);
-	load_config();
+//	pthread_mutex_lock(&MUTEX_CONFIG);
 	char* ip = string_duplicate(config_get_string_value(config,"IP"));
-	config_destroy(config);
-	pthread_mutex_unlock(&MUTEX_CONFIG);
+//	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return ip;
 }
 
 char* get_port(){
-	pthread_mutex_lock(&MUTEX_CONFIG);
-	load_config();
+//	pthread_mutex_lock(&MUTEX_CONFIG);
 	char* port = string_duplicate(config_get_string_value(config,"PUERTO"));
-	config_destroy(config);
-	pthread_mutex_unlock(&MUTEX_CONFIG);
+//	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return port;
 }
 
 char* get_ip_fs(){
-	pthread_mutex_lock(&MUTEX_CONFIG);
-	load_config();
+//	pthread_mutex_lock(&MUTEX_CONFIG);
 	char* ip = string_duplicate(config_get_string_value(config,"IP_FS"));
-	config_destroy(config);
-	pthread_mutex_unlock(&MUTEX_CONFIG);
+//	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return ip;
 }
 
 char* get_port_fs(){
-	pthread_mutex_lock(&MUTEX_CONFIG);
-	load_config();
+//	pthread_mutex_lock(&MUTEX_CONFIG);
 	char* port = string_duplicate(config_get_string_value(config,"PUERTO_FS"));
-	config_destroy(config);
-	pthread_mutex_unlock(&MUTEX_CONFIG);
+//	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return port;
 }
 
 char **get_ip_seeds(){
-	pthread_mutex_lock(&MUTEX_CONFIG);
-	load_config();
+//	pthread_mutex_lock(&MUTEX_CONFIG);
 	char** ips = config_get_array_value(config, "IP_SEEDS");
 //			array_duplicate(config_get_array_value(config, "IP_SEEDS"));
-	config_destroy(config);
-	pthread_mutex_unlock(&MUTEX_CONFIG);
+//	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return ips;
 }
 
 char **get_port_seeds(){
-	pthread_mutex_lock(&MUTEX_CONFIG);
-	load_config();
+//	pthread_mutex_lock(&MUTEX_CONFIG);
 	char** ports = array_duplicate(config_get_array_value(config, "PUERTO_SEEDS"));
-	config_destroy(config);
-	pthread_mutex_unlock(&MUTEX_CONFIG);
+//	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return ports;
 }
 
 int get_mem_number(){
-	pthread_mutex_lock(&MUTEX_CONFIG);
-	load_config();
+//	pthread_mutex_lock(&MUTEX_CONFIG);
 	int num = config_get_int_value(config,"MEMORY_NUMBER");
-	config_destroy(config);
-	pthread_mutex_unlock(&MUTEX_CONFIG);
+//	pthread_mutex_unlock(&MUTEX_CONFIG);
 	return num;
 }
 
