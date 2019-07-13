@@ -15,6 +15,7 @@ void ba_create()
 
 	if(blocks == 0){
 		log_error(logger,"No puede haber 0 bloques");
+		sem_post(&MUTEX_BITARRAY);
 		return;
 	}
 
@@ -25,6 +26,7 @@ void ba_create()
 		log_error(logger,"error al abrir el bitarray, abortando sistema");
 		close(bitarrayfd);
 		free(url);
+		sem_post(&MUTEX_BITARRAY);
 		return;
 	}
 

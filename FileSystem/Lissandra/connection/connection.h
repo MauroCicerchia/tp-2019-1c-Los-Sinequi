@@ -22,6 +22,7 @@ extern char *ip;
 extern char *port;
 extern t_log *logger;
 extern int valueSize;
+extern sem_t MAX_CLIENTS;
 
 void *listen_client();
 void process_query_from_client(int client);

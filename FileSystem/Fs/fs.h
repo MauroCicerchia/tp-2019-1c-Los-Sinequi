@@ -75,4 +75,5 @@ void fs_cleanTmpsC(char *tableUrl);
 bool isTmpc(char *string);
 
 void fs_setActiveTables();
+activeTable *getActiveTable(char *);
 #endif /* FS_H */

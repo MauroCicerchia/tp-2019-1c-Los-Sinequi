@@ -279,6 +279,7 @@ void *processor_execute(void *p) {
 
 		if(process_finished(exec)) {
 			log_info(logger, " >> Terminando proceso %d", exec->pid);
+			printf("AVERGA");
 			process_destroy(exec);
 			sem_post(&MAX_PROC_READY);
 		} else {

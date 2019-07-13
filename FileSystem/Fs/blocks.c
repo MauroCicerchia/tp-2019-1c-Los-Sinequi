@@ -152,7 +152,7 @@ int getSizeOfBlocks(){
 
 //guarda la data en el archivo de la url
 void b_saveData(char *url,char *data){
- 	char *blocksDirectory = fs_getBlocksUrl();
+	char *blocksDirectory = fs_getBlocksUrl();
 	char *blockUrl;
 	int sizeOfSemiCompleteBlock = b_freeSizeOfLastBlock(url);
 
@@ -412,6 +412,8 @@ void b_saveIntoBlock(char *blockUrl,char *data)
 	txt_close_file(ff);
 	free(pivot);
 }
+
+//
 
 //actualiza el tamano
 void b_updateSize(char *url){

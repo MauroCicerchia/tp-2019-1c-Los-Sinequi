@@ -9,7 +9,7 @@ char *absoluto, *port, *ip;
 
 t_log *logger;
 
-int fd,wd,tmpNo,valueSize, exitFlag;
+int fd,wd,tmpNo,valueSize, exitFlag,dumpTime,retardTime;
 
 pthread_t tApi,tDump,tListenCfg, tLisentClient;
 
@@ -28,6 +28,7 @@ int lastBlockAssigned;
 int flagBloquesLibres;
 
 sem_t MUTEX_MEMTABLE, MUTEX_RETARDTIME, MUTEX_DUMPTIME, MUTEX_BITARRAY, MUTEX_CONFIG,MUTEX_ELSOLUCIONADOR,MUTEX_LISTACTIVETABLES;
+sem_t MUTEX_STR_ARRAY,MAX_CLIENTS;
 /*GLOBALES*/
 
 int main(int argc, char **argv)
@@ -35,8 +36,8 @@ int main(int argc, char **argv)
 
 	init_FileSystem();
 
-//	pthread_create(&tListenCfg,NULL,threadConfigModify,NULL);
-//	pthread_detach(tListenCfg);
+	pthread_create(&tListenCfg,NULL,threadConfigModify,NULL);
+	pthread_detach(tListenCfg);
 
 	pthread_create(&tLisentClient,NULL,threadListenToClient,NULL);
 	pthread_detach(tLisentClient);
@@ -62,6 +63,8 @@ void init_FileSystem()
 	sem_init(&MUTEX_DUMPTIME,1,1);
 	sem_init(&MUTEX_RETARDTIME,1,1);
 	sem_init(&MUTEX_BITARRAY,1,1);
+	sem_init(&MUTEX_STR_ARRAY,1,1);
+	sem_init(&MAX_CLIENTS,1,30); //Max connections
 
 	logger = NULL;
 	iniciar_logger(&logger); //arranco logger
@@ -72,8 +75,8 @@ void init_FileSystem()
 	memtable = list_create(); //creo memtable
 	sysTables = list_create();
 	log_info(logger,"[Lissandra]: Leyendo variables...");
-//	fd = inotify_init(); //arranco monitoreo en el archivo de config
-//	wd = inotify_add_watch(fd,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/Config/",IN_MODIFY);
+	fd = inotify_init(); //arranco monitoreo en el archivo de config
+	wd = inotify_add_watch(fd,"/home/utnso/workspace/tp-2019-1c-Los-Sinequi/FileSystem/Config/",IN_MODIFY);
 
 	sem_wait(&MUTEX_CONFIG);
 		load_config();
@@ -81,6 +84,8 @@ void init_FileSystem()
 		ip = string_duplicate(get_ip());
 		port = string_duplicate(get_port());
 		valueSize = get_valueSize();
+		dumpTime = get_dump_time();
+		retardTime = get_retard_time();
 		config_destroy(config);
 	sem_post(&MUTEX_CONFIG);
 
@@ -152,6 +157,7 @@ void kill_FileSystem()
 	sem_destroy(&MUTEX_DUMPTIME);
 	sem_destroy(&MUTEX_RETARDTIME);
 	sem_destroy(&MUTEX_BITARRAY);
+	sem_destroy(&MAX_CLIENTS);
 
 	log_info(logger, "[Lissandra]: Termina FS.");
 
@@ -174,12 +180,12 @@ void *threadConfigModify()
 
 		load_config();
 
-//		sem_wait(&MUTEX_DUMPTIME);
-//		dumpTime = get_dump_time();
-//		sem_post(&MUTEX_DUMPTIME);
-//
-//		sem_wait(&MUTEX_RETARDTIME);
-//		retardTime = get_retard_time();
+		sem_wait(&MUTEX_DUMPTIME);
+		dumpTime = get_dump_time();
+		sem_post(&MUTEX_DUMPTIME);
+
+		sem_wait(&MUTEX_RETARDTIME);
+		retardTime = get_retard_time();
 		sem_post(&MUTEX_RETARDTIME);
 
 		config_destroy(config);
@@ -194,7 +200,8 @@ void *threadDump()
 	int dt;
 	while(1){
 		sem_wait(&MUTEX_DUMPTIME);
-		dt = get_dump_time();
+//		dt = get_dump_time();
+		dt=dumpTime;
 		sem_post(&MUTEX_DUMPTIME);
 
 		usleep(dt * 1000);
@@ -221,19 +228,20 @@ void load_config(){
 }
 
 int get_dump_time(){
-	sem_wait(&MUTEX_CONFIG);
-	load_config();
+//	sem_wait(&MUTEX_CONFIG);
+//	load_config();
 	int dt = config_get_int_value(config,"TIEMPO_DUMP");
-	config_destroy(config);
-	sem_post(&MUTEX_CONFIG);
+//	config_destroy(config);
+//	sem_post(&MUTEX_CONFIG);
+	log_error(logger,"**%d**",dt);
 	return dt;
 }
 int get_retard_time(){
-	sem_wait(&MUTEX_CONFIG);
-	load_config();
+//	sem_wait(&MUTEX_CONFIG);
+//	load_config();
 	int r = config_get_int_value(config,"RETARDO");
-	config_destroy(config);
-	sem_post(&MUTEX_CONFIG);
+//	config_destroy(config);
+//	sem_post(&MUTEX_CONFIG);
 	return r;
 }
 char *get_fs_route(){
@@ -280,3 +288,5 @@ void *threadListenToClient(){
 	listen_client();
 	return NULL;
 }
+
+

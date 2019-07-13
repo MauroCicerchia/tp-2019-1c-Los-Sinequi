@@ -4,12 +4,15 @@
 int fs_tableExists(char* table)
 {
 	char *tableUrl = makeUrlForPartition(table,"0");
+	sem_wait(&MUTEX_ELSOLUCIONADOR);
 	if(access(tableUrl,F_OK) != -1){
 		free(tableUrl);
+		sem_post(&MUTEX_ELSOLUCIONADOR);
 		return 1;
 	}
 	else {
 		free(tableUrl);
+		sem_post(&MUTEX_ELSOLUCIONADOR);
 		return 0;
 	}
 }
@@ -132,6 +135,8 @@ void loadMetadata(char *table,char *consistency,int parts,int ctime)
 
 void fs_toDump(char *table,char *toDump)
 {
+	activeTable* t = getActiveTable(table);
+	sem_wait(&t->MUTEX_TABLE_PART);
 	char *tmpUrl = makeTableUrl(table);
 	char *x = string_itoa(tmpNo);
 	string_append(&tmpUrl,x);
@@ -146,6 +151,7 @@ void fs_toDump(char *table,char *toDump)
 	b_saveData(tmpUrl,toDump); //guarda en la url tableUrl el char* que se le pasa
 
 	free(tmpUrl);
+	sem_post(&t->MUTEX_TABLE_PART);
 }
 
 

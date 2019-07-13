@@ -16,6 +16,7 @@ void *listen_client()
 			log_warning(logger,"[RX/TX]: No se pudo conectar con el cliente\n");
 		}
 		else{
+			sem_wait(&MAX_CLIENTS);
 			pthread_t queryThread;
 
 			pthread_create(&queryThread, NULL, attendClient, (void*)cliSocket);
@@ -40,6 +41,7 @@ void *attendClient(void *socket){
 				case REQUEST_JOURNAL: break;
 			}
 			log_info(logger,"[RX/TX]: Request enviada");
+			sem_post(&MAX_CLIENTS);
 			return NULL;
 }
 
