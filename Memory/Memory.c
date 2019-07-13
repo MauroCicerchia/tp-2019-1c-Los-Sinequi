@@ -254,7 +254,7 @@ void *listen_client() {
 		}else{
 			sem_wait(&MAX_CONNECTIONS_KERNEL);
 			pthread_t client;
-			pthread_create(&client,NULL,attend_client,&cliSocket);
+			pthread_create(&client,NULL,attend_client,&cliSocket); //TODO cambiar esto a como esta en fs
 			pthread_detach(client);
 		}
 //		e_request_code rc = attend_client(cliSocket);
