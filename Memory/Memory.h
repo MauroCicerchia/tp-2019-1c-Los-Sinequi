@@ -28,7 +28,7 @@ void THEGREATMALLOC();
 
 t_list* segmentList;
 e_query processQuery(char *, t_log*);
-t_log *logger;
+t_log *logger,*output;
 t_config *config;
 sem_t MUTEX_MEM,MAX_CONNECTIONS_KERNEL,MUTEX_GOSSIP,MUTEX_JOURNAL,MUTEX_CONFIG,MUTEX_BITMAP;
 
@@ -37,6 +37,7 @@ void kill_memory();
 void load_config();
 void free_frame(int);
 void iniciar_logger();
+void iniciar_logger_output();
 segment* segment_init();
 void *listen_client();
 void process_query_from_client(int);
@@ -57,7 +58,7 @@ void delete_segment_from_mem(segment*);
 void remove_delete_segment(segment*);
 void* execute_journal();
 void load_page_to_segment(uint16_t,segment*,char*,int);
-void execute_replacement(uint16_t, char*, segment*);
+void execute_replacement(uint16_t, char*, segment*,int);
 
 int get_retardo_gossip();
 int get_retardo_journal();

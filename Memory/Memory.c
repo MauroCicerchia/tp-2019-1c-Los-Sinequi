@@ -36,6 +36,7 @@ void memory_init(){
 		sem_init(&MUTEX_JOURNAL,0,1);
 		sem_init(&MAX_CONNECTIONS_KERNEL,0,get_max_conexiones());
 		iniciar_logger();
+		iniciar_logger_output();
 
 		segmentList = list_create();
 
@@ -76,6 +77,11 @@ void iniciar_logger()
 	log_info(logger,"--INICIANDO MEMORIA--");
 }
 
+void iniciar_logger_output(){
+	output = log_create("../output.log", "Memory", 0, LOG_LEVEL_INFO);
+	log_info(output,"--INICIANDO OUTPUT--");
+}
+
 void load_config() {
 	config = config_create("../.config");
 	if(config == NULL) {
@@ -85,7 +91,6 @@ void load_config() {
 }
 //********************************** MEMORIA PRINCIPAL ***************************
 int get_frame_size(){
-
 	int frameSize=0;
 	frameSize += sizeof(uint16_t); //key
 	frameSize += sizeof(uint64_t); //timestamp
@@ -97,7 +102,7 @@ void create_bitmap(int memSize){
 	sem_wait(&MUTEX_BITMAP);
 	int bitNumbers = total_frames();
 	char* bitParameter = (char*)malloc(sizeof(char)*(bitNumbers/8 + 1));
-	log_error(logger,"Marcos: **%d**",total_frames());
+	log_info(logger,"Marcos: **%d**",total_frames());
 	for(int i = 0; i<=(bitNumbers/8); i++){
 		bitParameter[i] = '0';
 	}
@@ -155,6 +160,8 @@ void insert_in_frame(uint16_t key, uint64_t timestamp, char* value, int frame_nu
 	memcpy(base, value, strlen(value) + 1);
 	sem_post(&MUTEX_MEM);
 
+	log_info(output,"Se inserto el value: **%s** con la key: **%d** en el frame: **%d**",value,(int)key,frame_num);
+
 }
 
 void modify_in_frame(char* value, int frame_num){
@@ -165,6 +172,9 @@ void modify_in_frame(char* value, int frame_num){
 	base += sizeof(uint64_t);
 	memcpy(base, value, strlen(value) + 1);
 	sem_post(&MUTEX_MEM);
+
+	log_info(output,"Se atcualizo el marco **%d** al value: **%s**",frame_num,value);
+
 }
 
 int find_free_frame(){
@@ -269,6 +279,7 @@ void process_query_from_client(int client) {
 			key = recv_int(client);
 			log_info(logger,"Recibi un SELECT de tabla %s y key %d",table,(int)key);
 			char *response = selectM(table, key);
+			log_info(output,"El SELECT %s %d devuelve %s",table,key,response);
 			free(table);
 			if(response != NULL) {
 				send_res_code(client, RESPONSE_SUCCESS);
@@ -283,6 +294,7 @@ void process_query_from_client(int client) {
 			key = recv_int(client);
 			value = recv_str(client);
 			log_info(logger,"Recibi un INSERT de tabla %s, key %d y value %s",table,(int)key,value);
+			log_info(output,"Recibi un INSERT de tabla %s, key %d y value %s",table,(int)key,value);
 			sem_wait(&MUTEX_JOURNAL);
 			status = insertM(table, key, value);
 			sem_post(&MUTEX_JOURNAL);
@@ -423,6 +435,7 @@ e_query processQuery(char *query, t_log *logger) {
 
 			char *value = selectM( (char*) list_get(args,1), atoi(list_get(args,2)));
 			log_info(logger,"El valor retornado es: ** %s **",value);
+			log_info(output,"El SELECT %s %d devuelve %s",(char*) list_get(args,1),atoi(list_get(args,2)),value);
 			free(value);
 			log_info(logger,"borraresto");
 			break;
@@ -532,6 +545,7 @@ void* execute_journal(){
 }
 /*********************************** QUERYS ******************************************/
 int journalM(){
+	log_info(output,"[JOURNAL]: Ejecutando Journal");
 	int errorFS=0;
 	void journal_segment(void* aSegment){
 		segment* s = (segment*) aSegment;
@@ -595,13 +609,14 @@ int insertM(char* segmentID, uint16_t key, char* value){
 		}else{
 			if(memory_full()){
 				log_info(logger,"La memoria esta full, ejecutando Journal");
+				log_info(output,"La memoria esta full");
 				if(journalM() == -1){
 					log_error(logger,"No se pudo realizar el Journal, cancelando Insert");
 					return -1;
 				}
 				return insertM(segmentID, key, value);
 			}else{
-				execute_replacement(key,value,segmentFound);
+				execute_replacement(key,value,segmentFound,1);
 			}
 		}
 		return 0 ;
@@ -642,6 +657,7 @@ char* selectM(char* segmentID, uint16_t key){
 			}else{
 				if(memory_full()){
 					log_info(logger,"La memoria esta full, ejecutando Journal");
+					log_info(output,"La memoria esta full");
 					if(journalM() == -1){
 						log_error(logger,"No se pudo realizar el Journal, cancelando Select");
 						if(segmentCreated){
@@ -652,7 +668,7 @@ char* selectM(char* segmentID, uint16_t key){
 					}
 					load_page_to_segment(key, segmentFound, value, 0);
 				}else{
-					execute_replacement(key,value,segmentFound);
+					execute_replacement(key,value,segmentFound,0);
 				}
 			}
 			sem_post(&MUTEX_JOURNAL);
@@ -722,7 +738,7 @@ void remove_delete_segment(segment* aSegment){
 }
 
 /********************************************* LRU ************************************/
-void execute_replacement(uint16_t key, char* value, segment* segment_to_use){
+void execute_replacement(uint16_t key, char* value, segment* segment_to_use, int isModified){
 	log_info(logger,"Ejecutando algoritmo de reemplazo LRU");
 	uint64_t min_time = get_timestamp();
 	page* min_page = NULL;
@@ -743,10 +759,10 @@ void execute_replacement(uint16_t key, char* value, segment* segment_to_use){
 
 	if(min_segment != NULL && min_page != NULL) {
 		log_info(logger,"Se remueve la key %d del segmento %s \n", (int)get_key_from_memory(min_page->frame_num), min_segment->segment_id);
-
+		log_info(output,"[LRU]: Se remueve la key %d del segmento %s", (int)get_key_from_memory(min_page->frame_num), min_segment->segment_id);
 		free_frame(min_page->frame_num);
 		remove_page_from_segment(min_page,min_segment);
-		load_page_to_segment(key, segment_to_use, value, 0);
+		load_page_to_segment(key, segment_to_use, value, isModified);
 	} else {
 		log_error(logger, "No se encontro una pagina para reemplazar.");
 	}
